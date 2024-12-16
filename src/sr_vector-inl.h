@@ -342,38 +342,46 @@ hn::Vec<D> pow2(const D d, const V n) {
   // constexpr I bias = prism::utils::IEEE754<T>::bias;
 
   // is_subnormal = n < min_exponent
-  auto is_subnormal = hn::Lt(n, hn::Set(di, min_exponent));
+  auto min_exponent_v = hn::Set(di, min_exponent);
+  auto is_subnormal = hn::Lt(n, min_exponent_v);
   // precision_loss = is_subnormal ? min_exponent - n : 0
-  auto precision_loss =
-      hn::IfThenElseZero(is_subnormal, hn::Sub(hn::Set(di, min_exponent), n));
+
+  auto loss = hn::Sub(min_exponent_v, n);
+  auto precision_loss = hn::IfThenElseZero(is_subnormal, loss);
 
   // n_adjusted = is_subnormal ? 1 : n
-  auto n_adjusted = hn::IfThenElse(is_subnormal, hn::Set(di, 1), n);
+  auto one_v = hn::Set(di, 1);
+  auto n_adjusted = hn::IfThenElse(is_subnormal, one_v, n);
+
+  dbg::debug_mask<DI>("[pow2] is_subnormal", is_subnormal);
 
   const T one = 1.0;
   const auto one_as_int = reinterpret_cast<const I &>(one);
-
+  const auto one_as_int_v = hn::Set(di, one_as_int);
   // res = is_subnormal ? 0 : 1
-  auto res = hn::IfThenZeroElse(is_subnormal, hn::Set(di, one_as_int));
+  auto res = hn::IfThenZeroElse(is_subnormal, one_as_int_v);
 
   dbg::debug_vec<DI>("[pow2] res", res);
 
   // shift = mantissa - precision_loss
-  auto shift = hn::Sub(hn::Set(di, mantissa), precision_loss);
+  const auto mantissa_v = hn::Set(di, mantissa);
+  auto shift = hn::Sub(mantissa_v, precision_loss);
 
-  dbg::debug_mask<DI>("[pow2] is_subnormal", is_subnormal);
   dbg::debug_vec<DI>("[pow2] n_adjusted", n_adjusted, false);
   dbg::debug_vec<DI>("[pow2] precision_loss", precision_loss, false);
   dbg::debug_vec<DI>("[pow2] shift", shift, false);
 
-  // res += res << shift
-  res = res + (n_adjusted << shift);
+  // res = res + (n_adjusted << shift);
+  auto shift_adjusted = hn::Shl(n_adjusted, shift);
+  auto res_adjusted = hn::Add(res, shift_adjusted);
+  auto res_float = hn::BitCast(d, res_adjusted);
 
-  dbg::debug_vec<DI>("[pow2] res", res);
-  dbg::debug_vec<D>("[pow2] res", hn::BitCast(d, res));
+  dbg::debug_vec<DI>("[pow2] n_adjusted << shift", shift_adjusted);
+  dbg::debug_vec<DI>("[pow2] res", res_adjusted);
+  dbg::debug_vec<D>("[pow2] res", res_float);
   dbg::debug_msg("[pow2] END\n");
 
-  return hn::BitCast(d, res);
+  return res_float;
 }
 
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
