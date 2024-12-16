@@ -5,6 +5,26 @@ CXX=@CLANGXX_PATH@
 
 BAZEL=@BAZEL@
 
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+INSTALL_LIB_PREFIX=@libdir@
+
+# Build highway library
+$BAZEL build @hwy
+HIGHWAY_SHARED_LIB=$(find bazel-bin/ -name libhwy.so)
+HIGHWAY_STATIC_LIB=$(find bazel-bin/ -name libhwy.a)
+
+echo "Copying libhwy to $INSTALL_LIB_PREFIX"
+chmod u+w $HIGHWAY_SHARED_LIB $HIGHWAY_STATIC_LIB
+cp $HIGHWAY_SHARED_LIB $HIGHWAY_STATIC_LIB $INSTALL_LIB_PREFIX
+
+# Build prism library
+$BAZEL build src:prism-all
+
+echo "Copying libprism* to $INSTALL_LIB_PREFIX"
+chmod u+w bazel-bin/src/libprism*.{a,so}
+cp bazel-bin/src/libprism*.{a,so} $INSTALL_LIB_PREFIX
+
 HWY_INCLUDE_PATH=$(${BAZEL} query @hwy --output=location --noshow_loading_progress 2>/dev/null | cut -f1 -d' ' | xargs -n1 dirname)
 
 if [ -z "$HWY_INCLUDE_PATH" ]; then
@@ -12,6 +32,7 @@ if [ -z "$HWY_INCLUDE_PATH" ]; then
     exit 1
 fi
 
+# Build LLVM IR prism files
 INCLUDE="-I. -I$HWY_INCLUDE_PATH"
 CXXFLAGS="-S -emit-llvm -O2 -UPRISM_DEBUG -std=c++17"
 
@@ -25,13 +46,3 @@ $CXX $CXXFLAGS $INCLUDE src/ud_vector.cpp -o ud_hw-native.ll &
 $CXX $CXXFLAGS $INCLUDE src/sr_vector.cpp -o sr_hw-native.ll &
 
 wait
-
-bazelisk build src:prism-all
-
-prefix=@prefix@
-exec_prefix=@exec_prefix@
-INSTALL_LIB_PREFIX=@libdir@
-
-echo "Copying libprism* to $INSTALL_LIB_PREFIX"
-chmod u+w bazel-bin/src/libprism*.{a,so}
-cp bazel-bin/src/libprism*.{a,so} $INSTALL_LIB_PREFIX
