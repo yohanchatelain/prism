@@ -1,7 +1,7 @@
 #!/bin/bash
 
-CC="/usr/lib/llvm-14/bin/clang"
-CXX="/usr/lib/llvm-14/bin/clang++"
+CC=@CLANG_PATH@
+CXX=@CLANGXX_PATH@
 
 BAZEL=@BAZEL@
 
