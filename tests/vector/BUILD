@@ -13,6 +13,12 @@ cc_test_gen_vector(
     dbg = True,
 )
 
+cc_test_gen_vector(
+    name = "test_get_exponent",
+    copts = HWY_OPTS,
+    dbg = True,
+)
+
 cc_test_lib_gen(
     name = "xoshiro",
     size = "medium",

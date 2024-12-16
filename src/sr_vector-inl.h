@@ -287,14 +287,21 @@ VI get_exponent(D d, V a) {
   constexpr U exponent_mask = prism::utils::IEEE754<T>::exponent_mask_scaled;
   constexpr I bias = prism::utils::IEEE754<T>::bias;
 
-  auto bits = hn::BitCast(di, a);
-  auto is_zero = hn::Eq(bits, hn::Zero(di));
-  auto raw_exp = hn::And(bits, hn::Set(di, exponent_mask));
-  auto exp = raw_exp >> hn::Set(di, mantissa);
-  exp = hn::Sub(exp, hn::Set(di, bias));
+  auto zero_v = hn::Zero(di);
+  auto abs_a = hn::Abs(a);
+  auto bits = hn::BitCast(di, abs_a);
+  auto is_zero = hn::Eq(bits, zero_v);
+  auto exponent_mask_v = hn::Set(di, exponent_mask);
+  auto bits_exponent = hn::And(bits, exponent_mask_v);
+  auto mantissa_v = hn::Set(di, mantissa);
+  auto raw_exp = hn::Shr(bits_exponent, mantissa_v);
+  auto bias_v = hn::Set(di, bias);
+  auto exp = hn::Sub(raw_exp, bias_v);
 
   dbg::debug_mask<DI>("[get_exponent] is_zero", is_zero);
   dbg::debug_vec<DI>("[get_exponent] bits", bits);
+  dbg::debug_vec<DI>("[get_exponent] exponent_mask", exponent_mask_v);
+  dbg::debug_vec<DI>("[get_exponent] bits_exponent", bits_exponent);
   dbg::debug_vec<DI>("[get_exponent] raw_exp", raw_exp);
   dbg::debug_vec<DI>("[get_exponent] exp", exp, false);
 

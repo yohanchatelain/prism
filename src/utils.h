@@ -29,7 +29,7 @@ template <> struct IEEE754<float> {
   static constexpr I precision = 24;
   static constexpr float ulp = 0x1.0p-24f;
   static constexpr I bias = 127;
-  static constexpr U exponent_mask = 0xFF;
+  static constexpr U exponent_mask = 0x7F8;
   static constexpr U exponent_mask_scaled = 0x7f800000;
   static constexpr float max_normal = 0x1.fffffep127f;
   static constexpr float min_normal = 0x1.0p-126f;
@@ -50,7 +50,7 @@ template <> struct IEEE754<double> {
   static constexpr double ulp = 0x1.0p-53;
   static constexpr I bias = 1023;
   static constexpr U exponent_mask = 0x7FF;
-  static constexpr U exponent_mask_scaled = 0x7ff0000000000000;
+  static constexpr U exponent_mask_scaled = 0x7ff0000000000000ULL;
   static constexpr double max_normal = 0x1.fffffffffffffp1023;
   static constexpr double min_normal = 0x1.0p-1022;
   static constexpr double min_subnormal = 0x1.0p-1074;
@@ -95,16 +95,17 @@ template <typename T, typename I = typename IEEE754<T>::I> I get_exponent(T a) {
     debug_end();
     return 0;
   }
+  using U = typename IEEE754<T>::U;
   constexpr I bias = IEEE754<T>::bias;
   constexpr I mantissa = IEEE754<T>::mantissa;
-  constexpr I exponent_mask = IEEE754<T>::exponent_mask;
+  constexpr U exponent_mask = IEEE754<T>::exponent_mask_scaled;
   debug_print("a = %+.13a\n", a);
   debug_print("bias = %d\n", bias);
   debug_print("mantissa = %d\n", mantissa);
   debug_print("exponent_mask = %d\n", exponent_mask);
   I *a_bits = reinterpret_cast<I *>(&a);
   debug_print("a = 0x%016x\n", a_bits);
-  const auto raw_exp = ((*a_bits) >> mantissa) & exponent_mask;
+  const auto raw_exp = ((*a_bits) & exponent_mask) >> mantissa;
   debug_print("raw exponent = %d\n", raw_exp);
   const I exp = raw_exp - bias;
   debug_print("get_exponent(%.13a) = %d\n", a, exp);

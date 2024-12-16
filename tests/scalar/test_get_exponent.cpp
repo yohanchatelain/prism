@@ -22,7 +22,7 @@ template <typename T> int32_t get_exponent(T a) {
     return exp - 1;
     break;
   case FP_SUBNORMAL:
-    return std::numeric_limits<T>::min_exponent - 1;
+    return std::numeric_limits<T>::min_exponent - 2;
   case FP_INFINITE:
   case FP_NAN:
     return std::numeric_limits<T>::max_exponent;
@@ -47,6 +47,22 @@ public:
   double operator()() { return dis(gen); }
 };
 
+template <typename T> std::vector<T> get_simple_case() {
+  std::vector<T> simple_case = {0.0,
+                                1.0,
+                                2.0,
+                                3.0,
+                                std::numeric_limits<T>::min(),
+                                std::numeric_limits<T>::lowest(),
+                                std::numeric_limits<T>::max(),
+                                std::numeric_limits<T>::epsilon(),
+                                std::numeric_limits<T>::infinity(),
+                                std::numeric_limits<T>::denorm_min(),
+                                std::numeric_limits<T>::quiet_NaN(),
+                                std::numeric_limits<T>::signaling_NaN()};
+  return simple_case;
+}
+
 #define test_equality(a)                                                       \
   EXPECT_EQ(reference::get_exponent(a), prism::utils::get_exponent(a))         \
       << std::hexfloat << "Failed for\n"                                       \
@@ -67,26 +83,13 @@ template <typename T> void testBinade(int n, int repetitions = 100) {
 }
 
 TEST(GetExponentTest, BasicAssertions) {
-
-  // TODO : add test for subnormal numbers
-  std::vector<float> simple_case_float = {
-      0.0f,
-      1.0f,
-      2.0f,
-      3.0f,
-      std::numeric_limits<float>::min(),
-      std::numeric_limits<float>::max(),
-      std::numeric_limits<float>::infinity(),
-      std::numeric_limits<float>::quiet_NaN()};
-
+  std::vector<float> simple_case_float = get_simple_case<float>();
   for (auto a : simple_case_float) {
     test_equality(a);
     test_equality(-a);
   }
 
-  std::vector<double> simple_case_double(simple_case_float.begin(),
-                                         simple_case_float.end());
-
+  std::vector<double> simple_case_double = get_simple_case<double>();
   for (auto a : simple_case_double) {
     test_equality(a);
     test_equality(-a);
@@ -110,8 +113,14 @@ TEST(GetExponentTest, RandomAssertions) {
 }
 
 TEST(GetExponentTest, BinadeAssertions) {
-  for (int i = -126; i < 127; i++) {
+  constexpr auto start_float = -149;
+  constexpr auto start_double = -1074;
+  constexpr auto end_float = 127;
+  constexpr auto end_double = 1023;
+  for (int i = start_float; i < end_float; i++) {
     testBinade<float>(i);
+  }
+  for (int i = start_double; i < end_double; i++) {
     testBinade<double>(i);
   }
 }

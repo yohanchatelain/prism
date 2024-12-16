@@ -248,8 +248,9 @@ template <typename T> int get_exponent(T a) {
   } else {
     using U = typename IEEE754<T>::U;
     U u = reinterpret_cast<U &>(a);
+    u &= IEEE754<T>::exponent_mask_scaled;
     u >>= IEEE754<T>::mantissa;
-    exp = (int)(u & IEEE754<T>::exponent_mask);
+    exp = (int)u;
     exp -= IEEE754<T>::bias;
   }
   return exp;

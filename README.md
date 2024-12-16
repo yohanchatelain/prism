@@ -29,7 +29,7 @@ This combination of features makes the library versatile for scientific computin
 ## Requirements
 
 - clang, clang++
-- **bazel** ([install](https://bazel.build/install)) or **bazelisk** ([install](https://github.com/bazelbuild/bazelisk/releases))
+- **bazelisk** ([install](https://github.com/bazelbuild/bazelisk/releases))
   
 ## Install
 

@@ -43,7 +43,7 @@ def cc_test_gen_scalar(name, src = None, deps = DEPS, copts = COPTS, size = "sma
     native.cc_test(
         name = name,
         srcs = srcs + HEADERS + SRCS_SCALAR,
-        copts = COPTS + (copts if copts else []) + (["-DSR_DEBUG"] if dbg else []),
+        copts = COPTS + (copts if copts else []) + (["-DPRISM_DEBUG"] if dbg else []),
         deps = deps,
         size = size,
     )
@@ -53,7 +53,7 @@ def cc_test_gen_vector(name, src = None, deps = DEPS, copts = COPTS, size = "sma
     native.cc_test(
         name = name,
         srcs = srcs + HEADERS + SRCS_VECTOR,
-        copts = COPTS + (copts if copts else []) + (["-DSR_DEBUG"] if dbg else []),
+        copts = COPTS + (copts if copts else []) + (["-DPRISM_DEBUG"] if dbg else []),
         deps = deps,
         size = size,
         features = ["vector"],
@@ -65,7 +65,7 @@ def cc_test_lib_gen(name, src = None, deps = None, copts = COPTS, size = "small"
     native.cc_test(
         name = name,
         srcs = srcs + SRCS,
-        copts = COPTS + (copts if copts else []) + (["-DSR_DEBUG"] if dbg else []),
+        copts = COPTS + (copts if copts else []) + (["-DPRISM_DEBUG"] if dbg else []),
         deps = DEPS + (deps if deps else []),
         size = size,
         visibility = ["//visibility:public"],
