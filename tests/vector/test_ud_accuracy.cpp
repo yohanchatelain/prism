@@ -925,6 +925,8 @@ HWY_EXPORT_AND_TEST_P(UDRoundTest, TestAllRandom01AssertionsAdd);
 HWY_EXPORT_AND_TEST_P(UDRoundTest, TestAllRandom01AssertionsSub);
 HWY_EXPORT_AND_TEST_P(UDRoundTest, TestAllRandom01AssertionsMul);
 HWY_EXPORT_AND_TEST_P(UDRoundTest, TestAllRandom01AssertionsDiv);
+HWY_EXPORT_AND_TEST_P(UDRoundTest, TestAllRandom01AssertionsSqrt);
+HWY_EXPORT_AND_TEST_P(UDRoundTest, TestAllRandom01AssertionsFma);
 HWY_EXPORT_AND_TEST_P(UDRoundTest, TestAllRandomNoOverlapAssertionsAdd);
 HWY_EXPORT_AND_TEST_P(UDRoundTest, TestAllRandomNoOverlapAssertionsSub);
 HWY_EXPORT_AND_TEST_P(UDRoundTest, TestAllRandomNoOverlapAssertionsMul);
