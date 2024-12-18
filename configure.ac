@@ -2,12 +2,13 @@ m4_define([PRISM_VERSION], [m4_esyscmd([grep -oPZ '(?<=__version__ = ")[^"]*' VE
 
 AC_PREREQ([2.69])
 AC_INIT([prism], [PRISM_VERSION], [])
-LT_INIT
+AC_CONFIG_MACRO_DIR([m4])
 AM_SILENT_RULES([yes])
 AC_CONFIG_AUX_DIR(autoconf)
-AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
+AM_INIT_AUTOMAKE([silent-rules foreign])
 
+LT_INIT
 AC_PROG_CXX
 AC_PROG_AWK
 AC_PROG_CPP
@@ -69,6 +70,7 @@ else
 fi
 
 # Generate config files 
+AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([.bazelrc install.sh],
                 [chmod +x install.sh])
 
