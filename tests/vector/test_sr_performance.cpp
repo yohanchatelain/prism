@@ -10,7 +10,7 @@
 #include "hwy/tests/hwy_gtest.h"
 #include "hwy/tests/test_util-inl.h"
 
-#include "src/sr_hw.h"
+#include "src/sr_vector.h"
 namespace prism::sr::vector {
 
 constexpr size_t repetitions = 10000;

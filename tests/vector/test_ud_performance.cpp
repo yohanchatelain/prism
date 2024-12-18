@@ -10,7 +10,7 @@
 #include "hwy/tests/hwy_gtest.h"
 #include "hwy/tests/test_util-inl.h"
 
-#include "src/ud_hw.h"
+#include "src/ud_vector.h"
 namespace prism::ud::vector {
 
 constexpr size_t repetitions = 10000;
