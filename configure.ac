@@ -2,12 +2,12 @@ m4_define([PRISM_VERSION], [m4_esyscmd([grep -oPZ '(?<=__version__ = ")[^"]*' VE
 
 AC_PREREQ([2.69])
 AC_INIT([prism], [PRISM_VERSION], [])
+LT_INIT
 AM_SILENT_RULES([yes])
 AC_CONFIG_AUX_DIR(autoconf)
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
 
-LT_INIT
 AC_PROG_CXX
 AC_PROG_AWK
 AC_PROG_CPP
