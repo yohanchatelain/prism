@@ -2,12 +2,14 @@
 #define __PRISM_UTILS_H__
 
 #include <cstdint>
+#include <cstring>
 #include <immintrin.h>
 #include <type_traits>
 
 #include "src/debug.h"
+
 #ifdef __clang__
-typedef __float128 Float128;
+using Float128 = __float128;
 #elif defined(__GNUC__) || defined(__GNUG__)
 typedef _Float128 Float128;
 #else
@@ -27,13 +29,13 @@ template <> struct IEEE754<float> {
   static constexpr I exponent = 8;
   static constexpr I mantissa = 23;
   static constexpr I precision = 24;
-  static constexpr float ulp = 0x1.0p-24f;
+  static constexpr float ulp = 0x1.0p-24F;
   static constexpr I bias = 127;
   static constexpr U exponent_mask = 0x7F8;
   static constexpr U exponent_mask_scaled = 0x7f800000;
-  static constexpr float max_normal = 0x1.fffffep127f;
-  static constexpr float min_normal = 0x1.0p-126f;
-  static constexpr float min_subnormal = 0x1.0p-149f;
+  static constexpr float max_normal = 0x1.fffffep127F;
+  static constexpr float min_normal = 0x1.0p-126F;
+  static constexpr float min_subnormal = 0x1.0p-149F;
   static constexpr I min_exponent = -126;
   static constexpr I max_exponent = 127;
   static constexpr I min_exponent_subnormal = -149;
@@ -71,20 +73,22 @@ template <> struct IEEE754<double> {
 // 𝑧 ← RN𝑒 (𝜓𝑎) (= pred(|a|))
 // 𝛿 ← RN𝑒 (𝑎 − 𝑧)
 // return (z,𝛿)
-template <typename T> T get_predecessor_abs(T a) {
-  T phi = std::is_same<T, float>::value ? 1.0f - 0x1.0p-24f : 1.0 - 0x1.0p-53;
-  T z = a * phi;
+template <typename T> auto get_predecessor_abs(T a) -> T {
+  constexpr auto half_ulp = IEEE754<T>::ulp / 2;
+  const T phi = 1.0 - half_ulp;
+  const T z = a * phi;
   return z;
 }
 
 template <typename T, typename U = typename IEEE754<T>::U>
-U get_unbiased_exponent(T a) {
+auto get_unbiased_exponent(T a) -> U {
   if (a == 0) {
     return 0;
   }
   constexpr U mantissa = IEEE754<T>::mantissa;
   constexpr U exponent_mask = IEEE754<T>::exponent_mask;
-  U exp = reinterpret_cast<U &>(a);
+  U exp;
+  std::memcpy(&exp, &a, sizeof(T));
   exp = ((exp >> mantissa) & exponent_mask);
   return exp;
 }
@@ -113,7 +117,7 @@ template <typename T, typename I = typename IEEE754<T>::I> I get_exponent(T a) {
   return exp;
 }
 
-template <typename T> T pow2(int n) {
+template <typename T> auto pow2(int n) -> T {
   // if n <= min_exponent, take into account precision loss due to subnormal
   // numbers
   using U = typename IEEE754<T>::I;
@@ -124,32 +128,39 @@ template <typename T> T pow2(int n) {
   const int precision_loss = (is_subnormal) ? min_exponent - n : 0;
   n = (is_subnormal) ? 1 : n;
   T res = (is_subnormal) ? 0 : 1;
-  U *i = reinterpret_cast<U *>(&res);
-  (*i) += static_cast<U>(n) << (mantissa - precision_loss);
-  res = *reinterpret_cast<T *>(&(*i));
+  U i;
+  std::memcpy(&i, &res, sizeof(U));
+  i += static_cast<U>(n) << (mantissa - precision_loss);
+  std::memcpy(&res, &i, sizeof(T));
 
   debug_print("pow2(%d) = %.13a\n", n, res);
 
   return res;
 }
 
-// TODO: finish to implement this function
-template <typename T> T add_round_odd(T a, T b) {
+// TODO(yohan): finish to implement this function, bug in rounding logic
+template <typename T> auto add_round_odd(T a, T b) -> T {
   // return addition with rounding to odd
   // https://www.lri.fr/~melquion/doc/08-tc.pdf
-  T x, e;
+  T x;
+  T e;
   twosum(a, b, &x, &e);
-  return (e == 0 || *reinterpret_cast<T *>(&x) & 1) ? x : x + 1;
+  union {
+    T value;
+    typename IEEE754<T>::U bits;
+  } u;
+  u.value = x;
+  return (e == 0 || (u.bits & 1)) ? x : x + 1;
 }
 
-float predecessor_float(float a);
-double predecessor_double(double a);
+auto predecessor_float(float a) -> float;
+auto predecessor_double(double a) -> double;
 
-int32_t get_exponent_float(float a);
-int64_t get_exponent_double(double a);
+auto get_exponent_float(float a) -> int32_t;
+auto get_exponent_double(double a) -> int64_t;
 
-float pow2_float(int32_t n);
-double pow2_double(int64_t n);
+auto pow2_float(int32_t n) -> float;
+auto pow2_double(int64_t n) -> double;
 
 } // namespace prism::utils
 

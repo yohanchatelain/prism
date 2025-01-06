@@ -1,5 +1,26 @@
+
 #include <cstdint>
-#include <iostream>
+#include <stdlib.h>
+
+#ifndef __PRISM_DEBUG_VECTOR_INL_H_
+#define __PRISM_DEBUG_VECTOR_INL_H_
+
+static bool __attribute__((noinline)) __attribute__((unused))
+prism_print_debug() {
+#ifdef PRISM_DEBUG
+  static int _print_debug = -1;
+  if (_print_debug == -1) {
+    const char *HWY_RESTRICT env = "PRISM_DEBUG";
+    const char *HWY_RESTRICT env_debug = getenv(env);
+    _print_debug = env_debug && env_debug[0] == '1';
+  }
+  return (bool)_print_debug;
+#else
+  return false;
+#endif
+}
+
+#endif // __PRISM_DEBUG_VECTOR_INL_H_
 
 #if defined(PRISM_DEBUG_VECTOR_INL_H_) == defined(HWY_TARGET_TOGGLE)
 #ifdef PRISM_DEBUG_VECTOR_INL_H_
@@ -8,6 +29,7 @@
 #define PRISM_DEBUG_VECTOR_INL_H_
 #endif
 
+#include "hwy/aligned_allocator.h"
 #include "hwy/highway.h"
 #include "hwy/print-inl.h"
 
@@ -20,67 +42,51 @@ namespace HWY_NAMESPACE {
 
 namespace hn = hwy::HWY_NAMESPACE;
 
-HWY_API bool _print_debug() {
+HWY_API void debug_msg(const char *HWY_RESTRICT msg) {
 #ifdef PRISM_DEBUG
-  const char *env_debug = getenv("PRISM_DEBUG");
-  return env_debug && std::string(env_debug) == "1";
-#else
-  return false;
+  if (not prism_print_debug())
+    return;
+  alignas(HWY_ALIGNMENT) const char *HWY_RESTRICT _aligned_msg = msg;
+  printf("%s\n", _aligned_msg);
 #endif
 }
 
-HWY_API void debug_msg(const std::string &msg) {
-#ifdef PRISM_DEBUG
-  if (not _print_debug())
-    return;
-  std::cout << msg << std::endl;
-#endif
+template <typename T> const char *_get_format_string(const bool hex) {
+  if constexpr (std::is_same<T, float>::value) {
+    return hex ? " %+.6a" : " %+.7e";
+  } else if constexpr (std::is_same<T, double>::value) {
+    return hex ? " %+.13a" : " %+.17e";
+  } else if constexpr (std::is_same<T, std::int32_t>::value) {
+    return hex ? " %08x" : " %d";
+  } else if constexpr (std::is_same<T, std::int64_t>::value) {
+    return hex ? " %016x" : " %lld";
+  } else if constexpr (std::is_same<T, std::uint32_t>::value) {
+    return hex ? " %08x" : " %u";
+  } else if constexpr (std::is_same<T, std::uint64_t>::value) {
+    return hex ? " %016x" : " %llu";
+  } else {
+    return ""; // Default case
+  }
 }
 
 template <class D, class V, typename T = hn::TFromD<D>>
-HWY_API void debug_vec(const std::string &msg, const V &a,
+HWY_API void debug_vec(const D d, const char *HWY_RESTRICT msg, const V &a,
                        const bool hex = true) {
 #ifdef PRISM_DEBUG
-  const D d;
-  if (not _print_debug())
+  if (not prism_print_debug())
     return;
-  if (std::is_same<T, float>::value) {
-    if (hex) {
-      hn::Print(d, msg.c_str(), a, 0, 15, " %+.6a");
-    } else {
-      hn::Print(d, msg.c_str(), a, 0, 15, " %+.7e");
-    }
-  } else if (std::is_same<T, double>::value) {
-    if (hex) {
-      hn::Print(d, msg.c_str(), a, 0, 15, " %+.13a");
-    } else {
-      hn::Print(d, msg.c_str(), a, 0, 15, " %+.17e");
-    }
-  } else if (std::is_same<T, std::int32_t>::value) {
-    if (hex) {
-      hn::Print(d, msg.c_str(), a, 0, 15, " %08x");
-    } else {
-      hn::Print(d, msg.c_str(), a);
-    }
-  } else if (std::is_same<T, std::int64_t>::value) {
-    if (hex) {
-      hn::Print(d, msg.c_str(), a, 0, 15, " %016x");
-    } else {
-      hn::Print(d, msg.c_str(), a);
-    }
-  } else {
-    hn::Print(d, msg.c_str(), a);
-  }
+  const char *HWY_RESTRICT format = _get_format_string<T>(hex);
+  const size_t N = hn::Lanes(d);
+  hn::Print(d, msg, a, 0, N - 1, format);
 #endif
 }
 
 template <class D, class M, typename T = hn::TFromD<D>>
-HWY_API void debug_mask(const std::string &msg, const M &a) {
+HWY_API void debug_mask(const D d, const char *HWY_RESTRICT msg, const M &a) {
 #ifdef PRISM_DEBUG
-  const D d;
-  if (not _print_debug())
+  if (not prism_print_debug())
     return;
-  debug_vec<D>(msg, hn::VecFromMask(d, a));
+  debug_vec(d, msg, hn::VecFromMask(d, a));
 #endif
 }
 

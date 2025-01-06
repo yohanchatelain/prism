@@ -38,13 +38,23 @@ INCLUDE="-I. -I$HWY_INCLUDE_PATH"
 CXXFLAGS="-S -emit-llvm -O2 -UPRISM_DEBUG -std=c++17"
 
 # Baseline target
+$CXX $CXXFLAGS $INCLUDE src/ud_scalar.cpp -o ud_scalar.ll &
+$CXX $CXXFLAGS $INCLUDE src/sr_scalar.cpp -o sr_scalar.ll &
+
 $CXX $CXXFLAGS $INCLUDE src/ud_vector.cpp -o ud_vector.ll &
 $CXX $CXXFLAGS $INCLUDE src/sr_vector.cpp -o sr_vector.ll &
 
 # Native target
 CXXFLAGS+=" -march=native -DHWY_COMPILE_ONLY_STATIC "
+
+$CXX $CXXFLAGS $INCLUDE src/ud_scalar.cpp -o ud_scalar-native.ll &
+$CXX $CXXFLAGS $INCLUDE src/sr_scalar.cpp -o sr_scalar-native.ll &
+
 $CXX $CXXFLAGS $INCLUDE src/ud_vector.cpp -o ud_vector-native.ll &
 $CXX $CXXFLAGS $INCLUDE src/sr_vector.cpp -o sr_vector-native.ll &
+
+$LINK -S ud_scalar.ll sr_scalar.ll ud_vector.ll sr_vector.ll -o prism.ll
+$LINK -S ud_scalar-native.ll sr_scalar-native.ll ud_vector-native.ll sr_vector-native.ll -o prism-native.ll
 
 wait
 

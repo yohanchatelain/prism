@@ -16,7 +16,7 @@
 
 HWY_BEFORE_NAMESPACE(); // at file scope
 
-namespace prism::sr::vector::HWY_NAMESPACE {
+namespace prism::sr::vector::dynamic_dispatch::HWY_NAMESPACE {
 
 namespace hn = hwy::HWY_NAMESPACE;
 
@@ -52,13 +52,13 @@ struct TestThread {
     auto a = hn::Set(d, 0.1);
     auto b = hn::Set(d, 0.01);
     for (size_t i = 0; i < N; i++) {
-      auto c = add<D>(a, b);
-      counter = add<D>(counter, c);
+      auto c = add(d, a, b);
+      counter = add(d, counter, c);
     }
     p.set_value(hn::GetLane(counter));
   }
 
-  int get_num_threads() {
+  static auto get_num_threads() -> int {
     const char *env_threads = getenv("PRISM_TEST_THREADS");
     if (env_threads) {
       return std::stoi(env_threads);
@@ -67,7 +67,7 @@ struct TestThread {
   }
 
   template <typename T, typename D>
-  HWY_NOINLINE void operator()(T /*unused*/, D d) {
+  HWY_NOINLINE auto operator()(T /*unused*/, D d) -> void {
     const std::size_t N = get_num_threads();
 #ifdef SR_DEBUG
     std::cout << "Number of threads: " << N << std::endl;
@@ -109,23 +109,22 @@ struct TestThread {
 
 } // namespace
 
-HWY_NOINLINE void TestThreads() {
+HWY_NOINLINE auto TestThreads() -> void {
   hn::ForFloat3264Types(hn::ForPartialVectors<TestThread>());
 }
 
-} // namespace prism::sr::vector::HWY_NAMESPACE
+} // namespace prism::sr::vector::dynamic_dispatch::HWY_NAMESPACE
 
 HWY_AFTER_NAMESPACE();
 
 #if HWY_ONCE
-namespace prism::sr::vector::HWY_NAMESPACE {
+namespace prism::sr::vector::dynamic_dispatch::HWY_NAMESPACE {
 
 HWY_BEFORE_TEST(SRThreadTest);
-
 HWY_EXPORT_AND_TEST_P(SRThreadTest, TestThreads);
 
 HWY_AFTER_TEST();
-} // namespace prism::sr::vector::HWY_NAMESPACE
+} // namespace prism::sr::vector::dynamic_dispatch::HWY_NAMESPACE
 
 HWY_TEST_MAIN();
 

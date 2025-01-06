@@ -31,7 +31,6 @@
 #include "hwy/aligned_allocator.h"
 
 #include "src/debug_vector-inl.h"
-#include "src/target_utils.h"
 
 HWY_BEFORE_NAMESPACE(); // required if not using HWY_ATTR
 
@@ -40,6 +39,8 @@ namespace hwy {
 namespace HWY_NAMESPACE { // required: unique per target
 
 namespace hn = hwy::HWY_NAMESPACE;
+
+namespace dbg = prism::vector::HWY_NAMESPACE;
 
 namespace internal {
 
@@ -200,38 +201,20 @@ private:
 
 class VectorXoshiro {
 private:
-  using VU64 = Vec<ScalableTag<std::uint64_t>>;
   using VU32 = Vec<ScalableTag<std::uint32_t>>;
-  using StateType = AlignedNDArray<std::uint64_t, 2>;
+  using VU64 = Vec<ScalableTag<std::uint64_t>>;
   using VF32 = Vec<ScalableTag<float>>;
+  using StateType = AlignedNDArray<std::uint64_t, 2>;
 #if HWY_HAVE_FLOAT64
   using VF64 = Vec<ScalableTag<double>>;
-#endif
+
 public:
+#endif
   explicit VectorXoshiro(const std::uint64_t seed,
                          const std::uint64_t threadNumber = 0)
-      : state_{nullptr}, streams{0} {
-#if PRISM_DEBUG
-    std::cerr << "VectorXoshiro constructor called for target: " << target
-              << std::endl;
-#endif // PRISM_DEBUG
-    // deferes initialization to avoid having illegal instructions called
-    if (not isTargetSupported) {
-#if PRISM_DEBUG
-      std::cerr << "Target " << target << " not supported" << std::endl;
-#endif // PRISM_DEBUG
-      return;
-    }
-
-    initialize(seed, threadNumber);
-  }
-
-  void initialize(const std::uint64_t seed,
-                  const std::uint64_t threadNumber = 0) {
-    state_ = new StateType{
-        {internal::Xoshiro::StateSize(), Lanes(ScalableTag<std::uint64_t>{})}};
-    streams = state_->shape().back();
-
+      : state_{{internal::Xoshiro::StateSize(),
+                Lanes(ScalableTag<std::uint64_t>{})}},
+        streams{state_.shape().back()} {
     internal::Xoshiro xoshiro{seed};
 
     for (std::uint64_t i = 0; i < threadNumber; ++i) {
@@ -241,24 +224,16 @@ public:
     for (size_t i = 0UL; i < streams; ++i) {
       const auto state = xoshiro.GetState();
       for (size_t j = 0UL; j < internal::Xoshiro::StateSize(); ++j) {
-        (*state_)[{j}][i] = state[j];
+        state_[{j}][i] = state[j];
       }
       xoshiro.Jump();
     }
-  }
-
-  ~VectorXoshiro() {
-#if PRISM_DEBUG
-    std::cerr << "VectorXoshiro destructor called for target: " << target
-              << std::endl;
-#endif // PRISM_DEBUG
-    if (not isTargetSupported) {
-#if PRISM_DEBUG
-      std::cerr << "Target " << target << " not supported" << std::endl;
-#endif // PRISM_DEBUG
-      return;
-    }
-    state_->~StateType();
+#if PRISM_RNG_DEBUG
+    fprintf(stderr,
+            "[PRISM VectorXoshiro] VectorXoshiro initialized at %p: %lu "
+            "streams, %lu states, %lu state size\n",
+            this, streams, state_.size(), StateSize());
+#endif
   }
 
   HWY_INLINE VU32 operator()(std::uint32_t) noexcept {
@@ -272,37 +247,37 @@ public:
     const auto u32_tag = ScalableTag<std::uint32_t>{};
     AlignedVector<std::uint32_t> result(2 * n);
     const ScalableTag<std::uint64_t> tag{};
-    auto s0 = Load(tag, (*state_)[{0}].data());
-    auto s1 = Load(tag, (*state_)[{1}].data());
-    auto s2 = Load(tag, (*state_)[{2}].data());
-    auto s3 = Load(tag, (*state_)[{3}].data());
+    auto s0 = Load(tag, state_[{0}].data());
+    auto s1 = Load(tag, state_[{1}].data());
+    auto s2 = Load(tag, state_[{2}].data());
+    auto s3 = Load(tag, state_[{3}].data());
     for (std::uint64_t i = 0; i < n; i += Lanes(u32_tag)) {
       const auto next = Update(s0, s1, s2, s3);
       const auto next_u32 = BitCast(u32_tag, next);
       Store(next_u32, u32_tag, result.data() + i);
     }
-    Store(s0, tag, (*state_)[{0}].data());
-    Store(s1, tag, (*state_)[{1}].data());
-    Store(s2, tag, (*state_)[{2}].data());
-    Store(s3, tag, (*state_)[{3}].data());
+    Store(s0, tag, state_[{0}].data());
+    Store(s1, tag, state_[{1}].data());
+    Store(s2, tag, state_[{2}].data());
+    Store(s3, tag, state_[{3}].data());
     return result;
   }
 
   AlignedVector<std::uint64_t> operator()(std::uint64_t, const std::size_t n) {
     AlignedVector<std::uint64_t> result(n);
     const ScalableTag<std::uint64_t> tag{};
-    auto s0 = Load(tag, (*state_)[{0}].data());
-    auto s1 = Load(tag, (*state_)[{1}].data());
-    auto s2 = Load(tag, (*state_)[{2}].data());
-    auto s3 = Load(tag, (*state_)[{3}].data());
+    auto s0 = Load(tag, state_[{0}].data());
+    auto s1 = Load(tag, state_[{1}].data());
+    auto s2 = Load(tag, state_[{2}].data());
+    auto s3 = Load(tag, state_[{3}].data());
     for (std::uint64_t i = 0; i < n; i += Lanes(tag)) {
       const auto next = Update(s0, s1, s2, s3);
       Store(next, tag, result.data() + i);
     }
-    Store(s0, tag, (*state_)[{0}].data());
-    Store(s1, tag, (*state_)[{1}].data());
-    Store(s2, tag, (*state_)[{2}].data());
-    Store(s3, tag, (*state_)[{3}].data());
+    Store(s0, tag, state_[{0}].data());
+    Store(s1, tag, state_[{1}].data());
+    Store(s2, tag, state_[{2}].data());
+    Store(s3, tag, state_[{3}].data());
     return result;
   }
 
@@ -311,19 +286,19 @@ public:
     alignas(HWY_ALIGNMENT) std::array<std::uint32_t, 2 * N> result;
     const ScalableTag<std::uint64_t> tag{};
     const ScalableTag<std::uint32_t> u32_tag{};
-    auto s0 = Load(tag, (*state_)[{0}].data());
-    auto s1 = Load(tag, (*state_)[{1}].data());
-    auto s2 = Load(tag, (*state_)[{2}].data());
-    auto s3 = Load(tag, (*state_)[{3}].data());
+    auto s0 = Load(tag, state_[{0}].data());
+    auto s1 = Load(tag, state_[{1}].data());
+    auto s2 = Load(tag, state_[{2}].data());
+    auto s3 = Load(tag, state_[{3}].data());
     for (std::uint64_t i = 0; i < N; i += Lanes(u32_tag)) {
       const auto next = Update(s0, s1, s2, s3);
       const auto next_u32 = BitCast(u32_tag, next);
       Store(next_u32, u32_tag, result.data() + i);
     }
-    Store(s0, tag, (*state_)[{0}].data());
-    Store(s1, tag, (*state_)[{1}].data());
-    Store(s2, tag, (*state_)[{2}].data());
-    Store(s3, tag, (*state_)[{3}].data());
+    Store(s0, tag, state_[{0}].data());
+    Store(s1, tag, state_[{1}].data());
+    Store(s2, tag, state_[{2}].data());
+    Store(s3, tag, state_[{3}].data());
     return result;
   }
 
@@ -331,31 +306,42 @@ public:
   std::array<std::uint64_t, N> operator()(std::uint64_t) noexcept {
     alignas(HWY_ALIGNMENT) std::array<std::uint64_t, N> result;
     const ScalableTag<std::uint64_t> tag{};
-    auto s0 = Load(tag, (*state_)[{0}].data());
-    auto s1 = Load(tag, (*state_)[{1}].data());
-    auto s2 = Load(tag, (*state_)[{2}].data());
-    auto s3 = Load(tag, (*state_)[{3}].data());
+    auto s0 = Load(tag, state_[{0}].data());
+    auto s1 = Load(tag, state_[{1}].data());
+    auto s2 = Load(tag, state_[{2}].data());
+    auto s3 = Load(tag, state_[{3}].data());
     for (std::uint64_t i = 0; i < N; i += Lanes(tag)) {
       const auto next = Update(s0, s1, s2, s3);
       Store(next, tag, result.data() + i);
     }
-    Store(s0, tag, (*state_)[{0}].data());
-    Store(s1, tag, (*state_)[{1}].data());
-    Store(s2, tag, (*state_)[{2}].data());
-    Store(s3, tag, (*state_)[{3}].data());
+    Store(s0, tag, state_[{0}].data());
+    Store(s1, tag, state_[{1}].data());
+    Store(s2, tag, state_[{2}].data());
+    Store(s3, tag, state_[{3}].data());
     return result;
+  }
+
+  template <std::uint64_t N> void fill(std::uint64_t *HWY_RESTRICT data) {
+    const ScalableTag<std::uint64_t> tag{};
+    auto s0 = Load(tag, state_[{0}].data());
+    auto s1 = Load(tag, state_[{1}].data());
+    auto s2 = Load(tag, state_[{2}].data());
+    auto s3 = Load(tag, state_[{3}].data());
+    for (std::uint64_t i = 0; i < N; i += Lanes(tag)) {
+      const auto next = Update(s0, s1, s2, s3);
+      Store(next, tag, data + i);
+    }
+    Store(s0, tag, state_[{0}].data());
+    Store(s1, tag, state_[{1}].data());
+    Store(s2, tag, state_[{2}].data());
+    Store(s3, tag, state_[{3}].data());
   }
 
   std::uint64_t StateSize() const noexcept {
     return streams * internal::Xoshiro::StateSize();
   }
 
-  const StateType &GetState() const { return *state_; }
-
-  template <typename T, class D = ScalableTag<T>, class V = Vec<D>>
-  HWY_INLINE V Uniform(T) noexcept;
-  template <typename T> AlignedVector<T> Uniform(T, const std::size_t n);
-  template <typename T, std::uint64_t N> std::array<T, N> Uniform(T) noexcept;
+  const StateType &GetState() const { return state_; }
 
   HWY_INLINE VF32 Uniform(float) noexcept {
     const ScalableTag<std::uint32_t> u32_tag{};
@@ -375,10 +361,10 @@ public:
     const ScalableTag<float> real_tag{};
     const auto MUL_VALUE = Set(real_tag, internal::kMulConstF);
 
-    auto s0 = Load(tag, (*state_)[{0}].data());
-    auto s1 = Load(tag, (*state_)[{1}].data());
-    auto s2 = Load(tag, (*state_)[{2}].data());
-    auto s3 = Load(tag, (*state_)[{3}].data());
+    auto s0 = Load(tag, state_[{0}].data());
+    auto s1 = Load(tag, state_[{1}].data());
+    auto s2 = Load(tag, state_[{2}].data());
+    auto s3 = Load(tag, state_[{3}].data());
 
     for (std::size_t i = 0; i < n; i += Lanes(real_tag)) {
       const auto next = Update(s0, s1, s2, s3);
@@ -388,10 +374,10 @@ public:
       const auto uniform = Mul(real, MUL_VALUE);
       Store(uniform, real_tag, result.data() + i);
     }
-    Store(s0, tag, (*state_)[{0}].data());
-    Store(s1, tag, (*state_)[{1}].data());
-    Store(s2, tag, (*state_)[{2}].data());
-    Store(s3, tag, (*state_)[{3}].data());
+    Store(s0, tag, state_[{0}].data());
+    Store(s1, tag, state_[{1}].data());
+    Store(s2, tag, state_[{2}].data());
+    Store(s3, tag, state_[{3}].data());
     return result;
   }
 
@@ -402,10 +388,10 @@ public:
     const ScalableTag<float> real_tag{};
     const auto MUL_VALUE = Set(real_tag, internal::kMulConstF);
 
-    auto s0 = Load(tag, (*state_)[{0}].data());
-    auto s1 = Load(tag, (*state_)[{1}].data());
-    auto s2 = Load(tag, (*state_)[{2}].data());
-    auto s3 = Load(tag, (*state_)[{3}].data());
+    auto s0 = Load(tag, state_[{0}].data());
+    auto s1 = Load(tag, state_[{1}].data());
+    auto s2 = Load(tag, state_[{2}].data());
+    auto s3 = Load(tag, state_[{3}].data());
 
     for (std::uint32_t i = 0; i < N; i += Lanes(real_tag)) {
       const auto next = Update(s0, s1, s2, s3);
@@ -416,20 +402,21 @@ public:
       Store(uniform, real_tag, result.data() + i);
     }
 
-    Store(s0, tag, (*state_)[{0}].data());
-    Store(s1, tag, (*state_)[{1}].data());
-    Store(s2, tag, (*state_)[{2}].data());
-    Store(s3, tag, (*state_)[{3}].data());
+    Store(s0, tag, state_[{0}].data());
+    Store(s1, tag, state_[{1}].data());
+    Store(s2, tag, state_[{2}].data());
+    Store(s3, tag, state_[{3}].data());
     return result;
   }
 
 #if HWY_HAVE_FLOAT64
 
-  HWY_INLINE VF64 Uniform(double) noexcept {
+  VF64 Uniform(double) noexcept {
     const ScalableTag<double> real_tag{};
     const auto MUL_VALUE = Set(real_tag, internal::kMulConst);
-    const auto bits = ShiftRight<11>(Next());
-    const auto real = ConvertTo(real_tag, bits);
+    const auto bits = Next();
+    const auto bits_s = ShiftRight<11>(bits);
+    const auto real = ConvertTo(real_tag, bits_s);
     return Mul(real, MUL_VALUE);
   }
 
@@ -439,10 +426,10 @@ public:
     const ScalableTag<double> real_tag{};
     const auto MUL_VALUE = Set(real_tag, internal::kMulConst);
 
-    auto s0 = Load(tag, (*state_)[{0}].data());
-    auto s1 = Load(tag, (*state_)[{1}].data());
-    auto s2 = Load(tag, (*state_)[{2}].data());
-    auto s3 = Load(tag, (*state_)[{3}].data());
+    auto s0 = Load(tag, state_[{0}].data());
+    auto s1 = Load(tag, state_[{1}].data());
+    auto s2 = Load(tag, state_[{2}].data());
+    auto s3 = Load(tag, state_[{3}].data());
 
     for (std::size_t i = 0; i < n; i += Lanes(real_tag)) {
       const auto next = Update(s0, s1, s2, s3);
@@ -452,10 +439,10 @@ public:
       Store(uniform, real_tag, result.data() + i);
     }
 
-    Store(s0, tag, (*state_)[{0}].data());
-    Store(s1, tag, (*state_)[{1}].data());
-    Store(s2, tag, (*state_)[{2}].data());
-    Store(s3, tag, (*state_)[{3}].data());
+    Store(s0, tag, state_[{0}].data());
+    Store(s1, tag, state_[{1}].data());
+    Store(s2, tag, state_[{2}].data());
+    Store(s3, tag, state_[{3}].data());
     return result;
   }
 
@@ -465,10 +452,10 @@ public:
     const ScalableTag<double> real_tag{};
     const auto MUL_VALUE = Set(real_tag, internal::kMulConst);
 
-    auto s0 = Load(tag, (*state_)[{0}].data());
-    auto s1 = Load(tag, (*state_)[{1}].data());
-    auto s2 = Load(tag, (*state_)[{2}].data());
-    auto s3 = Load(tag, (*state_)[{3}].data());
+    auto s0 = Load(tag, state_[{0}].data());
+    auto s1 = Load(tag, state_[{1}].data());
+    auto s2 = Load(tag, state_[{2}].data());
+    auto s3 = Load(tag, state_[{3}].data());
 
     for (std::uint64_t i = 0; i < N; i += Lanes(real_tag)) {
       const auto next = Update(s0, s1, s2, s3);
@@ -478,19 +465,17 @@ public:
       Store(uniform, real_tag, result.data() + i);
     }
 
-    Store(s0, tag, (*state_)[{0}].data());
-    Store(s1, tag, (*state_)[{1}].data());
-    Store(s2, tag, (*state_)[{2}].data());
-    Store(s3, tag, (*state_)[{3}].data());
+    Store(s0, tag, state_[{0}].data());
+    Store(s1, tag, state_[{1}].data());
+    Store(s2, tag, state_[{2}].data());
+    Store(s3, tag, state_[{3}].data());
     return result;
   }
 
 #endif
 
 private:
-  bool isTargetSupported = prism::HWY_NAMESPACE::isCurrentTargetSupported();
-  const std::string target = hwy::TargetName(HWY_TARGET);
-  StateType *state_;
+  StateType state_;
   std::uint64_t streams;
 
   HWY_INLINE static VU64 Update(VU64 &s0, VU64 &s1, VU64 &s2,
@@ -508,15 +493,15 @@ private:
 
   HWY_INLINE VU64 Next() noexcept {
     const ScalableTag<std::uint64_t> tag{};
-    auto s0 = Load(tag, (*state_)[{0}].data());
-    auto s1 = Load(tag, (*state_)[{1}].data());
-    auto s2 = Load(tag, (*state_)[{2}].data());
-    auto s3 = Load(tag, (*state_)[{3}].data());
+    auto s0 = Load(tag, state_[{0}].data());
+    auto s1 = Load(tag, state_[{1}].data());
+    auto s2 = Load(tag, state_[{2}].data());
+    auto s3 = Load(tag, state_[{3}].data());
     auto result = Update(s0, s1, s2, s3);
-    Store(s0, tag, (*state_)[{0}].data());
-    Store(s1, tag, (*state_)[{1}].data());
-    Store(s2, tag, (*state_)[{2}].data());
-    Store(s3, tag, (*state_)[{3}].data());
+    Store(s0, tag, state_[{0}].data());
+    Store(s1, tag, state_[{1}].data());
+    Store(s2, tag, state_[{2}].data());
+    Store(s3, tag, state_[{3}].data());
     return result;
   }
 };
@@ -535,43 +520,29 @@ public:
 
   explicit CachedXoshiro(const result_type seed,
                          const result_type threadNumber = 0)
-      : generator_{seed, threadNumber} {
-#if PRISM_DEBUG
-    std::cerr << "CachedXoshiro constructor called for target: " << target
-              << std::endl;
-#endif
-    // deferes initialization to avoid having illegal instructions called
-    if (not isTargetSupported) {
-#if PRISM_DEBUG
-      std::cerr << "Target " << target << " not supported" << std::endl;
-#endif
-      return;
-    }
+      : generator_{seed, threadNumber},
+        cache_{generator_.operator()<size>(result_type{})}, index_{0} {
 
-    cache_ = generator_.operator()<size>(result_type{});
-    index_ = 0;
-  }
-
-  // delete operator
-  ~CachedXoshiro() {
-#if PRISM_DEBUG
-    std::cerr << "CachedXoshiro destructor called for target: " << target
-              << std::endl;
+#if PRISM_RNG_DEBUG
+    fprintf(stderr,
+            "[PRISM CachedXoshiro] CachedXoshiro initialized at %p: %lu "
+            "streams, %lu states\n",
+            this, size, generator_.StateSize());
 #endif
-    if (not isTargetSupported) {
-#if PRISM_DEBUG
-      std::cerr << "Target " << target << " not supported" << std::endl;
-#endif
-      return;
-    }
-    generator_.~VectorXoshiro();
-    cache_.~array();
   }
 
   result_type operator()() noexcept {
     if (HWY_UNLIKELY(index_ == size)) {
-      cache_ = std::move(generator_.operator()<size>(result_type{}));
+      // cache_ = std::move(generator_.operator()<size>(result_type{}));
+      generator_.fill<size>(cache_.data());
       index_ = 0;
+#if PRISM_RNG_DEBUG
+      static int call_count = 0;
+      fprintf(stderr,
+              "[PRISM CachedXoshiro] [%d] CachedXoshiro cache exhausted, "
+              "generating new cache at %p\n",
+              ++call_count, cache_.data());
+#endif
     }
     return cache_[index_++];
   }
@@ -581,8 +552,6 @@ public:
   }
 
 private:
-  bool isTargetSupported = prism::HWY_NAMESPACE::isCurrentTargetSupported();
-  const std::string target = hwy::TargetName(HWY_TARGET);
   VectorXoshiro generator_;
   alignas(HWY_ALIGNMENT) std::array<result_type, size> cache_;
   std::size_t index_;

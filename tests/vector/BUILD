@@ -69,9 +69,15 @@ cc_test_lib_gen(
     src = [
         "//tests/vector:test_threads.cpp",
     ],
-    copts = HWY_OPTS,
+    copts = HWY_OPTS + [
+        "-fsanitize=address",
+        "-DPRISM_DISPATCH=dynamic_dispatch",
+    ],
+    linkopts = [
+        "-fsanitize=address",
+    ],
     deps = [
-        "@//src:prism",
+        "@//src:prism-dynamic-dbg",
     ],
 )
 
@@ -83,9 +89,13 @@ cc_test_lib_gen(
     ],
     copts = HWY_OPTS + [
         "-march=native",
+        "-fsanitize=thread",
+    ],
+    linkopts = [
+        "-fsanitize=thread",
     ],
     deps = [
-        "@//src:prism-native",
+        "@//src:prism-native-dbg",
     ],
 )
 
@@ -96,9 +106,14 @@ cc_test_lib_gen(
     src = ["//tests/vector:test_sr_performance.cpp"],
     copts = HWY_OPTS + [
         "-Wno-psabi",
+        "-fno-omit-frame-pointer",
+        "-fsanitize=address",
+    ],
+    linkopts = [
+        "-fsanitize=address",
     ],
     deps = [
-        "@//src:prism",
+        "@//src:prism-dbg",
         "@hwy//:nanobenchmark",
     ],
 )
@@ -152,6 +167,9 @@ cc_test_lib_gen(
         "//tests/vector:test_single_sr.cpp",
     ],
     copts = HWY_OPTS,
+    linkopts = [
+        "-fsanitize=address",
+    ],
     deps = [
         "@//src:prism-dbg",
     ],
@@ -163,6 +181,9 @@ cc_test_lib_gen(
         "//tests/vector:test_single_ud.cpp",
     ],
     copts = HWY_OPTS,
+    linkopts = [
+        "-fsanitize=address",
+    ],
     deps = [
         "@//src:prism-dbg",
     ],

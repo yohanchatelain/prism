@@ -25,13 +25,11 @@ inline std::set<std::string> GetTargetsAsString() {
 }
 
 HWY_API bool isCurrentTargetSupported() {
-  // reinitialize supported targets
-  hwy::SetSupportedTargetsForTest(0);
   const auto targets = GetTargetsAsString();
   const auto current_target = hwy::TargetName(HWY_TARGET);
 #ifdef PRISM_DEBUG
-  std::cerr << "Current target: " << current_target << " is supported: "
-            << (targets.find(current_target) != targets.end()) << "\n ";
+  fprintf(stderr, "[PRISM Debug] Current target: %s is supported: %d\n",
+          current_target, targets.find(current_target) != targets.end());
 #endif
   return targets.find(current_target) != targets.end();
 }

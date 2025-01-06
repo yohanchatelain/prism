@@ -3,15 +3,21 @@ exports_files([
     "debug_vector-inl.h",
     "eft.h",
     "random-inl.h",
-    "sr_vector.h",
     "sr_scalar.h",
+    "sr_scalar_static.cpp",
+    "sr_scalar_dynamic.cpp",
+    "sr_vector.h",
     "sr_vector-inl.h",
-    "sr_vector.cpp",
+    "sr_vector_static.cpp",
+    "sr_vector_dynamic.cpp",
     "target_utils.h",
     "ud_scalar.h",
+    "ud_scalar_static.cpp",
+    "ud_scalar_dynamic.cpp",
     "ud_vector.h",
-    "ud_vector.cpp",
     "ud_vector-inl.h",
+    "ud_vector_static.cpp",
+    "ud_vector_dynamic.cpp",
     "utils.h",
     "xoshiro.h",
     "xoshiro_vector.cpp",
@@ -24,6 +30,30 @@ COPTS = [
     "-O2",
     "-Wall",
     "-Wno-psabi",
+]
+
+NATIVE_COPTS = [
+    "-march=native",
+    "-mtune=native",
+]
+
+STATIC_COPTS = [
+    "-DWARN_FMA_EMULATION",
+    "-DHWY_COMPILE_ONLY_STATIC",
+    "-DPRISM_DISPATCH=static_dispatch",
+]
+
+DYNAMIC_COPTS = [
+    "-DHWY_COMPILE_ALL_ATTAINABLE",
+    "-DPRISM_DISPATCH=dynamic_dispatch",
+]
+
+DEBUG_COPTS = [
+    "-DPRISM_DEBUG",
+    "-Og",
+    "-g",
+    "-fno-omit-frame-pointer",
+    "-fsanitize=address",
 ]
 
 filegroup(
@@ -39,70 +69,97 @@ filegroup(
 )
 
 filegroup(
-    name = "srcs-prism",
+    name = "headers-prism",
+    srcs = [
+        "sr_scalar.h",
+        "sr_vector.h",
+        "ud_scalar.h",
+        "ud_vector.h",
+    ],
+)
+
+filegroup(
+    name = "srcs-prism-dynamic",
     srcs = glob(
         [
             "*.cpp",
             "*.h",
+        ],
+        exclude = [
+            "*static*",
         ],
     ),
     visibility = ["//visibility:public"],
 )
 
 filegroup(
-    name = "headers-prism",
-    srcs =
+    name = "srcs-prism-static",
+    srcs = glob(
         [
-            "//src:sr_vector.h",
-            "//src:ud_vector.h",
+            "*.cpp",
+            "*.h",
         ],
+        exclude = [
+            "*dynamic*",
+        ],
+    ),
+    visibility = ["//visibility:public"],
 )
 
 cc_library(
-    name = "prism",
-    srcs = [":srcs-prism"],
-    hdrs = [":headers-prism"],
+    name = "prism-rng",
+    srcs = [":srcs-xoshiro"],
+    hdrs = ["xoshiro.h"],
     copts = COPTS + [
         "-DHWY_COMPILE_ALL_ATTAINABLE",
+        "-g",
     ],
     visibility = ["//visibility:public"],
     deps = ["@hwy"],
 )
 
 cc_library(
-    name = "prism-dbg",
-    srcs = [":srcs-prism"],
-    copts = COPTS + ["-DPRISM_DEBUG"],
+    name = "prism-dynamic",
+    srcs = [":srcs-prism-dynamic"],
+    hdrs = [":headers-prism"],
+    copts = COPTS + DYNAMIC_COPTS,
     visibility = ["//visibility:public"],
     deps = [
-        ":prism",
         "@hwy",
     ],
 )
 
 cc_library(
-    name = "prism-native",
-    srcs = [":srcs-prism"],
+    name = "prism-dynamic-dbg",
+    srcs = [":srcs-prism-dynamic"],
     hdrs = [":headers-prism"],
-    copts = COPTS + [
-        "-march=native",
-        "-DWARN_FMA_EMULATION",
-        "-DHWY_COMPILE_ONLY_STATIC",
-    ],
+    copts = COPTS + DYNAMIC_COPTS + NATIVE_COPTS + DEBUG_COPTS,
+    linkopts = ["-fsanitize=address"],
     visibility = ["//visibility:public"],
-    deps = ["@hwy"],
+    deps = [
+        "@hwy",
+    ],
 )
 
 cc_library(
-    name = "prism-native-dbg",
-    srcs = [":srcs-prism"],
-    copts = COPTS + [
-        "-DPRISM_DEBUG",
-        "-DWARN_FMA_EMULATION",
-    ],
+    name = "prism-static",
+    srcs = [":srcs-prism-static"],
+    hdrs = [":headers-prism"],
+    copts = COPTS + NATIVE_COPTS + STATIC_COPTS,
     visibility = ["//visibility:public"],
     deps = [
-        ":prism-native",
+        "@hwy",
+    ],
+)
+
+cc_library(
+    name = "prism-static-dbg",
+    srcs = [":srcs-prism-static"],
+    hdrs = [":headers-prism"],
+    copts = COPTS + STATIC_COPTS + NATIVE_COPTS + DEBUG_COPTS,
+    linkopts = ["-fsanitize=address"],
+    visibility = ["//visibility:public"],
+    deps = [
         "@hwy",
     ],
 )
@@ -110,9 +167,9 @@ cc_library(
 filegroup(
     name = "prism-all",
     srcs = [
-        ":prism",
-        ":prism-dbg",
-        ":prism-native",
-        ":prism-native-dbg",
+        ":prism-dynamic",
+        ":prism-dynamic-dbg",
+        ":prism-static",
+        ":prism-static-dbg",
     ],
 )

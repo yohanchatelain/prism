@@ -59,13 +59,27 @@ def cc_test_gen_vector(name, src = None, deps = DEPS, copts = COPTS, size = "sma
         features = ["vector"],
     )
 
-def cc_test_lib_gen(name, src = None, deps = None, copts = COPTS, size = "small", dbg = False):
+def cc_test_lib_gen(name, src = None, deps = None, copts = COPTS, linkopts = None, size = "small", dbg = False):
     srcs = src if src else [name + ".cpp"]
     srcs += HEADERS
     native.cc_test(
         name = name,
         srcs = srcs + SRCS,
         copts = COPTS + (copts if copts else []) + (["-DPRISM_DEBUG"] if dbg else []),
+        linkopts = linkopts,
+        deps = DEPS + (deps if deps else []),
+        size = size,
+        visibility = ["//visibility:public"],
+    )
+
+def cc_lib_gen(name, src = None, deps = None, copts = COPTS, linkopts = None, size = "small", dbg = False):
+    srcs = src if src else [name + ".cpp"]
+    srcs += HEADERS
+    native.cc_library(
+        name = name,
+        srcs = srcs + SRCS,
+        copts = COPTS + (copts if copts else []) + (["-DPRISM_DEBUG"] if dbg else []),
+        linkopts = linkopts,
         deps = DEPS + (deps if deps else []),
         size = size,
         visibility = ["//visibility:public"],

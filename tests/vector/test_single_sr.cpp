@@ -1,5 +1,6 @@
 #include <iostream>
 #include <map>
+#include <random>
 
 // clang-format off
 #undef HWY_TARGET_INCLUDE
@@ -9,8 +10,8 @@
 #include "hwy/highway.h"
 #include "hwy/base.h"
 #include "hwy/tests/test_util-inl.h"
-#include "src/debug_hwy-inl.h"
-#include "src/sr_hw-inl.h"
+#include "src/debug_vector-inl.h"
+#include "src/sr_vector-inl.h"
 // clang-format on
 
 HWY_BEFORE_NAMESPACE(); // at file scope
