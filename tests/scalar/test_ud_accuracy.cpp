@@ -6,9 +6,27 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "src/ud_scalar.h"
-#include "src/utils.h"
+// clang-format off
+#undef HWY_TARGET_INCLUDE
+#define HWY_TARGET_INCLUDE "tests/scalar/test_ud_accuracy.cpp"
+#include "hwy/foreach_target.h"
+
+#include "hwy/highway.h"
+#include "hwy/base.h"
+#include "hwy/tests/test_util-inl.h"
+
+#include "src/debug_vector-inl.h"
+#include "src/ud_scalar-inl.h"
 #include "tests/helper.h"
+// clang-format on
+
+HWY_BEFORE_NAMESPACE(); // at file scope
+
+namespace prism::HWY_NAMESPACE {
+
+namespace hn = hwy::HWY_NAMESPACE;
+
+namespace {
 
 using ::testing::AllOf;
 using ::testing::Eq;
@@ -29,41 +47,41 @@ namespace reference {
 // compute in double precision if the input type is float
 // compute in quad precision if the input type is double
 template <typename T, typename H = typename helper::IEEE754<T>::H>
-H add(const std::vector<T> &args) {
+auto add(const std::vector<T> &args) -> H {
   auto a = args[0];
   auto b = args[1];
   return static_cast<H>(a) + static_cast<H>(b);
 }
 
 template <typename T, typename H = typename helper::IEEE754<T>::H>
-H sub(const std::vector<T> &args) {
+auto sub(const std::vector<T> &args) -> H {
   auto a = args[0];
   auto b = args[1];
   return static_cast<H>(a) - static_cast<H>(b);
 }
 
 template <typename T, typename H = typename helper::IEEE754<T>::H>
-H mul(const std::vector<T> &args) {
+auto mul(const std::vector<T> &args) -> H {
   auto a = args[0];
   auto b = args[1];
   return static_cast<H>(a) * static_cast<H>(b);
 }
 
 template <typename T, typename H = typename helper::IEEE754<T>::H>
-H div(const std::vector<T> &args) {
+auto div(const std::vector<T> &args) -> H {
   auto a = args[0];
   auto b = args[1];
   return static_cast<H>(a) / static_cast<H>(b);
 }
 
 template <typename T, typename H = typename helper::IEEE754<T>::H>
-H sqrt(const std::vector<T> &args) {
+auto sqrt(const std::vector<T> &args) -> H {
   auto a = args[0];
   return helper::sqrt<H>(a);
 }
 
 template <typename T, typename H = typename helper::IEEE754<T>::H>
-H fma(const std::vector<T> &args) {
+auto fma(const std::vector<T> &args) -> H {
   auto a = args[0];
   auto b = args[1];
   auto c = args[2];
@@ -71,7 +89,7 @@ H fma(const std::vector<T> &args) {
 }
 
 template <typename T, typename Op, typename H = typename helper::IEEE754<T>::H>
-std::function<H(const std::vector<T> &)> get_operator() {
+auto get_operator() -> std::function<H(const std::vector<T> &)> {
   static_assert(std::is_base_of_v<helper::Operator<T>, Op>);
   if constexpr (std::is_same_v<helper::AddOp<T>, Op>) {
     return add<T>;
@@ -393,18 +411,18 @@ template <typename T> std::vector<T> get_simple_case() {
 template <typename T> void do_run_test_exact_add() {
   constexpr int32_t mantissa = helper::IEEE754<T>::mantissa;
 
-  T a = 1.25f;
+  T a = 1.25F;
   T b;
   T p;
 
-  for (int i = 0; i <= 5; i++) {
+  for (size_t i = 0; i <= 5; i++) {
     b = std::ldexp(1.0, -(mantissa + i));
-    p = 1 - (1.0 / (1 << i));
+    p = 1 - (1.0 / (1U << i));
     check_distribution_match<T, helper::AddOp<T>>({a, b});
   }
 }
 
-template <typename T, typename Op> void do_run_test_simple_case() {
+template <class Op, typename T> void do_run_test_simple_case() {
   auto simple_case = get_simple_case<T>();
 
   if constexpr (std::is_base_of_v<helper::UnaryOperator<T>, Op>) {
@@ -439,7 +457,7 @@ template <typename T, typename Op> void do_run_test_simple_case() {
   }
 }
 
-template <typename T, typename Op>
+template <class Op, typename T>
 void do_run_test_random(const double start_range_1st = 0.0,
                         const double end_range_1st = 1.0,
                         const double start_range_2nd = 0.0,
@@ -457,7 +475,6 @@ void do_run_test_random(const double start_range_1st = 0.0,
       check_distribution_match<T, Op>({-a});
     }
   } else if constexpr (std::is_base_of_v<helper::BinaryOperator<T>, Op>) {
-
     for (int i = 0; i < 100; i++) {
       T a = rng1();
       T b = rng2();
@@ -483,10 +500,23 @@ void do_run_test_random(const double start_range_1st = 0.0,
   }
 }
 
-TEST(SRRoundTest, ExactOperationsAdd) {
-  do_run_test_exact_add<float>();
-  do_run_test_exact_add<double>();
+struct TestExactOperationsAdd {
+  template <typename T> void operator()(T t) { do_run_test_exact_add<T>(); }
+};
+
+HWY_NOINLINE void TestAllExactOperationsAdd() {
+  hn::ForFloat3264Types(TestExactOperationsAdd());
 }
+
+template <class Op> struct TestBasicAssertions {
+  template <typename T> void operator()(T t) {
+    do_run_test_simple_case<Op, T>();
+  }
+};
+
+using ud = prism::ud::scalar::PRISM_DISPATCH::HWY_NAMESPACE;
+
+using TestBasicAssertionsAdd = TestBasicAssertions<ud::add>;
 
 TEST(SRRoundTest, BasicAssertionsAdd) {
   do_run_test_simple_case<float, helper::AddOp<float>>();
@@ -726,7 +756,15 @@ TEST(SRRoundTest, RandomMidOverlapFmaAssertions) {
   do_random_mid_overlap_test<double, opd>();
 }
 
-int main(int argc, char **argv) {
-  testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}
+} // namespace
+} // namespace prism::HWY_NAMESPACE
+
+#if HWY_ONCE
+namespace prism::HWY_NAMESPACE {
+
+HWY_BEFORE_TEST(UDScalarTest);
+HWY_AFTER_TEST();
+
+} // namespace prism::HWY_NAMESPACE
+
+#endif // HWY_ONCE

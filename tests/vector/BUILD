@@ -38,7 +38,7 @@ cc_test_lib_gen(
     ],
     copts = HWY_OPTS,
     deps = [
-        "@//src:prism-dbg",
+        "@//src:prism-dynamic-dbg",
     ],
 )
 
@@ -49,7 +49,7 @@ cc_test_lib_gen(
         "//tests/vector:test_ud_accuracy.cpp",
     ],
     copts = HWY_OPTS,
-    deps = ["//src:prism"],
+    deps = ["//src:prism-dynamic-dbg"],
 )
 
 cc_test_lib_gen(
@@ -57,7 +57,7 @@ cc_test_lib_gen(
     size = "medium",
     src = [
         "//tests/vector:test_sr_accuracy.cpp",
-        "//src:prism",
+        "//src:prism-dynamic-dbg",
     ],
     copts = HWY_OPTS,
     dbg = True,
@@ -82,7 +82,7 @@ cc_test_lib_gen(
 )
 
 cc_test_lib_gen(
-    name = "thread-native",
+    name = "thread-static",
     size = "medium",
     src = [
         "//tests/vector:test_threads.cpp",
@@ -95,7 +95,7 @@ cc_test_lib_gen(
         "-fsanitize=thread",
     ],
     deps = [
-        "@//src:prism-native-dbg",
+        "@//src:prism-static-dbg",
     ],
 )
 
@@ -113,13 +113,13 @@ cc_test_lib_gen(
         "-fsanitize=address",
     ],
     deps = [
-        "@//src:prism-dbg",
+        "@//src:prism-dynamic-dbg",
         "@hwy//:nanobenchmark",
     ],
 )
 
 cc_test_lib_gen(
-    name = "sr-perf-native",
+    name = "sr-perf-static",
     size = "medium",
     src = ["//tests/vector:test_sr_performance.cpp"],
     copts = HWY_OPTS + [
@@ -127,7 +127,7 @@ cc_test_lib_gen(
         "-Wno-psabi",
     ],
     deps = [
-        "@//src:prism-native",
+        "@//src:prism-static",
         "@hwy//:nanobenchmark",
     ],
 )
@@ -140,13 +140,13 @@ cc_test_lib_gen(
         "-Wno-psabi",
     ],
     deps = [
-        "@//src:prism",
+        "@//src:prism-dynamic",
         "@hwy//:nanobenchmark",
     ],
 )
 
 cc_test_lib_gen(
-    name = "ud-perf-native",
+    name = "ud-perf-static",
     size = "medium",
     src = ["//tests/vector:test_ud_performance.cpp"],
     copts = HWY_OPTS + [
@@ -171,7 +171,7 @@ cc_test_lib_gen(
         "-fsanitize=address",
     ],
     deps = [
-        "@//src:prism-dbg",
+        "@//src:prism-dynamic-dbg",
     ],
 )
 
@@ -185,7 +185,7 @@ cc_test_lib_gen(
         "-fsanitize=address",
     ],
     deps = [
-        "@//src:prism-dbg",
+        "@//src:prism-dynamic-dbg",
     ],
 )
 
@@ -195,7 +195,7 @@ test_suite(
         ":sr-accuracy",
         ":test_get_pow2",
         ":thread",
-        ":thread-native",
+        ":thread-static",
         ":ud-accuracy",
         ":xoshiro",
     ],

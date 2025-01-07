@@ -24,7 +24,6 @@
 #include <array>
 #include <cstdint>
 #include <limits>
-#include <set>
 
 #include "hwy/highway.h"
 

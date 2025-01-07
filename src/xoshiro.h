@@ -3,14 +3,19 @@
 
 #include <random>
 
-__attribute__((unused)) static int get_user_seed() {
+__attribute__((unused)) static auto get_user_seed() -> uint32_t {
   static bool initialized = false;
-  static int seed = 0;
-  if (initialized == false) {
-    const char *HWY_RESTRICT seed_env_str = "PRISM_SEED";
-    const char *HWY_RESTRICT seed_str = getenv(seed_env_str);
+  static uint32_t seed = 0;
+  if (not initialized) {
+    const char *seed_env_str = "PRISM_SEED";
+    const char *seed_str = getenv(seed_env_str);
     if (seed_str != nullptr) {
-      seed = atoll(seed_str);
+      char *endptr = nullptr;
+      seed = strtoll(seed_str, &endptr, 10);
+      if (*endptr != '\0') {
+        // Handle conversion error
+        seed = 0; // or some default value
+      }
     } else {
       std::random_device rd;
       seed = rd();
@@ -28,32 +33,27 @@ __attribute__((unused)) static int get_user_seed() {
 #define PRISM_XOSHIRO_H_
 #endif
 
-#include "hwy/base.h"
 #include "src/random-inl.h"
 
 HWY_BEFORE_NAMESPACE(); // at file scope
-namespace prism::scalar::xoshiro {
-namespace HWY_NAMESPACE {
+namespace prism::scalar::xoshiro::HWY_NAMESPACE {
 
-float uniform(float);
-double uniform(double);
-std::uint64_t random();
+auto uniform(float) -> float;
+auto uniform(double) -> double;
+auto random() -> std::uint64_t;
 
-} // namespace HWY_NAMESPACE
-} // namespace prism::scalar::xoshiro
+} // namespace prism::scalar::xoshiro::HWY_NAMESPACE
 
-namespace prism::vector::xoshiro {
-namespace HWY_NAMESPACE {
+namespace prism::vector::xoshiro::HWY_NAMESPACE {
 
 namespace hn = hwy::HWY_NAMESPACE;
 
-hn::Vec<hn::ScalableTag<float>> uniform(float);
-hn::Vec<hn::ScalableTag<double>> uniform(double);
-hn::Vec<hn::ScalableTag<std::uint32_t>> random(std::uint32_t);
-hn::Vec<hn::ScalableTag<std::uint64_t>> random(std::uint64_t);
+auto uniform(float) -> hn::Vec<hn::ScalableTag<float>>;
+auto uniform(double) -> hn::Vec<hn::ScalableTag<double>>;
+auto random(std::uint32_t) -> hn::Vec<hn::ScalableTag<std::uint32_t>>;
+auto random(std::uint64_t) -> hn::Vec<hn::ScalableTag<std::uint64_t>>;
 
-} // namespace HWY_NAMESPACE
-} // namespace prism::vector::xoshiro
+} // namespace prism::vector::xoshiro::HWY_NAMESPACE
 HWY_AFTER_NAMESPACE(); // at file scope
 
 #endif // PRISM_XOSHIRO_H_

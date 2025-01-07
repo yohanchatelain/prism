@@ -15,7 +15,6 @@
 // Generates code for each enabled target by re-including this source file.
 #include "hwy/foreach_target.h"
 
-#include "hwy/aligned_allocator.h"
 #include "hwy/base.h"
 #include "hwy/highway.h"
 #include "src/random-inl.h"
@@ -24,14 +23,14 @@
 
 HWY_BEFORE_NAMESPACE(); // at file scope
 
-namespace prism::scalar::xoshiro {
-namespace HWY_NAMESPACE {
+namespace prism::scalar::xoshiro::HWY_NAMESPACE {
 
 namespace hn = hwy::HWY_NAMESPACE;
-using RNG = hn::CachedXoshiro<1024 * 8>;
+constexpr size_t kCacheSize = 1024 * 8ULL;
+using RNG = hn::CachedXoshiro<kCacheSize>;
 thread_local RNG *rng = nullptr;
 
-void debug(const char fmt[], ...) {
+void debug(const char *fmt, ...) {
 #if PRISM_RNG_DEBUG
   va_list args;
   va_start(args, fmt);
@@ -57,30 +56,30 @@ void _init_rng() {
 #endif
 }
 
-RNG *get_rng() {
+auto get_rng() -> RNG * {
   if (rng == nullptr) {
     _init_rng();
   }
   return rng;
 }
 
-float uniform(float) { return static_cast<float>(get_rng()->Uniform()); }
+auto uniform(float) -> float {
+  return static_cast<float>(get_rng()->Uniform());
+}
 
-double uniform(double) { return get_rng()->Uniform(); }
+auto uniform(double) -> double { return get_rng()->Uniform(); }
 
-std::uint64_t random() { return get_rng()->operator()(); }
+auto random() -> std::uint64_t { return get_rng()->operator()(); }
 
-} // namespace HWY_NAMESPACE
-} // namespace prism::scalar::xoshiro
+} // namespace prism::scalar::xoshiro::HWY_NAMESPACE
 
-namespace prism::vector::xoshiro {
-namespace HWY_NAMESPACE {
+namespace prism::vector::xoshiro::HWY_NAMESPACE {
 
 namespace hn = hwy::HWY_NAMESPACE;
 using RNG = hn::VectorXoshiro;
 thread_local RNG *rng = nullptr;
 
-void debug(const char fmt[], ...) {
+void debug(const char *fmt, ...) {
 #if PRISM_RNG_DEBUG
   va_list args;
   va_start(args, fmt);
@@ -107,7 +106,7 @@ void _init_rng() {
 #endif
 }
 
-HWY_API RNG *get_rng() {
+HWY_API auto get_rng() -> RNG * {
   if (HWY_UNLIKELY(rng == nullptr)) {
     _init_rng();
   }
@@ -115,30 +114,31 @@ HWY_API RNG *get_rng() {
   return rng;
 }
 
-HWY_FLATTEN hn::Vec<hn::ScalableTag<float>> uniform(float f) {
+HWY_FLATTEN auto uniform(float f) -> hn::Vec<hn::ScalableTag<float>> {
   return get_rng()->Uniform(f);
 }
 
-HWY_FLATTEN hn::Vec<hn::ScalableTag<double>> uniform(double d) {
+HWY_FLATTEN auto uniform(double d) -> hn::Vec<hn::ScalableTag<double>> {
   return get_rng()->Uniform(d);
 }
 
-HWY_FLATTEN hn::Vec<hn::ScalableTag<std::uint32_t>> random(std::uint32_t u) {
+HWY_FLATTEN auto
+random(std::uint32_t u) -> hn::Vec<hn::ScalableTag<std::uint32_t>> {
   return get_rng()->operator()(u);
 }
 
-HWY_FLATTEN hn::Vec<hn::ScalableTag<std::uint64_t>> random(std::uint64_t u) {
+HWY_FLATTEN auto
+random(std::uint64_t u) -> hn::Vec<hn::ScalableTag<std::uint64_t>> {
   return get_rng()->operator()(u);
 }
 
-} // namespace HWY_NAMESPACE
-} // namespace prism::vector::xoshiro
+} // namespace prism::vector::xoshiro::HWY_NAMESPACE
 
 HWY_AFTER_NAMESPACE();
 
 #if HWY_ONCE
 
-void debug(const char fmt[], ...) {
+void debug(const char *fmt, ...) {
 #if PRISM_RNG_DEBUG
   va_list args;
   va_start(args, fmt);
@@ -148,7 +148,7 @@ void debug(const char fmt[], ...) {
 #endif
 }
 
-__attribute__((constructor)) void _init() {
+__attribute__((constructor)) void init() {
   hwy::GetChosenTarget().Update(hwy::SupportedTargets());
 #if PRISM_RNG_DEBUG
   debug("Target chosen: %s\n", hwy::TargetName(HWY_TARGET));

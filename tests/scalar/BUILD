@@ -38,7 +38,7 @@ cc_test_lib_gen(
         "//tests/scalar:test_sr_accuracy.cpp",
     ],
     copts = HWY_OPTS,
-    deps = ["//src:prism"],
+    deps = ["//src:prism-dynamic"],
 )
 
 cc_test_lib_gen(
@@ -49,7 +49,7 @@ cc_test_lib_gen(
     ],
     copts = HWY_OPTS,
     dbg = True,
-    deps = ["//src:prism"],
+    deps = ["//src:prism-dynamic"],
 )
 
 cc_test_lib_gen(
@@ -59,7 +59,7 @@ cc_test_lib_gen(
         "//tests/scalar:test_ud_accuracy.cpp",
     ],
     copts = HWY_OPTS,
-    deps = ["//src:prism"],
+    deps = ["//src:prism-dynamic"],
 )
 
 # Single tests for testing specific inputs
@@ -68,14 +68,14 @@ cc_binary(
     name = "sr-single-test",
     srcs = ["//tests/scalar:test_single_sr.cpp"],
     copts = HWY_OPTS + ["-DSR_DEBUG"],
-    deps = ["//src:prism"],
+    deps = ["//src:prism-dynamic"],
 )
 
 cc_binary(
     name = "ud-single-test",
     srcs = ["//tests/scalar:test_single_ud.cpp"],
     copts = HWY_OPTS + ["-DSR_DEBUG"],
-    deps = ["//src:prism"],
+    deps = ["//src:prism-dynamic"],
 )
 
 test_suite(

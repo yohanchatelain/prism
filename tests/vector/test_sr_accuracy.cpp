@@ -2,13 +2,10 @@
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
-#include <random>
 #include <vector>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-
-#include <iostream>
 
 // clang-format off
 #undef HWY_TARGET_INCLUDE
@@ -21,8 +18,6 @@
 
 #include "src/debug_vector-inl.h"
 #include "src/sr_vector-inl.h"
-#include "src/sr_vector.h"
-#include "src/utils.h"
 #include "tests/helper.h"
 // clang-format on
 
@@ -110,7 +105,7 @@ H fma(const std::vector<T> &args) {
 
 }; // namespace reference
 
-namespace psvn = prism::sr::vector::HWY_NAMESPACE;
+namespace sr = prism::sr::vector::PRISM_DISPATCH::HWY_NAMESPACE;
 
 struct SRAdd {
   static constexpr char name[] = "add";
@@ -119,7 +114,7 @@ struct SRAdd {
 
   template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
   V operator()(D d, V a, V b) {
-    return psvn::add<D>(a, b);
+    return sr::add(d, a, b);
   }
 
   template <typename T, typename H = typename helper::IEEE754<T>::H>
@@ -135,7 +130,7 @@ struct SRSub {
 
   template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
   V operator()(D d, V a, V b) {
-    return psvn::sub<D>(a, b);
+    return sr::sub(d, a, b);
   }
 
   template <typename T, typename H = typename helper::IEEE754<T>::H>
@@ -151,7 +146,7 @@ struct SRMul {
 
   template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
   V operator()(D d, V a, V b) {
-    return psvn::mul<D>(a, b);
+    return sr::mul(d, a, b);
   }
 
   template <typename T, typename H = typename helper::IEEE754<T>::H>
@@ -167,7 +162,7 @@ struct SRDiv {
 
   template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
   V operator()(D d, V a, V b) {
-    return psvn::div<D>(a, b);
+    return sr::div(d, a, b);
   }
 
   template <typename T, typename H = typename helper::IEEE754<T>::H>
@@ -183,7 +178,7 @@ struct SRSqrt {
 
   template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
   V operator()(D d, V a) {
-    return psvn::sqrt<D>(a);
+    return sr::sqrt(d, a);
   }
 
   template <typename T, typename H = typename helper::IEEE754<T>::H>
@@ -199,7 +194,7 @@ struct SRFma {
 
   template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
   V operator()(D d, V a, V b, V c) {
-    return psvn::fma<D>(a, b, c);
+    return sr::fma(d, a, b, c);
   }
 
   template <typename T, typename H = typename helper::IEEE754<T>::H>

@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <cstring>
 #include <immintrin.h>
-#include <type_traits>
+#include <variant>
 
 #include "src/debug.h"
 
@@ -61,6 +61,12 @@ template <> struct IEEE754<double> {
   static constexpr I min_exponent_subnormal = -1074;
   static constexpr U inf_nan_mask = 0x7FF0000000000000;
 };
+
+using binary32 = std::variant<float, std::int32_t, std::uint32_t>;
+using binary64 = std::variant<double, std::int64_t, std::uint64_t>;
+template <typename T>
+using binaryN =
+    std::conditional_t<std::is_same_v<T, float>, binary32, binary64>;
 
 // Implement other functions (get_exponent, predecessor, abs, pow2, etc.) using
 // templates

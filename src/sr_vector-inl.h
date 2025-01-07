@@ -1,5 +1,4 @@
 #include <cmath>
-#include <iostream>
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
@@ -22,8 +21,7 @@
 // clang-format on
 
 HWY_BEFORE_NAMESPACE(); // at file scope
-namespace prism::sr::vector::PRISM_DISPATCH {
-namespace HWY_NAMESPACE {
+namespace prism::sr::vector::PRISM_DISPATCH::HWY_NAMESPACE {
 
 namespace hn = hwy::HWY_NAMESPACE;
 namespace dbg = prism::vector::HWY_NAMESPACE;
@@ -71,8 +69,8 @@ void twosum(const D d, const V a, const V b, V &sigma, V &tau) {
   dbg::debug_msg("[twosum] END\n");
 }
 
-inline int get_precision() {
-  return std::is_same<float, float>::value ? 24 : 53;
+template <typename T> constexpr auto get_precision() -> int {
+  return prism::utils::IEEE754<T>::precision;
 }
 
 /*
@@ -95,8 +93,8 @@ HWY_NOINLINE void Split(const D d, const V x, V &xh, V &xl) {
   dbg::debug_msg("\n[Split] START");
   dbg::debug_vec(d, "[Split] x", x);
 
-  const int s = (get_precision() + 1) / 2;
-  const auto K = hn::Set(d, (1 << s) + 1);
+  const uint32_t s = (get_precision<T>() + 1) / 2;
+  const auto K = hn::Set(d, (1U << s) + 1);
 
   const auto gamma = hn::Mul(K, x);
   const auto delta = hn::Sub(x, gamma);
@@ -131,8 +129,10 @@ HWY_NOINLINE void DekkerProd(const D d, const V a, const V b, V &pi_h,
   dbg::debug_vec(d, "[DekkerProd] a", a);
   dbg::debug_vec(d, "[DekkerProd] b", b);
 
-  V ah, al;
-  V bh, bl;
+  V ah;
+  V al;
+  V bh;
+  V bl;
   Split(d, a, ah, al);
   Split(d, b, bh, bl);
 
@@ -192,21 +192,25 @@ else
 end if
 */
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
-HWY_NOINLINE V fma_emul(const D d, const V a, const V b, const V c) {
+HWY_NOINLINE auto fma_emul(const D d, const V a, const V b, const V c) -> V {
   dbg::debug_msg("\n[fma] START");
   dbg::debug_vec(d, "[fma] a", a);
   dbg::debug_vec(d, "[fma] b", b);
   dbg::debug_vec(d, "[fma] c", c);
 
-  constexpr auto ulp = std::is_same<T, float>::value ? 0x1.0p-23f : 0x1.0p-52;
+  constexpr auto ulp = std::is_same<T, float>::value ? 0x1.0p-23F : 0x1.0p-52;
   const auto P = hn::Set(d, 1 + ulp);
   const auto Q = hn::Set(d, ulp);
   const auto q3_2 = hn::Set(d, 1.5);
 
-  V pi_h, pi_l;
-  V s_h, s_l;
-  V v_h, v_l;
-  V z_h, z_l;
+  V pi_h;
+  V pi_l;
+  V s_h;
+  V s_l;
+  V v_h;
+  V v_l;
+  V z_h;
+  V z_l;
 
   DekkerProd(d, a, b, pi_h, pi_l);
   twosum(d, pi_h, c, s_h, s_l);
@@ -268,9 +272,10 @@ HWY_NOINLINE void twoprodfma(const D d, V a, V b, V &sigma, V &tau) {
 }
 
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
-HWY_NOINLINE V get_predecessor_abs(const D d, const V a) {
-  constexpr T phi =
-      std::is_same<T, float>::value ? 1.0f - 0x1.0p-24f : 1.0 - 0x1.0p-53;
+HWY_NOINLINE auto get_predecessor_abs(const D d, const V a) -> V {
+  constexpr auto halp_ulp =
+      std::is_same<T, float>::value ? 0x1.0p-24F : 0x1.0p-53;
+  constexpr T phi = 1.0 - halp_ulp;
   const auto phi_v = hn::Set(d, phi);
   const auto res = hn::Mul(a, phi_v);
   return res;
@@ -279,7 +284,7 @@ HWY_NOINLINE V get_predecessor_abs(const D d, const V a) {
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>,
           typename I = hn::TFromD<hn::RebindToSigned<D>>,
           typename VI = hn::Vec<hn::RebindToSigned<D>>>
-HWY_NOINLINE VI get_exponent(const D d, const V a) {
+HWY_NOINLINE auto get_exponent(const D d, const V a) -> VI {
   dbg::debug_msg("\n[get_exponent] START");
 
   using DU = hn::RebindToUnsigned<D>;
@@ -323,7 +328,7 @@ HWY_NOINLINE VI get_exponent(const D d, const V a) {
 // Only works for x in the range of the exponent of the floating point type.
 template <class D, class VI = hn::Vec<hn::Rebind<hwy::MakeSigned<D>, D>>,
           typename T = hn::TFromD<D>>
-HWY_INLINE hn::Vec<D> FastPow2I(D d, VI x) {
+HWY_INLINE auto FastPow2I(D d, VI x) -> hn::Vec<D> {
   constexpr auto kOffsetS = std::is_same<T, float>::value ? 0x7F : 0x3FF;
   constexpr auto mantissa = std::is_same<T, float>::value ? 23 : 52;
   const hn::Rebind<hwy::MakeSigned<D>, D> di;
@@ -334,7 +339,7 @@ HWY_INLINE hn::Vec<D> FastPow2I(D d, VI x) {
 }
 
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
-HWY_NOINLINE hn::Vec<D> pow2(const D d, const V n) {
+HWY_NOINLINE auto pow2(const D d, const V n) -> hn::Vec<D> {
   dbg::debug_msg("\n[pow2] START");
 
   using DI = hn::RebindToSigned<D>;
@@ -360,8 +365,8 @@ HWY_NOINLINE hn::Vec<D> pow2(const D d, const V n) {
 
   dbg::debug_mask(di, "[pow2] is_subnormal", is_subnormal);
 
-  const T one = 1.0;
-  const auto one_as_int = reinterpret_cast<const I &>(one);
+  const utils::binaryN<T> one = static_cast<T>(1.0);
+  const auto one_as_int = std::get<I>(one);
   const auto one_as_int_v = hn::Set(di, one_as_int);
   // res = is_subnormal ? 0 : 1
   const auto res = hn::IfThenZeroElse(is_subnormal, one_as_int_v);
@@ -390,7 +395,7 @@ HWY_NOINLINE hn::Vec<D> pow2(const D d, const V n) {
 }
 
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
-HWY_NOINLINE V round(const D d, const V sigma, const V tau) {
+HWY_NOINLINE auto round(const D d, const V sigma, const V tau) -> V {
   dbg::debug_msg("\n[sr_round] START");
   dbg::debug_vec(d, "[sr_round] sigma", sigma);
   dbg::debug_vec(d, "[sr_round] tau", tau);
@@ -444,9 +449,10 @@ HWY_NOINLINE V round(const D d, const V sigma, const V tau) {
 }
 
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
-HWY_NOINLINE V add(const D d, const V a, const V b) {
+HWY_NOINLINE auto add(const D d, const V a, const V b) -> V {
   dbg::debug_msg("\n[sr_add] START");
-  V sigma, tau;
+  V sigma;
+  V tau;
   twosum(d, a, b, sigma, tau);
   const auto rounding = round(d, sigma, tau);
   const auto ret = hn::Add(sigma, rounding);
@@ -456,7 +462,7 @@ HWY_NOINLINE V add(const D d, const V a, const V b) {
 }
 
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
-HWY_NOINLINE V sub(const D d, const V a, const V b) {
+HWY_NOINLINE auto sub(const D d, const V a, const V b) -> V {
   dbg::debug_msg("\n[sr_sub] START");
   const auto b_neg = hn::Neg(b);
   const auto ret = add(d, a, b_neg);
@@ -465,9 +471,10 @@ HWY_NOINLINE V sub(const D d, const V a, const V b) {
 }
 
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
-HWY_NOINLINE V mul(const D d, const V a, const V b) {
+HWY_NOINLINE auto mul(const D d, const V a, const V b) -> V {
   dbg::debug_msg("\n[sr_add] START");
-  V sigma, tau;
+  V sigma;
+  V tau;
   twoprodfma(d, a, b, sigma, tau);
   const auto rounding = round(d, sigma, tau);
   const auto ret = hn::Add(sigma, rounding);
@@ -492,7 +499,7 @@ the Change of the Rounding Mode
 9. return σ
 */
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
-HWY_NOINLINE V div(const D d, const V a, const V b) {
+HWY_NOINLINE auto div(const D d, const V a, const V b) -> V {
   dbg::debug_msg("\n[sr_div] START");
   dbg::debug_vec(d, "[sr_div] a", a);
   dbg::debug_vec(d, "[sr_div] b", b);
@@ -520,7 +527,7 @@ HWY_NOINLINE V div(const D d, const V a, const V b) {
 }
 
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
-HWY_NOINLINE V sqrt(const D d, const V a) {
+HWY_NOINLINE auto sqrt(const D d, const V a) -> V {
   dbg::debug_msg("\n[sr_sqrt] START");
 
   const auto sigma = hn::Sqrt(a);
@@ -550,7 +557,7 @@ Algorithm 5 (ErrFmaNearest):
   r2 = ◦(γ + α2)
 */
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
-HWY_NOINLINE V fma(const D d, const V a, const V b, const V c) {
+HWY_NOINLINE auto fma(const D d, const V a, const V b, const V c) -> V {
   dbg::debug_msg("\n[sr_fma] START");
   dbg::debug_vec(d, "[sr_fma] a", a);
   dbg::debug_vec(d, "[sr_fma] b", b);
@@ -564,7 +571,14 @@ HWY_NOINLINE V fma(const D d, const V a, const V b, const V c) {
 #endif
   const auto r1 = fma_emul(d, a, b, c);
 #endif
-  V u1, u2, alpha1, alpha2, beta1, beta2, gamma, r2;
+  V u1;
+  V u2;
+  V alpha1;
+  V alpha2;
+  V beta1;
+  V beta2;
+  V gamma;
+  V r2;
   twoprodfma(d, a, b, u1, u2);
   twosum(d, c, u2, alpha1, alpha2);
   twosum(d, u1, alpha1, beta1, beta2);
@@ -580,8 +594,7 @@ HWY_NOINLINE V fma(const D d, const V a, const V b, const V c) {
 }
 
 // NOLINTNEXTLINE(google-readability-namespace-comments)
-} // namespace HWY_NAMESPACE
-} // namespace prism::sr::vector::PRISM_DISPATCH
+} // namespace prism::sr::vector::PRISM_DISPATCH::HWY_NAMESPACE
 HWY_AFTER_NAMESPACE();
 
 #endif // PRISM_SR_VECTOR_INL_H_

@@ -6,9 +6,25 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "src/sr_scalar.h"
-#include "src/utils.h"
+// clang-format off
+#undef HWY_TARGET_INCLUDE
+#define HWY_TARGET_INCLUDE "tests/scalar/test_sr_accuracy.cpp"
+#include "hwy/foreach_target.h"
+
+#include "hwy/highway.h"
+#include "hwy/base.h"
+#include "hwy/tests/test_util-inl.h"
+
+#include "src/debug_vector-inl.h"
+#include "src/sr_scalar-inl.h"
 #include "tests/helper.h"
+// clang-format on
+
+HWY_BEFORE_NAMESPACE(); // at file scope
+
+namespace prism::HWY_NAMESPACE {
+
+namespace {
 
 using ::testing::AllOf;
 using ::testing::Eq;
@@ -22,101 +38,33 @@ constexpr auto default_repetitions = 10;
 #else
 constexpr auto default_repetitions = 10'000;
 #endif
-namespace reference {
-// return pred(|s|)
-
-// twosum reference
-// compute in double precision if the input type is float
-// compute in quad precision if the input type is double
-template <typename T, typename H = typename helper::IEEE754<T>::H>
-H add(const std::vector<T> &args) {
-  auto a = static_cast<H>(args[0]);
-  auto b = static_cast<H>(args[1]);
-  return a + b;
-}
-
-template <typename T, typename H = typename helper::IEEE754<T>::H>
-H sub(const std::vector<T> &args) {
-  auto a = static_cast<H>(args[0]);
-  auto b = static_cast<H>(args[1]);
-  return a - b;
-}
-
-template <typename T, typename H = typename helper::IEEE754<T>::H>
-H mul(const std::vector<T> &args) {
-  auto a = static_cast<H>(args[0]);
-  auto b = static_cast<H>(args[1]);
-  return a * b;
-}
-
-template <typename T, typename H = typename helper::IEEE754<T>::H>
-H div(const std::vector<T> &args) {
-  auto a = static_cast<H>(args[0]);
-  auto b = static_cast<H>(args[1]);
-  return a / b;
-}
-
-template <typename T, typename H = typename helper::IEEE754<T>::H>
-H sqrt(const std::vector<T> &args) {
-  auto a = static_cast<H>(args[0]);
-  return helper::sqrt<H>(a);
-}
-
-template <typename T, typename H = typename helper::IEEE754<T>::H>
-H fma(const std::vector<T> &args) {
-  auto a = static_cast<H>(args[0]);
-  auto b = static_cast<H>(args[1]);
-  auto c = static_cast<H>(args[2]);
-  return helper::fma<H>(a, b, c);
-}
 
 template <typename T, typename Op, typename H = typename helper::IEEE754<T>::H>
-std::function<H(const std::vector<T> &)> get_operator() {
+auto get_operator() -> std::function<H(const std::vector<T> &)> {
   static_assert(std::is_base_of_v<helper::Operator<T>, Op>);
   if constexpr (std::is_same_v<helper::AddOp<T>, Op>) {
-    return add<T>;
+    return helper::reference::add<T>;
   } else if constexpr (std::is_same_v<Op, helper::SubOp<T>>) {
-    return sub<T>;
+    return helper::reference::sub<T>;
   } else if constexpr (std::is_same_v<Op, helper::MulOp<T>>) {
-    return mul<T>;
+    return helper::reference::mul<T>;
   } else if constexpr (std::is_same_v<Op, helper::DivOp<T>>) {
-    return div<T>;
+    return helper::reference::div<T>;
   } else if constexpr (std::is_same_v<Op, helper::SqrtOp<T>>) {
-    return sqrt<T>;
+    return helper::reference::sqrt<T>;
   } else if constexpr (std::is_same_v<Op, helper::FmaOp<T>>) {
-    return fma<T>;
+    return helper::reference::fma<T>;
   } else {
     std::cerr << "Unknown reference operator: " << Op::name << std::endl;
     // static_assert(false, "Unknown reference operator");
   }
 }
 
-}; // namespace reference
-
-template <typename T, typename Op> typename Op::function get_target_operator() {
-  static_assert(std::is_base_of_v<helper::Operator<T>, Op>);
-
-  if constexpr (std::is_same_v<Op, helper::AddOp<T>>) {
-    return prism::sr::scalar::add<T>;
-  } else if constexpr (std::is_same_v<Op, helper::SubOp<T>>) {
-    return prism::sr::scalar::sub<T>;
-  } else if constexpr (std::is_same_v<Op, helper::MulOp<T>>) {
-    return prism::sr::scalar::mul<T>;
-  } else if constexpr (std::is_same_v<Op, helper::DivOp<T>>) {
-    return prism::sr::scalar::div<T>;
-  } else if constexpr (std::is_same_v<Op, helper::SqrtOp<T>>) {
-    return prism::sr::scalar::sqrt<T>;
-  } else if constexpr (std::is_same_v<Op, helper::FmaOp<T>>) {
-    return prism::sr::scalar::fma<T>;
-  } else {
-    std::cerr << "Unknown sr operator: " << Op::name << std::endl;
-    // static_assert(false, "Unknown sr operator");
-  };
-}
+namespace sr = prism::sr::scalar::HWY_NAMESPACE;
 
 template <typename T, typename H = typename helper::IEEE754<T>::H>
-std::tuple<H, H, H, H, H, H, std::string>
-compute_distance_error(const std::vector<T> &args, H reference) {
+auto compute_distance_error(const std::vector<T> &args, H reference)
+    -> std::tuple<H, H, H, H, H, H, std::string> {
   T ref_cast = static_cast<T>(reference);
 
   bool is_exact = false;
@@ -134,9 +82,12 @@ compute_distance_error(const std::vector<T> &args, H reference) {
     return {0, 0, reference, reference, 0, 0, ""};
   }
 
-  H error = 0, error_c = 0;
-  H probability_down = 0, probability_up = 0;
-  H next = 0, prev = 0;
+  H error = 0;
+  H error_c = 0;
+  H probability_down = 0;
+  H probability_up = 0;
+  H next = 0;
+  H prev = 0;
   H ulp = helper::get_ulp(ref_cast);
 
   if (ref_cast == reference) {
@@ -221,7 +172,7 @@ compute_distance_error(const std::vector<T> &args, H reference) {
 }
 
 template <typename T, typename Op>
-T decurry(const typename Op::function &f, const std::vector<T> &args) {
+auto decurry(const typename Op::function &f, const std::vector<T> &args) -> T {
   // decurry the function
   if constexpr (std::is_base_of_v<helper::BinaryOperator<T>, Op>) {
     return f(args[0], args[1]);
@@ -232,36 +183,51 @@ T decurry(const typename Op::function &f, const std::vector<T> &args) {
   }
 }
 
-template <typename T, typename Op>
-helper::Counter<T> eval_op(const std::vector<T> &args, const int repetitions) {
+template <typename T> using Args = const std::vector<T> &;
 
-  auto op = get_target_operator<T, Op>();
+template <class Op, typename T>
+auto eval_op(Args<T> args, const int repetitions) -> helper::Counter<T> {
+#ifdef SR_DEBUG
+  std::cerr << "rep: " << repetitions << std::endl;
+#endif
+  auto op = Op();
+
   helper::Counter<T> c;
+  T v;
   for (int i = 0; i < repetitions; i++) {
-    T v = decurry<T, Op>(op, args);
+    if constexpr (Op::arity == 1) {
+      auto [x] = args;
+      v = op(x);
+    } else if constexpr (Op::arity == 2) {
+      auto [x, y] = args;
+      v = op(x, y);
+    } else if constexpr (Op::arity == 3) {
+      auto [x, y, z] = args;
+      v = op(x, y, z);
+    }
     c[v]++;
   }
 
   return c;
 }
 
-template <typename T> std::string fmt_proba(const T &x) {
+template <typename T> auto fmt_proba(const T &x) -> std::string {
   std::ostringstream os;
   os << std::fixed << std::setprecision(5) << x << std::defaultfloat;
   return os.str();
 }
 
-std::string flush() {
+auto flush() -> std::string {
   debug_flush();
   return "";
 }
 
 template <typename T, typename Op, typename H = typename helper::IEEE754<T>::H>
-std::string get_args_str(const std::vector<T> &args, H reference) {
+auto get_args_str(const std::vector<T> &args, H reference) -> std::string {
   const auto symbol = std::string(Op::symbol);
 
-  std::string symbol_op = "";
-  std::string args_str = "";
+  std::string symbol_op;
+  std::string args_str;
   if constexpr (std::is_base_of_v<helper::BinaryOperator<T>, Op>) {
     auto a = args[0];
     auto b = args[1];
@@ -289,7 +255,7 @@ std::string get_args_str(const std::vector<T> &args, H reference) {
 
 template <typename T, typename Op>
 void check_distribution_match(const std::vector<T> &args,
-                              const long repetitions = default_repetitions,
+                              const int64_t repetitions = default_repetitions,
                               const float alpha = default_alpha) {
   using H = typename helper::IEEE754<T>::H;
 
@@ -301,18 +267,21 @@ void check_distribution_match(const std::vector<T> &args,
   auto [probability_down, probability_up, down, up, distance_error, ulp,
         distance_error_msg] = compute_distance_error(args, reference);
 
-  auto counter = eval_op<T, Op>(args, repetitions);
+  auto counter = eval_op<Op>(args, repetitions);
   auto count_down = counter.down_count();
   auto count_up = counter.up_count();
-  auto probability_down_estimated = count_down / (double)repetitions;
-  auto probability_up_estimated = count_up / (double)repetitions;
+  auto probability_down_estimated =
+      count_down / static_cast<double>(repetitions);
+  auto probability_up_estimated = count_up / static_cast<double>(repetitions);
 
   if (not helper::isfinite(counter.up()) or
       not helper::isfinite(counter.down())) {
-    if (helper::isnan(counter.up()) and helper::isnan(reference))
+    if (helper::isnan(counter.up()) and helper::isnan(reference)) {
       return;
-    if (helper::isnan(counter.down()) and helper::isnan(reference))
+    }
+    if (helper::isnan(counter.down()) and helper::isnan(reference)) {
       return;
+    }
     if (helper::isinf(counter.up()) and helper::isinf(reference)) {
       EXPECT_EQ(counter.up(), reference);
     }
@@ -351,14 +320,15 @@ void check_distribution_match(const std::vector<T> &args,
       ((probability_down_estimated == 1) and (probability_down != 1)) or
       ((probability_up_estimated == 1) and (probability_up != 1));
 
+  const auto frequency_max = 1.0 / static_cast<double>(repetitions);
+
   bool compare_down_values =
-      not is_exact and (down != 0) and
-      (probability_down > (1.0 / repetitions)) and
+      not is_exact and (down != 0) and (probability_down > frequency_max) and
       (distance_error > helper::IEEE754<T>::min_subnormal) and
       is_error_greater_than_ulp_square;
 
   bool compare_up_values =
-      not is_exact and (up != 0) and (probability_up > (1.0 / repetitions)) and
+      not is_exact and (up != 0) and (probability_up > frequency_max) and
       (distance_error > helper::IEEE754<T>::min_subnormal) and
       is_error_greater_than_ulp_square;
 
@@ -867,7 +837,15 @@ TEST(SRRoundTest, RandomMidOverlapFmaAssertions) {
   do_random_mid_overlap_test<double, opd>();
 }
 
+} // namespace
+} // namespace prism::HWY_NAMESPACE
+HWY_AFTER_NAMESPACE();
+
+#if HWY_ONCE
+
 int main(int argc, char **argv) {
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
+
+#endif // HWY_ONCE
