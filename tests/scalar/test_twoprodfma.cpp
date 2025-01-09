@@ -7,7 +7,9 @@
 
 #include "src/eft.h"
 #include "src/utils.h"
-#include "tests/helper.h"
+#include "tests/helper/distance.h"
+#include "tests/helper/random.h"
+#include "tests/helper/tests.h"
 
 namespace reference {
 // return pred(|s|)
@@ -15,30 +17,34 @@ namespace reference {
 // twosum reference
 // compute in double precision if the input type is float
 // compute in quad precision if the input type is double
-template <typename T, typename R = typename helper::IEEE754<T>::H>
+template <typename T, typename R = typename prism::utils::IEEE754<T>::H>
 R twoprodfma(T a, T b) {
-  using H = typename helper::IEEE754<T>::H;
+  using H = typename prism::utils::IEEE754<T>::H;
   return static_cast<H>(a) * static_cast<H>(b);
 }
 
 }; // namespace reference
 
 template <typename T> void is_close(T a, T b) {
-  if (std::isnan(a) or std::isnan(b) or std::isinf(a) or std::isinf(b))
+  if (std::isnan(a) or std::isnan(b) or std::isinf(a) or std::isinf(b)) {
     return;
+  }
 
-  using H = typename helper::IEEE754<T>::H;
+  using H = typename prism::utils::IEEE754<T>::H;
   H ref = reference::twoprodfma(a, b);
   T ref_cast = static_cast<T>(ref);
-  T x = 0, e = 0;
+  T x = 0;
+  T e = 0;
   twoprodfma(a, b, x, e);
   H target = static_cast<H>(x) + static_cast<H>(e);
 
-  if (std::isnan(x) and std::isnan(ref_cast))
+  if (std::isnan(x) and std::isnan(ref_cast)) {
     return;
+  }
 
-  if (std::isinf(x) and std::isinf(ref_cast))
+  if (std::isinf(x) and std::isinf(ref_cast)) {
     return;
+  }
 
   auto diff = helper::absolute_distance(ref, target);
   auto rel = helper::relative_distance(ref, target);
@@ -72,7 +78,7 @@ template <typename T> void is_close(T a, T b) {
                        << "reference: " << (double)ref << "\n"
                        << "target   : " << (double)target << "\n"
                        << "abs_diff     : " << (double)diff << "\n"
-                       << "rel_diff     : " << (double)rel;
+                       << "rel_diff     : " << static_cast<double>(rel);
 }
 
 #define test_equality(a, b) is_close(a, b)
@@ -219,7 +225,7 @@ TEST(GetTwoSumTest, RandomMidOverlapAssertions) {
 template <typename T> void run_test_binade() {
   constexpr auto min_exponent = helper::IEEE754<T>::min_exponent_subnormal;
   constexpr auto max_exponent = helper::IEEE754<T>::max_exponent;
-  std::function<void(T, T)> test = is_close<T>;
+  auto test = is_close<T>;
   for (int i = min_exponent; i <= max_exponent; i++)
     helper::test_binade<T>(i, test);
 }

@@ -4,7 +4,7 @@
 #include <cassert>
 #include <cstdlib>
 
-extern int is_debug();
+extern auto is_debug() -> bool;
 extern void prism_debug_printf(const char *fmt, ...);
 extern void prism_debug_header_start(const char *func);
 extern void prism_debug_header_end(const char *func);
@@ -13,24 +13,24 @@ extern void prism_debug_header_end(const char *func);
 #ifndef PRISM_DEBUG_FUNCTIONS_DECLARED
 #include <cstdarg>
 #include <cstdio>
-#define sr_buffer_size 1024
-static char prism_end = '\0';
-static char prism_indent = '\t';
+constexpr int sr_buffer_size = 1024;
+static const char prism_end = '\0';
+static const char prism_indent = '\t';
 static int prism_debug_level = 0;
 static char prism_debug_buffer[sr_buffer_size] = {prism_indent};
 
-#define sr_buffer_size_str 1048576
+constexpr int sr_buffer_size_str = 1048576;
 static char prism_debug_buffer_str[sr_buffer_size_str] = {prism_end};
 static int prism_debug_str_pos = 0;
 #endif // PRISM_DEBUG_FUNCTIONS_DECLARED
 
-inline int is_debug() {
+inline auto is_debug() -> bool {
   static int is_debug = -1;
   if (is_debug == -1) {
     const char *debug = getenv("PRISM_DEBUG");
-    is_debug = (debug != NULL) and (debug[0] == '1');
+    is_debug = (debug != nullptr) and (debug[0] == '1');
   }
-  return is_debug;
+  return static_cast<bool>(is_debug);
 }
 
 inline void prism_debug_printf(const char *fmt, ...) {

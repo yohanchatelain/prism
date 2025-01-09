@@ -17,19 +17,20 @@
 #include "hwy/tests/test_util-inl.h"
 
 #include "src/sr_vector-inl.h"
-#include "src/utils.h"
-#include "tests/helper.h"
+
+#include "tests/helper/random.h"
+#include "tests/helper/tests.h"
 
 HWY_BEFORE_NAMESPACE(); // at file scope
 
-namespace sr {
-namespace vector {
-namespace HWY_NAMESPACE {
+namespace sr::vector::HWY_NAMESPACE {
 
+namespace helper = prism::tests::helper::HWY_NAMESPACE;
+namespace sr = prism::sr::vector::PRISM_DISPATCH::HWY_NAMESPACE;
 namespace hn = hwy::HWY_NAMESPACE;
 
 namespace reference {
-template <typename T> int32_t get_exponent(T a) {
+template <typename T> auto get_exponent(T a) -> int32_t {
   int exp = 0;
   auto cls = std::fpclassify(a);
   switch (cls) {
@@ -52,29 +53,15 @@ template <typename T> int32_t get_exponent(T a) {
 }
 }; // namespace reference
 
-struct RNG {
-
-  std::random_device rd;
-
-private:
-  std::mt19937 gen;
-  std::uniform_real_distribution<> dis;
-
-public:
-  RNG(double a = 0.0, double b = 1.0) : gen(RNG::rd()), dis(a, b){};
-  double operator()() { return dis(gen); }
-};
-
 namespace {
 
-template <typename T, typename D> void test_equality(T a) {
+template <typename T, typename D> void test_equality(D d, T a) {
   using DI = hn::RebindToSigned<D>;
   const DI di{};
-  const D d{};
 
   const auto va = hn::Set(d, a);
   const auto reference = reference::get_exponent(a);
-  const auto target = prism::sr::vector::HWY_NAMESPACE::get_exponent(d, va);
+  const auto target = sr::get_exponent(d, va);
 
   auto target_min = hn::ReduceMin(di, target);
   auto target_max = hn::ReduceMax(di, target);
@@ -98,57 +85,49 @@ template <typename T, typename D> void test_equality(T a) {
   }
 }
 
-template <typename T, class D> void testBinade(int n, int repetitions = 10) {
+template <typename T, class D>
+void testBinade(D d, int n, int repetitions = 10) {
   auto start = std::ldexp(1.0, n);
   auto end = std::ldexp(1.0, n + 1);
-  RNG rng(start, end);
+  helper::RNG rng(start, end);
 
   for (int i = 0; i < repetitions; i++) {
     T a = rng();
-    test_equality<T, D>(a);
-    test_equality<T, D>(-a);
+    test_equality<T>(d, a);
+    test_equality<T>(d, -a);
   }
 }
 
-template <typename T> std::vector<T> get_simple_case() {
-  std::vector<T> simple_case = {0.0,
-                                1.0,
-                                2.0,
-                                3.0,
-                                std::numeric_limits<T>::min(),
-                                std::numeric_limits<T>::lowest(),
-                                std::numeric_limits<T>::max(),
-                                std::numeric_limits<T>::epsilon(),
-                                std::numeric_limits<T>::infinity(),
-                                std::numeric_limits<T>::denorm_min(),
-                                std::numeric_limits<T>::quiet_NaN(),
-                                std::numeric_limits<T>::signaling_NaN()};
-  return simple_case;
-}
-
 struct TestGetExponentBasicAssertions {
-  template <typename T, typename D> HWY_NOINLINE void operator()(T t, D d) {
-    std::vector<T> simple_case = get_simple_case<T>();
+  template <typename T, typename D>
+  HWY_NOINLINE void operator()(T /* unused */, D d) {
+    auto simple_case = helper::get_simple_case<T>();
+    for (auto a : simple_case) {
+      test_equality<T>(d, a);
+      test_equality<T>(d, -a);
+    }
   }
 };
 
 struct TestGetExponentRandomAssertions {
-  template <typename T, typename D> HWY_NOINLINE void operator()(T t, D d) {
-    RNG rng;
+  template <typename T, typename D>
+  HWY_NOINLINE void operator()(T /* unused */, D d) {
+    helper::RNG rng;
     for (int i = 0; i < 1000; i++) {
       T a = rng();
-      test_equality<T, D>(a);
-      test_equality<T, D>(-a);
+      test_equality<T>(d, a);
+      test_equality<T>(d, -a);
     }
   }
 };
 
 struct TestGetExponentBinadeAssertions {
-  template <typename T, typename D> HWY_NOINLINE void operator()(T t, D d) {
+  template <typename T, typename D>
+  HWY_NOINLINE void operator()(T /* unused */, D d) {
     constexpr auto start = std::is_same_v<T, float> ? -149 : -1074;
     constexpr auto end = std::is_same_v<T, float> ? 127 : 1023;
     for (int i = start; i < end; i++) {
-      testBinade<T, D>(i);
+      testBinade<T>(d, i);
     }
   }
 };
@@ -170,9 +149,7 @@ HWY_NOINLINE void TestAllGetExponentBinadeAssertions() {
 
 } // namespace
 // NOLINTNEXTLINE(google-readability-namespace-comments)
-} // namespace HWY_NAMESPACE
-} // namespace vector
-} // namespace sr
+} // namespace sr::vector::HWY_NAMESPACE
 HWY_AFTER_NAMESPACE();
 
 #if HWY_ONCE

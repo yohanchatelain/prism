@@ -31,12 +31,12 @@ http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "ht
 
 # Use my version of highway with Print format option
 # Command to generate integrity:
-# > openssl dgst -sha256 -binary highway-1.2.0.zip | openssl base64 -A | sed 's/^/sha256-/'
+# > openssl dgst -sha256 -binary highway-1.2.0-a.zip | openssl base64 -A | sed 's/^/sha256-/'
 http_archive(
     name = "hwy",
-    urls = ["https://github.com/yohanchatelain/highway/archive/refs/tags/1.2.0.zip"],
-    integrity = "sha256-/azCSSQVu3gjymk4oVmpKB6dKkNMtUxSH6xstU10x48=",
-    strip_prefix = "highway-1.2.0",
+    urls = ["https://github.com/yohanchatelain/highway/archive/refs/tags/1.2.0-a.zip"],
+    integrity = "sha256-499xcu9XniKcTnqNvld9aIgYJEDgRse+ga+f389Wayw=",
+    strip_prefix = "highway-1.2.0-a",
 )
 
 # Boost

@@ -16,13 +16,13 @@
 
 HWY_BEFORE_NAMESPACE(); // at file scope
 
-namespace prism::sr::vector::dynamic_dispatch::HWY_NAMESPACE {
+namespace prism::sr::vector::PRISM_DISPATCH::HWY_NAMESPACE {
 
 namespace hn = hwy::HWY_NAMESPACE;
 
 namespace {
 
-std::pair<double, double> stats(const std::vector<double> &x) {
+auto stats(const std::vector<double> &x) -> std::pair<double, double> {
   if (x.empty()) {
     throw std::runtime_error(
         "Input vector is empty, cannot compute statistics.");
@@ -113,7 +113,7 @@ HWY_NOINLINE auto TestThreads() -> void {
   hn::ForFloat3264Types(hn::ForPartialVectors<TestThread>());
 }
 
-} // namespace prism::sr::vector::dynamic_dispatch::HWY_NAMESPACE
+} // namespace prism::sr::vector::PRISM_DISPATCH::HWY_NAMESPACE
 
 HWY_AFTER_NAMESPACE();
 

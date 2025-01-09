@@ -50,6 +50,7 @@ DYNAMIC_COPTS = [
 
 DEBUG_COPTS = [
     "-DPRISM_DEBUG",
+    "-DPRISM_DEBUG_XOSHIRO",
     "-Og",
     "-g",
     "-fno-omit-frame-pointer",
@@ -133,7 +134,7 @@ cc_library(
     name = "prism-dynamic-dbg",
     srcs = [":srcs-prism-dynamic"],
     hdrs = [":headers-prism"],
-    copts = COPTS + DYNAMIC_COPTS + NATIVE_COPTS + DEBUG_COPTS,
+    copts = COPTS + DYNAMIC_COPTS + DEBUG_COPTS,
     linkopts = ["-fsanitize=address"],
     visibility = ["//visibility:public"],
     deps = [

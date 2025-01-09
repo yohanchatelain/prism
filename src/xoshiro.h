@@ -3,9 +3,9 @@
 
 #include <random>
 
-__attribute__((unused)) static auto get_user_seed() -> uint32_t {
+__attribute__((unused)) static auto get_user_seed() -> uint64_t {
   static bool initialized = false;
-  static uint32_t seed = 0;
+  static uint64_t seed = 0;
   if (not initialized) {
     const char *seed_env_str = "PRISM_SEED";
     const char *seed_str = getenv(seed_env_str);
@@ -38,6 +38,14 @@ __attribute__((unused)) static auto get_user_seed() -> uint32_t {
 HWY_BEFORE_NAMESPACE(); // at file scope
 namespace prism::scalar::xoshiro::HWY_NAMESPACE {
 
+namespace internal {
+namespace hn = hwy::HWY_NAMESPACE;
+constexpr size_t kCacheSize = 1024 * 8ULL;
+using RNG = hn::CachedXoshiro<kCacheSize>;
+auto get_rng() -> RNG *;
+void init_rng(std::uint64_t seed, std::uint64_t tid);
+} // namespace internal
+
 auto uniform(float) -> float;
 auto uniform(double) -> double;
 auto random() -> std::uint64_t;
@@ -45,6 +53,17 @@ auto random() -> std::uint64_t;
 } // namespace prism::scalar::xoshiro::HWY_NAMESPACE
 
 namespace prism::vector::xoshiro::HWY_NAMESPACE {
+
+namespace internal {
+namespace hn = hwy::HWY_NAMESPACE;
+using RNG = hn::VectorXoshiro;
+using VU32 = hn::Vec<hn::ScalableTag<std::uint32_t>>;
+using VU64 = hn::Vec<hn::ScalableTag<std::uint64_t>>;
+using VF32 = hn::Vec<hn::ScalableTag<float>>;
+using VF64 = hn::Vec<hn::ScalableTag<double>>;
+auto get_rng() -> RNG *;
+void init_rng(std::uint64_t seed, std::uint64_t tid);
+} // namespace internal
 
 namespace hn = hwy::HWY_NAMESPACE;
 

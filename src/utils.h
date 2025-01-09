@@ -25,11 +25,13 @@ template <typename T> struct IEEE754 {};
 template <> struct IEEE754<float> {
   using I = std::int32_t;
   using U = std::uint32_t;
+  using H = double;
   static constexpr I sign = 1;
   static constexpr I exponent = 8;
   static constexpr I mantissa = 23;
   static constexpr I precision = 24;
-  static constexpr float ulp = 0x1.0p-24F;
+  static constexpr float ulp = 0x1.0p-23F;
+  static constexpr float half_ulp = 0x1.0p-24F;
   static constexpr I bias = 127;
   static constexpr U exponent_mask = 0x7F8;
   static constexpr U exponent_mask_scaled = 0x7f800000;
@@ -45,11 +47,13 @@ template <> struct IEEE754<float> {
 template <> struct IEEE754<double> {
   using I = std::int64_t;
   using U = std::uint64_t;
+  using H = Float128;
   static constexpr I sign = 1;
   static constexpr I exponent = 11;
   static constexpr I mantissa = 52;
   static constexpr I precision = 53;
-  static constexpr double ulp = 0x1.0p-53;
+  static constexpr double ulp = 0x1.0p-52;
+  static constexpr double half_ulp = 0x1.0p-53;
   static constexpr I bias = 1023;
   static constexpr U exponent_mask = 0x7FF;
   static constexpr U exponent_mask_scaled = 0x7ff0000000000000ULL;
@@ -62,11 +66,19 @@ template <> struct IEEE754<double> {
   static constexpr U inf_nan_mask = 0x7FF0000000000000;
 };
 
-using binary32 = std::variant<float, std::int32_t, std::uint32_t>;
-using binary64 = std::variant<double, std::int64_t, std::uint64_t>;
-template <typename T>
-using binaryN =
-    std::conditional_t<std::is_same_v<T, float>, binary32, binary64>;
+template <typename T> union binaryN {};
+
+template <> union binaryN<float> {
+  float f;
+  uint32_t u;
+  int32_t i;
+};
+
+template <> union binaryN<double> {
+  double f;
+  uint64_t u;
+  int64_t i;
+};
 
 // Implement other functions (get_exponent, predecessor, abs, pow2, etc.) using
 // templates

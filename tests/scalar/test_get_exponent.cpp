@@ -2,16 +2,17 @@
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
-#include <random>
-#include <vector>
 
 #include <gtest/gtest.h>
 
 #include "src/utils.h"
-#include "tests/helper.h"
+#include "tests/helper/random.h"
+#include "tests/helper/tests.h"
+
+namespace helper = prism::tests::helper::HWY_NAMESPACE;
 
 namespace reference {
-template <typename T> int32_t get_exponent(T a) {
+template <typename T> auto get_exponent(T a) -> int32_t {
   int exp = 0;
   auto cls = std::fpclassify(a);
   switch (cls) {
@@ -34,35 +35,6 @@ template <typename T> int32_t get_exponent(T a) {
 }
 }; // namespace reference
 
-struct RNG {
-
-  std::random_device rd;
-
-private:
-  std::mt19937 gen;
-  std::uniform_real_distribution<> dis;
-
-public:
-  RNG(double a = 0.0, double b = 1.0) : gen(RNG::rd()), dis(a, b){};
-  double operator()() { return dis(gen); }
-};
-
-template <typename T> std::vector<T> get_simple_case() {
-  std::vector<T> simple_case = {0.0,
-                                1.0,
-                                2.0,
-                                3.0,
-                                std::numeric_limits<T>::min(),
-                                std::numeric_limits<T>::lowest(),
-                                std::numeric_limits<T>::max(),
-                                std::numeric_limits<T>::epsilon(),
-                                std::numeric_limits<T>::infinity(),
-                                std::numeric_limits<T>::denorm_min(),
-                                std::numeric_limits<T>::quiet_NaN(),
-                                std::numeric_limits<T>::signaling_NaN()};
-  return simple_case;
-}
-
 #define test_equality(a)                                                       \
   EXPECT_EQ(reference::get_exponent(a), prism::utils::get_exponent(a))         \
       << std::hexfloat << "Failed for\n"                                       \
@@ -73,7 +45,7 @@ template <typename T> std::vector<T> get_simple_case() {
 template <typename T> void testBinade(int n, int repetitions = 100) {
   auto start = std::ldexp(1.0, n);
   auto end = std::ldexp(1.0, n + 1);
-  RNG rng(start, end);
+  helper::RNG rng(start, end);
 
   for (int i = 0; i < repetitions; i++) {
     T a = rng();
@@ -83,13 +55,13 @@ template <typename T> void testBinade(int n, int repetitions = 100) {
 }
 
 TEST(GetExponentTest, BasicAssertions) {
-  std::vector<float> simple_case_float = get_simple_case<float>();
+  const auto simple_case_float = helper::get_simple_case<float>();
   for (auto a : simple_case_float) {
     test_equality(a);
     test_equality(-a);
   }
 
-  std::vector<double> simple_case_double = get_simple_case<double>();
+  const auto simple_case_double = helper::get_simple_case<double>();
   for (auto a : simple_case_double) {
     test_equality(a);
     test_equality(-a);
@@ -97,7 +69,7 @@ TEST(GetExponentTest, BasicAssertions) {
 }
 
 TEST(GetExponentTest, RandomAssertions) {
-  RNG rng;
+  helper::RNG rng;
 
   for (int i = 0; i < 1000; i++) {
     float a = rng();

@@ -30,6 +30,7 @@
 #include "hwy/aligned_allocator.h"
 
 #include "src/debug_vector-inl.h"
+#include "src/utils.h"
 
 HWY_BEFORE_NAMESPACE(); // required if not using HWY_ATTR
 
@@ -37,9 +38,16 @@ namespace hwy {
 
 namespace HWY_NAMESPACE { // required: unique per target
 
-namespace hn = hwy::HWY_NAMESPACE;
-
+#ifdef PRISM_DEBUG_XOSHIRO
 namespace dbg = prism::vector::HWY_NAMESPACE;
+using namespace dbg;
+#else
+DISABLED_DEBUG_VEC
+DISABLED_DEBUG_MSG
+#endif
+
+constexpr uint32_t expF32 = prism::utils::IEEE754<float>::exponent;
+constexpr uint64_t expF64 = prism::utils::IEEE754<double>::exponent;
 
 namespace internal {
 
@@ -52,7 +60,7 @@ constexpr float kMulConstF = 0x1.0p-24f;
 #else
 constexpr double kMulConst =
     0.00000000000000011102230246251565404236316680908203125;
-constexpr float kMulConstF = 0.000000059604644775390625f;
+constexpr float kMulConstF = 0.000000059604644775390625F;
 #endif // __cpp_hex_float
 
 #endif // HWY_HAVE_FLOAT64
@@ -98,15 +106,17 @@ public:
     }
   }
 
-  HWY_CXX14_CONSTEXPR std::uint64_t operator()() noexcept { return Next(); }
+  HWY_CXX14_CONSTEXPR auto operator()() noexcept -> std::uint64_t {
+    return Next();
+  }
 
 #if HWY_HAVE_FLOAT64
-  HWY_CXX14_CONSTEXPR double Uniform() noexcept {
-    return static_cast<double>(Next() >> 11) * kMulConst;
+  HWY_CXX14_CONSTEXPR auto Uniform() noexcept -> double {
+    return static_cast<double>(Next() >> expF64) * kMulConst;
   }
 #endif
 
-  HWY_CXX14_CONSTEXPR std::array<std::uint64_t, 4> GetState() const {
+  HWY_CXX14_CONSTEXPR auto GetState() const -> std::array<std::uint64_t, 4> {
     return {state_[0], state_[1], state_[2], state_[3]};
   }
 
@@ -118,7 +128,7 @@ public:
     state_[3] = state[3];
   }
 
-  static constexpr std::uint64_t StateSize() noexcept { return 4; }
+  static constexpr auto StateSize() noexcept -> std::uint64_t { return 4; }
 
   /* This is the jump function for the generator. It is equivalent to 2^128
    * calls to next(); it can be used to generate 2^128 non-overlapping
@@ -131,32 +141,33 @@ public:
    * parallel distributed computations. */
   HWY_CXX14_CONSTEXPR void LongJump() noexcept { Jump(kLongJump); }
 
-  double UniformVec(const float) noexcept {
+  HWY_CXX14_CONSTEXPR auto
+  UniformVec(const float /*unused*/) noexcept -> double {
     union {
       std::uint64_t u64;
-      std::uint32_t u32[2];
+      std::array<std::uint32_t, 2> u32;
       double f64;
-      float f32[2];
-
-    } u;
-    u.u64 = Next();
-    u.f32[0] = (u.u32[0] >> 8) * kMulConstF;
-    u.f32[1] = (u.u32[1] >> 8) * kMulConstF;
+      std::array<float, 2> f32;
+    } u{Next()};
+    u.f32[0] = (u.u32[0] >> expF32) * kMulConstF;
+    u.f32[1] = (u.u32[1] >> expF32) * kMulConstF;
     return u.f64;
   }
 
-  double UniformVec(const double) noexcept {
-    return static_cast<double>(Next() >> 11) * kMulConst;
+  HWY_CXX14_CONSTEXPR auto UniformVec(const double) noexcept -> double {
+    return Uniform();
   }
 
 private:
   std::uint64_t state_[4];
 
-  static constexpr std::uint64_t Rotl(const std::uint64_t x, int k) noexcept {
-    return (x << k) | (x >> (64 - k));
+  static constexpr auto Rotl(const std::uint64_t x,
+                             int k) noexcept -> std::uint64_t {
+    constexpr uint64_t sizeof_uint64_t = 64;
+    return (x << k) | (x >> (sizeof_uint64_t - k));
   }
 
-  HWY_CXX14_CONSTEXPR std::uint64_t Next() noexcept {
+  HWY_CXX14_CONSTEXPR auto Next() noexcept -> std::uint64_t {
     const std::uint64_t result = Rotl(state_[0] + state_[3], 23) + state_[0];
     const std::uint64_t t = state_[1] << 17;
 
@@ -178,7 +189,7 @@ private:
     std::uint64_t s2 = 0;
     std::uint64_t s3 = 0;
 
-    for (const std::uint64_t i : jumpArray)
+    for (const std::uint64_t i : jumpArray) {
       for (std::uint_fast8_t b = 0; b < 64; b++) {
         if (i & std::uint64_t{1UL} << b) {
           s0 ^= state_[0];
@@ -188,6 +199,7 @@ private:
         }
         Next();
       }
+    }
 
     state_[0] = s0;
     state_[1] = s1;
@@ -235,14 +247,18 @@ public:
 #endif
   }
 
-  HWY_INLINE VU32 operator()(std::uint32_t) noexcept {
+  HWY_INLINE auto operator()(std::uint32_t /*unused*/) noexcept -> VU32 {
     const auto result = Next();
     return BitCast(ScalableTag<std::uint32_t>{}, result);
   }
 
-  HWY_INLINE VU64 operator()(std::uint64_t) noexcept { return Next(); }
+  HWY_INLINE auto operator()(std::uint64_t /*unused*/) noexcept -> VU64 {
+    return Next();
+  }
 
-  AlignedVector<std::uint32_t> operator()(std::uint32_t, const std::size_t n) {
+  auto operator()(std::uint32_t /*unused*/,
+                  const std::size_t n) -> AlignedVector<std::uint32_t> {
+    debug_msg("\n[VectorXoshiro] START AlignedVector<uint32_t>");
     const auto u32_tag = ScalableTag<std::uint32_t>{};
     AlignedVector<std::uint32_t> result(2 * n);
     const ScalableTag<std::uint64_t> tag{};
@@ -253,16 +269,20 @@ public:
     for (std::uint64_t i = 0; i < n; i += Lanes(u32_tag)) {
       const auto next = Update(s0, s1, s2, s3);
       const auto next_u32 = BitCast(u32_tag, next);
+      debug_vec(tag, "[VectorXoshiro] next", next);
+      debug_vec(u32_tag, "[VectorXoshiro] next_u32", next_u32);
       Store(next_u32, u32_tag, result.data() + i);
     }
     Store(s0, tag, state_[{0}].data());
     Store(s1, tag, state_[{1}].data());
     Store(s2, tag, state_[{2}].data());
     Store(s3, tag, state_[{3}].data());
+    debug_msg("[VectorXoshiro] END AlignedVector<uint32_t>");
     return result;
   }
 
-  AlignedVector<std::uint64_t> operator()(std::uint64_t, const std::size_t n) {
+  auto operator()(std::uint64_t /*unused*/,
+                  const std::size_t n) -> AlignedVector<std::uint64_t> {
     AlignedVector<std::uint64_t> result(n);
     const ScalableTag<std::uint64_t> tag{};
     auto s0 = Load(tag, state_[{0}].data());
@@ -281,7 +301,9 @@ public:
   }
 
   template <std::uint32_t N>
-  std::array<std::uint32_t, 2 * N> operator()(std::uint32_t) noexcept {
+  auto operator()(std::uint32_t /*unused*/) noexcept
+      -> std::array<std::uint32_t, 2 * N> {
+    debug_msg("\n[VectorXoshiro] START array<uint32_t>");
     alignas(HWY_ALIGNMENT) std::array<std::uint32_t, 2 * N> result;
     const ScalableTag<std::uint64_t> tag{};
     const ScalableTag<std::uint32_t> u32_tag{};
@@ -292,17 +314,21 @@ public:
     for (std::uint64_t i = 0; i < N; i += Lanes(u32_tag)) {
       const auto next = Update(s0, s1, s2, s3);
       const auto next_u32 = BitCast(u32_tag, next);
+      debug_vec(tag, "[VectorXoshiro] next", next);
+      debug_vec(u32_tag, "[VectorXoshiro] next_u32", next_u32);
       Store(next_u32, u32_tag, result.data() + i);
     }
     Store(s0, tag, state_[{0}].data());
     Store(s1, tag, state_[{1}].data());
     Store(s2, tag, state_[{2}].data());
     Store(s3, tag, state_[{3}].data());
+    debug_msg("[VectorXoshiro] END array<uint32_t>");
     return result;
   }
 
   template <std::uint64_t N>
-  std::array<std::uint64_t, N> operator()(std::uint64_t) noexcept {
+  auto operator()(std::uint64_t /*unused*/) noexcept
+      -> std::array<std::uint64_t, N> {
     alignas(HWY_ALIGNMENT) std::array<std::uint64_t, N> result;
     const ScalableTag<std::uint64_t> tag{};
     auto s0 = Load(tag, state_[{0}].data());
@@ -336,24 +362,33 @@ public:
     Store(s3, tag, state_[{3}].data());
   }
 
-  std::uint64_t StateSize() const noexcept {
+  [[nodiscard]] auto StateSize() const noexcept -> std::uint64_t {
     return streams * internal::Xoshiro::StateSize();
   }
 
-  const StateType &GetState() const { return state_; }
+  [[nodiscard]] auto GetState() const -> const StateType & { return state_; }
 
-  HWY_INLINE VF32 Uniform(float) noexcept {
+  HWY_INLINE auto Uniform(float) noexcept -> VF32 {
+    debug_msg("\n[VectorXoshiro] START Uniform<float>");
+    const ScalableTag<std::uint64_t> tag{};
     const ScalableTag<std::uint32_t> u32_tag{};
     const ScalableTag<float> real_tag{};
     const auto MUL_VALUE = Set(real_tag, internal::kMulConstF);
     const auto bits = Next();
     const auto bitscast = BitCast(u32_tag, bits);
-    const auto bitsshift = ShiftRight<8>(bitscast);
+    debug_vec(tag, "[VectorXoshiro] bits", bits);
+    debug_vec(u32_tag, "[VectorXoshiro] u32 bits", bitscast);
+    const auto bitsshift = ShiftRight<expF32>(bitscast);
     const auto real = ConvertTo(real_tag, bitsshift);
-    return Mul(real, MUL_VALUE);
+    debug_vec(real_tag, "[VectorXoshiro] real", real);
+    const auto res = Mul(real, MUL_VALUE);
+    debug_vec(real_tag, "[VectorXoshiro] res", res);
+    return res;
   }
 
-  HWY_INLINE AlignedVector<float> Uniform(float, const std::size_t n) {
+  HWY_INLINE auto Uniform(float /*unused*/,
+                          const std::size_t n) -> AlignedVector<float> {
+    debug_msg("\n[VectorXoshiro] START AlignedVector<float>");
     AlignedVector<float> result(2 * n);
     const ScalableTag<std::uint32_t> u32_tag{};
     const ScalableTag<std::uint64_t> tag{};
@@ -368,19 +403,25 @@ public:
     for (std::size_t i = 0; i < n; i += Lanes(real_tag)) {
       const auto next = Update(s0, s1, s2, s3);
       const auto bits = BitCast(u32_tag, next);
-      const auto bitscast = ShiftRight<8>(bits);
+      const auto bitscast = ShiftRight<expF32>(bits);
       const auto real = ConvertTo(real_tag, bitscast);
       const auto uniform = Mul(real, MUL_VALUE);
+      debug_vec(tag, "[VectorXoshiro] bits", next);
+      debug_vec(u32_tag, "[VectorXoshiro] bits u32", bitscast);
+      debug_vec(real_tag, "[VectorXoshiro] real", real);
+      debug_vec(real_tag, "[VectorXoshiro] uniform", uniform);
       Store(uniform, real_tag, result.data() + i);
     }
     Store(s0, tag, state_[{0}].data());
     Store(s1, tag, state_[{1}].data());
     Store(s2, tag, state_[{2}].data());
     Store(s3, tag, state_[{3}].data());
+    debug_msg("[VectorXoshiro] END AlignedVector<float>");
     return result;
   }
 
-  template <std::uint64_t N> std::array<float, 2 * N> Uniform(float) noexcept {
+  template <std::uint64_t N>
+  auto Uniform(float /*unused*/) noexcept -> std::array<float, 2 * N> {
     alignas(HWY_ALIGNMENT) std::array<float, 2 * N> result;
     const ScalableTag<std::uint32_t> u32_tag{};
     const ScalableTag<std::uint64_t> tag{};
@@ -395,7 +436,7 @@ public:
     for (std::uint32_t i = 0; i < N; i += Lanes(real_tag)) {
       const auto next = Update(s0, s1, s2, s3);
       const auto bits = BitCast(u32_tag, next);
-      const auto bitscast = ShiftRight<8>(bits);
+      const auto bitscast = ShiftRight<expF32>(bits);
       const auto real = ConvertTo(real_tag, bitscast);
       const auto uniform = Mul(real, MUL_VALUE);
       Store(uniform, real_tag, result.data() + i);
@@ -410,16 +451,17 @@ public:
 
 #if HWY_HAVE_FLOAT64
 
-  VF64 Uniform(double) noexcept {
+  auto Uniform(double /*unused*/) noexcept -> VF64 {
     const ScalableTag<double> real_tag{};
     const auto MUL_VALUE = Set(real_tag, internal::kMulConst);
     const auto bits = Next();
-    const auto bits_s = ShiftRight<11>(bits);
+    const auto bits_s = ShiftRight<expF64>(bits);
     const auto real = ConvertTo(real_tag, bits_s);
     return Mul(real, MUL_VALUE);
   }
 
-  AlignedVector<double> Uniform(double, const std::size_t n) {
+  auto Uniform(double /*unused*/,
+               const std::size_t n) -> AlignedVector<double> {
     AlignedVector<double> result(n);
     const ScalableTag<std::uint64_t> tag{};
     const ScalableTag<double> real_tag{};
@@ -432,7 +474,7 @@ public:
 
     for (std::size_t i = 0; i < n; i += Lanes(real_tag)) {
       const auto next = Update(s0, s1, s2, s3);
-      const auto bits = ShiftRight<11>(next);
+      const auto bits = ShiftRight<expF64>(next);
       const auto real = ConvertTo(real_tag, bits);
       const auto uniform = Mul(real, MUL_VALUE);
       Store(uniform, real_tag, result.data() + i);
@@ -445,7 +487,8 @@ public:
     return result;
   }
 
-  template <std::uint64_t N> std::array<double, N> Uniform(double) noexcept {
+  template <std::uint64_t N>
+  auto Uniform(double /*unused*/) noexcept -> std::array<double, N> {
     alignas(HWY_ALIGNMENT) std::array<double, N> result;
     const ScalableTag<std::uint64_t> tag{};
     const ScalableTag<double> real_tag{};
@@ -458,7 +501,7 @@ public:
 
     for (std::uint64_t i = 0; i < N; i += Lanes(real_tag)) {
       const auto next = Update(s0, s1, s2, s3);
-      const auto bits = ShiftRight<11>(next);
+      const auto bits = ShiftRight<expF64>(next);
       const auto real = ConvertTo(real_tag, bits);
       const auto uniform = Mul(real, MUL_VALUE);
       Store(uniform, real_tag, result.data() + i);
@@ -477,8 +520,8 @@ private:
   StateType state_;
   std::uint64_t streams;
 
-  HWY_INLINE static VU64 Update(VU64 &s0, VU64 &s1, VU64 &s2,
-                                VU64 &s3) noexcept {
+  HWY_INLINE static auto Update(VU64 &s0, VU64 &s1, VU64 &s2,
+                                VU64 &s3) noexcept -> VU64 {
     const auto result = Add(RotateRight<41>(Add(s0, s3)), s0);
     const auto t = ShiftLeft<17>(s1);
     s2 = Xor(s2, s0);
@@ -490,7 +533,7 @@ private:
     return result;
   }
 
-  HWY_INLINE VU64 Next() noexcept {
+  HWY_INLINE auto Next() noexcept -> VU64 {
     const ScalableTag<std::uint64_t> tag{};
     auto s0 = Load(tag, state_[{0}].data());
     auto s1 = Load(tag, state_[{1}].data());
@@ -505,22 +548,24 @@ private:
   }
 };
 
-template <std::uint64_t size = 1024> class CachedXoshiro {
+constexpr auto kCachedXoshiroSize = 1024;
+
+template <std::uint64_t size = kCachedXoshiroSize> class CachedXoshiro {
 public:
   using result_type = std::uint64_t;
 
-  static constexpr result_type(min)() {
+  static constexpr auto(min)() -> result_type {
     return (std::numeric_limits<result_type>::min)();
   }
 
-  static constexpr result_type(max)() {
+  static constexpr auto(max)() -> result_type {
     return (std::numeric_limits<result_type>::max)();
   }
 
   explicit CachedXoshiro(const result_type seed,
                          const result_type threadNumber = 0)
       : generator_{seed, threadNumber},
-        cache_{generator_.operator()<size>(result_type{})}, index_{0} {
+        cache_{generator_.operator()<size>(result_type{})} {
 
 #if PRISM_RNG_DEBUG
     fprintf(stderr,
@@ -530,7 +575,7 @@ public:
 #endif
   }
 
-  result_type operator()() noexcept {
+  auto operator()() noexcept -> result_type {
     if (HWY_UNLIKELY(index_ == size)) {
       // cache_ = std::move(generator_.operator()<size>(result_type{}));
       generator_.fill<size>(cache_.data());
@@ -546,14 +591,14 @@ public:
     return cache_[index_++];
   }
 
-  double Uniform() noexcept {
-    return static_cast<double>(operator()() >> 11) * internal::kMulConst;
+  auto Uniform() noexcept -> double {
+    return static_cast<double>(operator()() >> expF64) * internal::kMulConst;
   }
 
 private:
   VectorXoshiro generator_;
   alignas(HWY_ALIGNMENT) std::array<result_type, size> cache_;
-  std::size_t index_;
+  std::size_t index_{};
 
   static_assert((size & (size - 1)) == 0 && size != 0,
                 "only power of 2 are supported");

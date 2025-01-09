@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <ctime>
 #include <iostream> // cerr
 #include <random>
@@ -14,17 +15,20 @@
 // clang-format off
 #undef HWY_TARGET_INCLUDE
 #define HWY_TARGET_INCLUDE "tests/vector/test_xoshiro.cpp"  // NOLINT
-#include "hwy/foreach_target.h"  // IWYU pragma: keep
+#include "hwy/foreach_target.h"  // NOLINT IWYU pragma: keep
 #include "hwy/highway.h"
 #include "hwy/tests/test_util-inl.h"
 // clang-format on
 
 #include "src/random-inl.h"
+#include "src/xoshiro.h"
 
 HWY_BEFORE_NAMESPACE();
 namespace hwy {
 namespace HWY_NAMESPACE { // required: unique per target
 namespace {
+
+namespace rng = prism::vector::xoshiro::HWY_NAMESPACE;
 
 constexpr std::uint64_t tests = 1UL << 10;
 constexpr std::uint64_t u64{};
@@ -190,7 +194,6 @@ void TestUniformVecDist() {
 }
 
 void TestUniformVecDistF32() {
-
 #if HWY_HAVE_FLOAT64
   using D = ScalableTag<float>;
   const std::uint64_t seed = GetSeed();
@@ -432,6 +435,7 @@ void TestCachedXorshiro() {
     }
   }
 }
+
 void TestUniformCachedXorshiro() {
 #if HWY_HAVE_FLOAT64
   const std::uint64_t seed = GetSeed();
@@ -440,7 +444,6 @@ void TestUniformCachedXorshiro() {
   std::uniform_real_distribution<double> distribution{0., 1.};
   for (std::size_t i = 0UL; i < tests; ++i) {
     const double result = distribution(generator);
-
     if (result < 0. || result >= 1.) {
       std::cerr << "SEED: " << seed << std::endl;
       std::cerr << "TEST CachedXoshiro GENERATOR ERROR: result_array[" << i

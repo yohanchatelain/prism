@@ -44,7 +44,7 @@ HWY_INLINE void _round(const T *HWY_RESTRICT sigma, const T *HWY_RESTRICT tau,
   }
 }
 
-// TODO: make two versions: one fixed size and one scalable
+// TODO(yohan): make two versions: one fixed size and one scalable
 template <typename T>
 void _add(const T *HWY_RESTRICT a, const T *HWY_RESTRICT b,
           T *HWY_RESTRICT result, const size_t count) {

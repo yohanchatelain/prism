@@ -33,9 +33,9 @@ DEPS = [
 ]
 
 HEADERS = [
-    "//tests:helper.h",
     "//src:utils.h",
     "//src:debug.h",
+    "//tests/helper:headers-helper",
 ]
 
 def cc_test_gen_scalar(name, src = None, deps = DEPS, copts = COPTS, size = "small", dbg = False):

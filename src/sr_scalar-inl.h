@@ -28,10 +28,10 @@ template <typename T> auto isnumber(const T a, const T b) -> bool {
   // fast check for a or b is not 0, inf or nan
   debug_start();
   constexpr auto naninf_mask = prism::utils::IEEE754<T>::inf_nan_mask;
-  prism::utils::binaryN<T> a_bits = a;
-  prism::utils::binaryN<T> b_bits = b;
-  const U a_uint = std::get<U>(a_bits);
-  const U b_uint = std::get<U>(b_bits);
+  prism::utils::binaryN<T> a_bits = {.f = a};
+  prism::utils::binaryN<T> b_bits = {.f = b};
+  const U a_uint = a_bits.u;
+  const U b_uint = b_bits.u;
   const bool ret =
       ((a_uint != 0) and ((a_uint & naninf_mask) != naninf_mask)) and
       ((b_uint != 0) and ((b_uint & naninf_mask) != naninf_mask));

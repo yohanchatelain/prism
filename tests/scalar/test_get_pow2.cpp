@@ -5,7 +5,6 @@
 #include <gtest/gtest.h>
 
 #include "src/utils.h"
-#include "tests/helper.h"
 
 namespace reference {
 // return pred(|s|)
@@ -23,14 +22,14 @@ template <typename T> constexpr void test_equality(int a) {
 }
 
 TEST(GetPow2Test, FullRangeAssertions) {
-  auto start = helper::IEEE754<float>::min_exponent_subnormal;
-  auto end = helper::IEEE754<float>::max_exponent;
+  auto start = prism::utils::IEEE754<float>::min_exponent_subnormal;
+  auto end = prism::utils::IEEE754<float>::max_exponent;
   for (int i = start - 1; i <= end; i++) {
     test_equality<float>(i);
   }
 
-  start = helper::IEEE754<double>::min_exponent_subnormal;
-  end = helper::IEEE754<double>::max_exponent;
+  start = prism::utils::IEEE754<double>::min_exponent_subnormal;
+  end = prism::utils::IEEE754<double>::max_exponent;
   for (int i = start - 1; i <= end; i++) {
     test_equality<double>(i);
   }

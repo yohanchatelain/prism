@@ -4,7 +4,7 @@
 // Generates code for every target that this compiler can support.
 #undef HWY_TARGET_INCLUDE
 #define HWY_TARGET_INCLUDE "src/sr_vector_static.cpp" // this file
-#include "hwy/foreach_target.h"                // must come before highway.h
+#include "hwy/foreach_target.h" // must come before highway.h
 
 // clang-format off
 #include "hwy/highway.h"
@@ -28,16 +28,6 @@ namespace dbg = prism::vector::HWY_NAMESPACE;
 #define XSTR(x) STR_HELPER(x)
 #pragma message("HWY_TARGET: " XSTR(HWY_TARGET_STR))
 #endif
-
-
-template <typename T, std::size_t N>
-void _print(const T *HWY_RESTRICT a, const char *msg) {
-  std::cout << msg;
-  for (int i = 0; i < N; i++) {
-    std::cout << a[i] << " ";
-  }
-  std::cout << std::endl;
-}
 
 template <typename T, std::size_t N, class D = hn::FixedTag<T, N>,
           class V = hn::Vec<D>>
@@ -204,12 +194,10 @@ define_fp_xN_unary_op(float, f32, 16, sqrt);
 define_fp_xN_ter_op(float, f32, 16, fma);
 #endif
 
-
 // NOLINTNEXTLINE(google-readability-namespace-comments)
 } // namespace HWY_NAMESPACE
 } // namespace prism::sr::vector::static_dispatch
 HWY_AFTER_NAMESPACE();
-
 
 #if HWY_ONCE
 
@@ -344,39 +332,38 @@ union f64x16_u {
 /* Single vector functions with static dispatch */
 
 /* 64-bits */
-#define define_static_unary_op(type, op, size)                            \
-  type##x##size##_v op##type##x##size(const type##x##size##_v a) { \
-    type##x##size##_u a_union = {.vector = a};                            \
-    type##x##size##_u result_union;                                       \
-    HWY_STATIC_DISPATCH(_##op##x##size##_##type)                          \
-    (a_union.array, result_union.array);                                  \
-    return result_union.vector;                                           \
+#define define_static_unary_op(type, op, size)                                 \
+  type##x##size##_v op##type##x##size(const type##x##size##_v a) {             \
+    type##x##size##_u a_union = {.vector = a};                                 \
+    type##x##size##_u result_union;                                            \
+    HWY_STATIC_DISPATCH(_##op##x##size##_##type)                               \
+    (a_union.array, result_union.array);                                       \
+    return result_union.vector;                                                \
   }
 
-#define define_static_binary_op(type, op, size)                                 \
-  type##x##size##_v op##type##x##size(const type##x##size##_v a,   \
-                                             const type##x##size##_v b) { \
-    type##x##size##_u a_union = {.vector = a};                            \
-    type##x##size##_u b_union = {.vector = b};                            \
-    type##x##size##_u result_union;                                       \
-    HWY_STATIC_DISPATCH(_##op##x##size##_##type)                          \
-    (a_union.array, b_union.array, result_union.array);                   \
-    return result_union.vector;                                           \
+#define define_static_binary_op(type, op, size)                                \
+  type##x##size##_v op##type##x##size(const type##x##size##_v a,               \
+                                      const type##x##size##_v b) {             \
+    type##x##size##_u a_union = {.vector = a};                                 \
+    type##x##size##_u b_union = {.vector = b};                                 \
+    type##x##size##_u result_union;                                            \
+    HWY_STATIC_DISPATCH(_##op##x##size##_##type)                               \
+    (a_union.array, b_union.array, result_union.array);                        \
+    return result_union.vector;                                                \
   }
 
-#define define_static_ternary_op(type, op, size)                                \
-  type##x##size##_v op##type##x##size(const type##x##size##_v a,   \
-                                             const type##x##size##_v b,   \
-                                             const type##x##size##_v c) { \
-    type##x##size##_u a_union = {.vector = a};                            \
-    type##x##size##_u b_union = {.vector = b};                            \
-    type##x##size##_u c_union = {.vector = c};                            \
-    type##x##size##_u result_union;                                       \
-    HWY_STATIC_DISPATCH(_##op##x##size##_##type)                          \
-    (a_union.array, b_union.array, c_union.array, result_union.array);    \
-    return result_union.vector;                                           \
+#define define_static_ternary_op(type, op, size)                               \
+  type##x##size##_v op##type##x##size(const type##x##size##_v a,               \
+                                      const type##x##size##_v b,               \
+                                      const type##x##size##_v c) {             \
+    type##x##size##_u a_union = {.vector = a};                                 \
+    type##x##size##_u b_union = {.vector = b};                                 \
+    type##x##size##_u c_union = {.vector = c};                                 \
+    type##x##size##_u result_union;                                            \
+    HWY_STATIC_DISPATCH(_##op##x##size##_##type)                               \
+    (a_union.array, b_union.array, c_union.array, result_union.array);         \
+    return result_union.vector;                                                \
   }
-
 
 #if HWY_MAX_BYTES >= 8
 

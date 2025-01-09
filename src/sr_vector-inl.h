@@ -51,6 +51,18 @@ HWY_NOINLINE void fasttwosum(const D d, const V a, const V b, V &sigma,
   dbg::debug_msg("[twosum] END\n");
 }
 
+/*
+Algorithm 5.1. TwoSum Augmented Addition
+1. Function TwoSum(a, b)
+2. Compute s, t such that s + t = a + b.
+3. s = a + b
+4. a' = s - b
+5. b' = s - a'
+6. δa = a - a'
+7. δb = b - b'
+8. t = δa + δb
+9. return (s, t)
+*/
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
 void twosum(const D d, const V a, const V b, V &sigma, V &tau) {
   dbg::debug_msg("\n[twosum] START");
@@ -63,6 +75,7 @@ void twosum(const D d, const V a, const V b, V &sigma, V &tau) {
   const auto d_a = hn::Sub(a, a_p);
   const auto d_b = hn::Sub(b, b_p);
   tau = hn::Add(d_a, d_b);
+  tau = hn::IfThenElseZero(hn::IsFinite(sigma), tau);
 
   dbg::debug_vec(d, "[twosum] sigma", sigma);
   dbg::debug_vec(d, "[twosum] tau", tau);
@@ -74,7 +87,10 @@ template <typename T> constexpr auto get_precision() -> int {
 }
 
 /*
-"Emulation of the FMA in rounded-to-nearest loating-point arithmetic"
+
+WARNING: Not correct if K.x overflows
+
+"Emulation of the FMA in rounded-to-nearest floating-point arithmetic"
 Stef Graillat, Jean-Michel Muller
 ---
 Algorithm 3 – Split(x, s). Veltkamp’s splitting algorithm. Returns a pair
@@ -89,25 +105,75 @@ xℓ ← RN(x − xh)
 return (xh, xℓ)
 */
 template <class D, class V = hn::TFromD<D>, typename T = hn::TFromD<D>>
-HWY_NOINLINE void Split(const D d, const V x, V &xh, V &xl) {
+HWY_NOINLINE void Split(const D d, const V x, V &x_hi, V &x_lo) {
   dbg::debug_msg("\n[Split] START");
   dbg::debug_vec(d, "[Split] x", x);
 
   const uint32_t s = (get_precision<T>() + 1) / 2;
   const auto K = hn::Set(d, (1U << s) + 1);
+  const auto s_str = "[Split] s " + std::to_string(s);
+  dbg::debug_msg(s_str.c_str());
+  dbg::debug_vec(d, "[Split] K", K);
 
   const auto gamma = hn::Mul(K, x);
   const auto delta = hn::Sub(x, gamma);
-  xh = hn::Add(gamma, delta);
-  xl = hn::Sub(x, xh);
+  dbg::debug_vec(d, "[Split] γ", gamma);
+  dbg::debug_vec(d, "[Split] δ", delta);
+  x_hi = hn::Add(gamma, delta);
+  x_lo = hn::Sub(x, x_hi);
 
-  dbg::debug_vec(d, "[Split] xh", xh);
-  dbg::debug_vec(d, "[Split] xl", xl);
+  dbg::debug_vec(d, "[Split] x_hi", x_hi);
+  dbg::debug_vec(d, "[Split] x_lo", x_lo);
   dbg::debug_msg("[Split] END\n");
 }
 
+/**
+"On various ways to split a floating-point number"
+Claude-Pierre Jeannerod, Jean-Michel Muller, Paul Zimmermann‡
+---
+Algo from https://homepages.loria.fr/PZimmermann/papers/simul2.c
+
+ same using bit manipulations
+ double bitman(double x, double *xl) {
+   union {
+     double d;
+     unsigned long n;
+   } z;
+   double xh;
+   z.d = x;
+   z.n &= ~0x7ffffffUL; / zero the low 27 bits /
+   *xl = x - z.d;
+   return z.d;
+ }
+**/
+template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
+HWY_NOINLINE void SplitBit(const D d, const V x, V &x_hi, V &x_lo) {
+  dbg::debug_msg("\n[SplitBit] START");
+  dbg::debug_vec(d, "[SplitBit] x", x);
+
+  using DU = hn::RebindToUnsigned<D>;
+  using U = hn::TFromD<DU>;
+  const DU du{};
+
+  constexpr U s = (get_precision<T>() + 1) / 2;
+  const auto x_bits = hn::BitCast(du, x);
+  const auto isfinite = hn::IsFinite(x);
+
+  const auto one = static_cast<U>(1);
+  const auto mask = hn::Set(du, ~((one << s) - 1));
+  const auto xh_bits = hn::And(x_bits, mask);
+  x_hi = hn::BitCast(d, xh_bits);
+  x_hi = hn::IfThenElse(isfinite, x_hi, x);
+  x_lo = hn::Sub(x, x_hi);
+  x_lo = hn::IfThenElseZero(isfinite, x_lo);
+
+  dbg::debug_vec(d, "[SplitBit] x_hi", x_hi);
+  dbg::debug_vec(d, "[SplitBit] x_lo", x_lo);
+  dbg::debug_msg("[SplitBit] END\n");
+}
+
 /*
-"Emulation of the FMA in rounded-to-nearest loating-point arithmetic"
+"Emulation of the FMA in rounded-to-nearest floating-point arithmetic"
 Stef Graillat, Jean-Michel Muller
 ---
 Algorithm 4 – DekkerProd(a, b). Dekker’s product. Returns a pair (πh, πℓ)
@@ -123,8 +189,8 @@ t3 ← RN(t2 + RN(aℓ · bh))
 return (πh, πℓ)
 */
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
-HWY_NOINLINE void DekkerProd(const D d, const V a, const V b, V &pi_h,
-                             V &pi_l) {
+HWY_NOINLINE void DekkerProd(const D d, const V a, const V b, V &pi_hi,
+                             V &pi_lo) {
   dbg::debug_msg("\n[DekkerProd] START");
   dbg::debug_vec(d, "[DekkerProd] a", a);
   dbg::debug_vec(d, "[DekkerProd] b", b);
@@ -133,27 +199,24 @@ HWY_NOINLINE void DekkerProd(const D d, const V a, const V b, V &pi_h,
   V al;
   V bh;
   V bl;
-  Split(d, a, ah, al);
-  Split(d, b, bh, bl);
+  SplitBit(d, a, ah, al);
+  SplitBit(d, b, bh, bl);
 
-  pi_h = hn::Mul(a, b);
-  const auto neg_pi_h = hn::Neg(pi_h);
-  const auto ah_bh = hn::Mul(ah, bh);
-  const auto t1 = hn::Add(neg_pi_h, ah_bh);
-  const auto ah_bl = hn::Mul(ah, bl);
-  const auto t2 = hn::Add(t1, ah_bl);
-  const auto al_bh = hn::Mul(al, bh);
-  const auto t3 = hn::Add(t2, al_bh);
-  const auto al_bl = hn::Mul(al, bl);
-  pi_l = hn::Add(t3, al_bl);
+  pi_hi = hn::Mul(a, b);
+  const auto isfinite = hn::IsFinite(pi_hi);
+  const auto t1 = hn::MulSub(ah, bh, pi_hi);
+  const auto t2 = hn::MulAdd(ah, bl, t1);
+  const auto t3 = hn::MulAdd(al, bh, t2);
+  pi_lo = hn::MulAdd(al, bl, t3);
+  pi_lo = hn::IfThenElseZero(isfinite, pi_lo);
 
-  dbg::debug_vec(d, "[DekkerProd] pi_h", pi_h);
-  dbg::debug_vec(d, "[DekkerProd] pi_l", pi_l);
+  dbg::debug_vec(d, "[DekkerProd] pi_hi", pi_hi);
+  dbg::debug_vec(d, "[DekkerProd] pi_lo", pi_lo);
   dbg::debug_msg("[DekkerProd] END\n");
 }
 
 /*
-"Emulation of the FMA in rounded-to-nearest loating-point arithmetic"
+"Emulation of the FMA in rounded-to-nearest floating-point arithmetic"
 Stef Graillat, Jean-Michel Muller
 ---
 Algorithm 7 EmulFMA(a, b, c).
@@ -198,55 +261,56 @@ HWY_NOINLINE auto fma_emul(const D d, const V a, const V b, const V c) -> V {
   dbg::debug_vec(d, "[fma] b", b);
   dbg::debug_vec(d, "[fma] c", c);
 
-  constexpr auto ulp = std::is_same<T, float>::value ? 0x1.0p-23F : 0x1.0p-52;
+  constexpr auto ulp = prism::utils::IEEE754<T>::ulp;
   const auto P = hn::Set(d, 1 + ulp);
   const auto Q = hn::Set(d, ulp);
   const auto q3_2 = hn::Set(d, 1.5);
 
-  V pi_h;
-  V pi_l;
-  V s_h;
-  V s_l;
-  V v_h;
-  V v_l;
-  V z_h;
-  V z_l;
+  V pi_hi;
+  V pi_lo;
+  V s_hi;
+  V s_lo;
+  V v_hi;
+  V v_lo;
+  V z_hi;
+  V z_lo;
 
-  DekkerProd(d, a, b, pi_h, pi_l);
-  twosum(d, pi_h, c, s_h, s_l);
-  twosum(d, pi_l, s_l, v_h, v_l);
-  twosum(d, s_h, v_h, z_h, z_l);
+  DekkerProd(d, a, b, pi_hi, pi_lo);
+  twosum(d, pi_hi, c, s_hi, s_lo);
+  twosum(d, pi_lo, s_lo, v_hi, v_lo);
+  twosum(d, s_hi, v_hi, z_hi, z_lo);
 
-  const auto w = hn::Add(v_l, z_l);
+  const auto w = hn::Add(v_lo, z_lo);
   const auto L = hn::Mul(P, w);
   const auto R = hn::Mul(Q, w);
   const auto delta = hn::Sub(L, R);
-  const auto d_temp_1 = hn::Add(z_h, w);
+  const auto d_temp_1 = hn::Add(z_hi, w);
   const auto mask = hn::Ne(delta, w); // if delta != w then
   // else
   const auto w_prime = hn::Mul(q3_2, w);
-  const auto d_temp_2 = hn::Add(z_h, w_prime);
-  const auto mask1 = hn::Eq(d_temp_2, z_h); // if d_temp_2 = z_h then
+  const auto d_temp_2 = hn::Add(z_hi, w_prime);
+  const auto mask1 = hn::Eq(d_temp_2, z_hi); // if d_temp_2 = z_h then
   // else
-  const auto delta_prime = hn::Sub(w, z_l);
-  const auto t = hn::Sub(v_l, delta_prime);
+  const auto delta_prime = hn::Sub(w, z_lo);
+  const auto t = hn::Sub(v_lo, delta_prime);
   const auto zero_v = hn::Zero(d);
   const auto mask2 = hn::Eq(t, zero_v); // if t = 0 then
   // else
   const auto g = hn::Mul(t, w);
   const auto mask3 = hn::Lt(g, zero_v); // if g < 0 then
 
-  const auto ret3 = hn::IfThenElse(mask3, z_h, d_temp_2);
+  const auto ret3 = hn::IfThenElse(mask3, z_hi, d_temp_2);
   const auto ret2 = hn::IfThenElse(mask2, d_temp_2, ret3);
-  const auto ret1 = hn::IfThenElse(mask1, z_h, ret2);
+  const auto ret1 = hn::IfThenElse(mask1, z_hi, ret2);
   const auto ret = hn::IfThenElse(mask, d_temp_1, ret1);
 
   const auto res = ret;
 
+  dbg::debug_vec(d, "[fma] naive_fma", hn::MulAdd(a, b, c));
   dbg::debug_vec(d, "[fma] res", res);
   dbg::debug_msg("[fma] END\n");
 
-  return res;
+  return ret;
 }
 
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
@@ -282,21 +346,18 @@ HWY_NOINLINE auto get_predecessor_abs(const D d, const V a) -> V {
 }
 
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>,
-          typename I = hn::TFromD<hn::RebindToSigned<D>>,
-          typename VI = hn::Vec<hn::RebindToSigned<D>>>
+          typename VI = hn::VFromD<hn::RebindToSigned<D>>>
 HWY_NOINLINE auto get_exponent(const D d, const V a) -> VI {
   dbg::debug_msg("\n[get_exponent] START");
 
-  using DU = hn::RebindToUnsigned<D>;
-  using U = hn::TFromD<DU>;
   using DI = hn::RebindToSigned<D>;
   const DI di{};
 
   dbg::debug_vec(d, "[get_exponent] a", a);
 
-  constexpr auto mantissa = hwy::MantissaBits<T>();
-  constexpr auto exponent_mask = hwy::ExponentMask<T>();
-  constexpr auto bias = static_cast<U>(hwy::MaxExponentField<T>()) >> 1;
+  constexpr auto mantissa = prism::utils::IEEE754<T>::mantissa;
+  constexpr auto exponent_mask = prism::utils::IEEE754<T>::exponent_mask_scaled;
+  constexpr auto bias = prism::utils::IEEE754<T>::bias;
 
   const auto zero_v = hn::Zero(di);
   const auto abs_a = hn::Abs(a);
@@ -365,8 +426,8 @@ HWY_NOINLINE auto pow2(const D d, const V n) -> hn::Vec<D> {
 
   dbg::debug_mask(di, "[pow2] is_subnormal", is_subnormal);
 
-  const utils::binaryN<T> one = static_cast<T>(1.0);
-  const auto one_as_int = std::get<I>(one);
+  const utils::binaryN<T> one = {.f = 1.0};
+  const auto one_as_int = one.i;
   const auto one_as_int_v = hn::Set(di, one_as_int);
   // res = is_subnormal ? 0 : 1
   const auto res = hn::IfThenZeroElse(is_subnormal, one_as_int_v);
@@ -394,23 +455,43 @@ HWY_NOINLINE auto pow2(const D d, const V n) -> hn::Vec<D> {
   return res_float;
 }
 
+/*
+Algorithm 6.6. A Helper Function for Stochastic Rounding
+p = precision
+ε = 2^(1−p)
+1. Function SRround(σ, τ, Z)
+2. Compute round.
+3. if sign(τ) != sign(σ)
+4.     η = get_exponent(pred(|σ|));
+5. else
+6.     η = get_exponent(σ);
+7. ulp = sign(τ) * 2^η * ε;
+8. π = ulp * Z;
+9. if |RN(τ + π)| >= |ulp|
+10.    round = ulp;
+11. else
+12.    round = 0;
+13. return round;
+*/
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
 HWY_NOINLINE auto round(const D d, const V sigma, const V tau) -> V {
   dbg::debug_msg("\n[sr_round] START");
-  dbg::debug_vec(d, "[sr_round] sigma", sigma);
-  dbg::debug_vec(d, "[sr_round] tau", tau);
+  dbg::debug_vec(d, "[sr_round] σ", sigma);
+  dbg::debug_vec(d, "[sr_round] τ", tau);
 
   // get tag for int with same number of lanes as T
   using DI = hn::RebindToSigned<D>;
   const DI di{};
+  using I = hn::TFromD<DI>;
 
-  constexpr int32_t mantissa = prism::utils::IEEE754<T>::mantissa;
+  constexpr I mantissa = prism::utils::IEEE754<T>::mantissa;
 
   const auto zero = hn::Zero(d);
   const auto sign_tau = hn::Lt(tau, zero);
   const auto sign_sigma = hn::Lt(sigma, zero);
 
   const auto z_rng = rng::uniform(T{});
+  using DZ = hn::DFromV<decltype(z_rng)>;
   const auto z = hn::ResizeBitCast(d, z_rng);
 
   const auto pred_sigma = get_predecessor_abs(d, sigma);
@@ -423,7 +504,7 @@ HWY_NOINLINE auto round(const D d, const V sigma, const V tau) -> V {
   const auto pred_sigma_exp = get_exponent(d, pred_sigma);
   const auto sigma_exp = get_exponent(d, sigma);
   const auto eta = hn::IfThenElse(sign_diff_int, pred_sigma_exp, sigma_exp);
-  dbg::debug_vec(di, "[sr_round] eta", eta, false);
+  dbg::debug_vec(di, "[sr_round] η", eta, false);
 
   const auto mantissa_v = hn::Set(di, mantissa);
   const auto exp = hn::Sub(eta, mantissa_v);
@@ -434,11 +515,13 @@ HWY_NOINLINE auto round(const D d, const V sigma, const V tau) -> V {
   dbg::debug_vec(d, "[sr_round] ulp", ulp);
 
   const auto pi = hn::Mul(ulp, z);
-  dbg::debug_vec(d, "[sr_round] pi", pi);
+  dbg::debug_vec(DZ{}, "[sr_round] z raw", z_rng);
+  dbg::debug_vec(d, "[sr_round] z", z);
+  dbg::debug_vec(d, "[sr_round] π", pi);
 
   const auto tau_plus_pi = hn::Add(tau, pi);
   const auto abs_tau_plus_pi = hn::Abs(tau_plus_pi);
-  dbg::debug_vec(d, "[sr_round] |tau|+pi", abs_tau_plus_pi);
+  dbg::debug_vec(d, "[sr_round] |τ|+π", abs_tau_plus_pi);
 
   const auto ge = hn::Ge(abs_tau_plus_pi, abs_ulp);
   const auto round = hn::IfThenElse(ge, ulp, zero);
@@ -504,6 +587,7 @@ HWY_NOINLINE auto div(const D d, const V a, const V b) -> V {
   dbg::debug_vec(d, "[sr_div] a", a);
   dbg::debug_vec(d, "[sr_div] b", b);
   const auto sigma = hn::Div(a, b);
+  dbg::debug_vec(d, "[sr_div] σ", sigma);
 #if HWY_NATIVE_FMA
   const auto tau_p = hn::NegMulAdd(sigma, b, a);
 #else
@@ -513,13 +597,12 @@ HWY_NOINLINE auto div(const D d, const V a, const V b) -> V {
   const auto neg_sigma = hn::Neg(sigma);
   const auto tau_p = fma_emul(d, neg_sigma, b, a);
 #endif
-  const auto tau = hn::Div(tau_p, b);
-  const auto rounding = round(d, sigma, tau);
-  const auto ret = hn::Add(sigma, rounding);
-  dbg::debug_vec(d, "[sr_div] σ", sigma);
   dbg::debug_vec(d, "[sr_div] τ'", tau_p);
+  const auto tau = hn::Div(tau_p, b);
   dbg::debug_vec(d, "[sr_div] τ", tau);
+  const auto rounding = round(d, sigma, tau);
   dbg::debug_vec(d, "[sr_div] round", rounding);
+  const auto ret = hn::Add(sigma, rounding);
   dbg::debug_vec(d, "[sr_div] res", ret);
   dbg::debug_msg("[sr_div] END\n");
 

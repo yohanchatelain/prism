@@ -19,6 +19,7 @@ HWY_BEFORE_NAMESPACE(); // at file scope
 namespace prism::sr::vector::HWY_NAMESPACE {
 
 namespace hn = hwy::HWY_NAMESPACE;
+namespace sr = prism::sr::vector::PRISM_DISPATCH::HWY_NAMESPACE;
 
 namespace {
 
@@ -38,7 +39,7 @@ struct TestOp {
       results[res[1]]++;
     }
 
-    if (not debug)
+    if (not debug) {
       if (results.size() != 2) {
         std::cerr << "Results size: " << results.size() << std::endl;
         std::cerr << "Results: ";
@@ -47,6 +48,7 @@ struct TestOp {
         }
         HWY_ASSERT_EQ(results.size(), 2);
       }
+    }
   }
 
   template <typename T> T get_user_input(int id) throw() {
@@ -68,13 +70,13 @@ struct TestOp {
 
     if (not initialized) {
       std::random_device rd;
-      value = (double)rd();
+      value = static_cast<double>(rd());
     }
 
     return value;
   }
 
-  std::string get_user_operation() throw() {
+  static auto get_user_operation() noexcept -> std::string {
     static bool initialized = false;
     static std::string value = "add";
 
@@ -84,7 +86,7 @@ struct TestOp {
 
     const char *env = getenv("PRISM_TEST_SR_OP");
 
-    if (env) {
+    if (env != nullptr) {
       value = env;
       initialized = true;
     }
@@ -93,15 +95,16 @@ struct TestOp {
   }
 
   template <typename T, typename D>
-  std::vector<T> run(D d, const bool debug = false) {
+  auto run(D d, const bool debug = false) -> std::vector<T> {
     constexpr T ulp = std::is_same_v<T, float> ? 0x1.0p-24 : 0x1.0p-53;
     constexpr const char *fmt = std::is_same_v<T, float> ? "%+.6a" : "%+.13a";
 
     const size_t elts = hn::Lanes(d);
 
     if (debug) {
-      std::cout << "Type: " << typeid(T).name() << std::endl;
-      std::cout << "Lanes: " << elts << std::endl;
+      std::cerr << "=== TestOp ===" << std::endl;
+      std::cerr << "Type: " << typeid(T).name() << std::endl;
+      std::cerr << "Lanes: " << elts << std::endl;
     }
 
     auto op = get_user_operation();
@@ -113,9 +116,9 @@ struct TestOp {
       ci = (debug) ? get_user_input<T>(2) : 1.0;
     }
 
-    T aa[elts];
-    T bb[elts];
-    T cc[elts];
+    std::array<T, elts> aa;
+    std::array<T, elts> bb;
+    std::array<T, elts> cc;
 
     for (size_t i = 0; i < elts; i++) {
       aa[i] = ai;
@@ -123,48 +126,51 @@ struct TestOp {
       cc[i] = ci;
     }
 
-    auto a = hn::Load(d, aa);
-    auto b = hn::Load(d, bb);
-    auto c = hn::Load(d, cc);
+    auto a = hn::Load(d, aa.data());
+    auto b = hn::Load(d, bb.data());
+    auto c = hn::Load(d, cc.data());
 
     if (debug) {
-      hn::Print(d, "a", a, 0, 7, fmt);
-      if (op != "sqrt")
-        hn::Print(d, "b", b, 0, 7, fmt);
-      if (op == "fma")
-        hn::Print(d, "c", c, 0, 7, fmt);
+      hn::Print(d, "a", a, 0, elts, fmt);
+      if (op != "sqrt") {
+        hn::Print(d, "b", b, 0, elts, fmt);
+      }
+      if (op == "fma") {
+        hn::Print(d, "c", c, 0, elts, fmt);
+      }
     }
 
     hn::Vec<D> r;
 
     if (op == "add") {
-      r = add<D>(a, b);
+      r = sr::add(d, a, b);
     } else if (op == "sub") {
-      r = sub<D>(a, b);
+      r = sr::sub(d, a, b);
     } else if (op == "mul") {
-      r = mul<D>(a, b);
+      r = sr::mul(d, a, b);
     } else if (op == "div") {
-      r = div<D>(a, b);
+      r = sr::div(d, a, b);
     } else if (op == "sqrt") {
-      r = sqrt<D>(a);
+      r = sr::sqrt(d, a);
     } else if (op == "fma") {
-      r = fma<D>(a, b, c);
+      r = sr::fma(d, a, b, c);
     } else {
       std::cerr << "Unknown operation: " << op << std::endl;
       std::exit(1);
     }
 
     if (debug) {
-      hn::Print(d, "r", r, 0, 7, fmt);
+      hn::Print(d, "r", r, 0, elts, fmt);
     }
 
     auto r_min = hn::ReduceMin(d, r);
     auto r_max = hn::ReduceMax(d, r);
 
     if (debug) {
-      std::cout << std::hexfloat;
-      std::cout << "Min: " << r_min << std::endl;
-      std::cout << "Max: " << r_max << std::endl;
+      std::cerr << std::hexfloat;
+      std::cerr << "Min: " << r_min << std::endl;
+      std::cerr << "Max: " << r_max << std::endl;
+      std::cerr << "=== TestOp ===" << std::endl;
     }
 
     return {r_min, r_max};
@@ -174,7 +180,8 @@ struct TestOp {
 } // namespace
 
 HWY_NOINLINE void TestAllOp() {
-  hn::ForFloat3264Types(hn::ForPartialVectors<TestOp>());
+  // hn::ForFloat3264Types(hn::ForPartialVectors<TestOp>());
+  hn::ForFloat3264Types(hn::ForPartialFixedOrFullScalableVectors<TestOp>());
 }
 
 // NOLINTNEXTLINE(google-readability-namespace-comments)

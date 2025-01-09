@@ -5,7 +5,7 @@
 #include <gtest/gtest.h>
 
 #include "src/utils.h"
-#include "tests/helper.h"
+#include "tests/helper/random.h"
 
 namespace reference {
 // return pred(|s|)
@@ -14,14 +14,14 @@ namespace reference {
 // pred|s| = s * (1 - ldexp(1, -53))
 // eta = get_predecessor_abs(pred(|s|))
 // ulp = sign(tau) * 2^eta * eps
-template <typename T> T get_predecessor_abs(T a) {
-  constexpr uint32_t p = helper::IEEE754<T>::precision;
+template <typename T> auto get_predecessor_abs(T a) -> T {
+  constexpr uint32_t p = prism::utils::IEEE754<T>::precision;
   return a * (1 - std::ldexp(1.0, -p));
 }
 }; // namespace reference
 
-template <typename T> bool handle_nan_or_inf(T a) {
-  using U = typename helper::IEEE754<T>::U;
+template <typename T> auto handle_nan_or_inf(T a) -> bool {
+  using U = typename prism::utils::IEEE754<T>::U;
   auto ref = reference::get_predecessor_abs(a);
   auto target = prism::utils::get_predecessor_abs(a);
   if (std::isnan(a)) {

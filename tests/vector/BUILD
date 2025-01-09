@@ -6,6 +6,11 @@ HWY_OPTS = [
     "-Wfatal-errors",
 ]
 
+DYNAMIC_COPTS = [
+    "-DHWY_COMPILE_ALL_ATTAINABLE",
+    "-DPRISM_DISPATCH=dynamic_dispatch",
+]
+
 # Tests
 cc_test_gen_vector(
     name = "test_get_pow2",
@@ -19,6 +24,36 @@ cc_test_gen_vector(
     dbg = True,
 )
 
+cc_test_gen_vector(
+    name = "test_twosum",
+    copts = HWY_OPTS,
+    dbg = True,
+)
+
+cc_test_gen_vector(
+    name = "test_fma",
+    copts = HWY_OPTS,
+    dbg = True,
+)
+
+cc_test_gen_vector(
+    name = "test_dekkerprod",
+    copts = HWY_OPTS,
+    dbg = True,
+)
+
+cc_test_gen_vector(
+    name = "test_split",
+    copts = HWY_OPTS,
+    dbg = True,
+)
+
+cc_test_gen_vector(
+    name = "test_splitbit",
+    copts = HWY_OPTS,
+    dbg = True,
+)
+
 cc_test_lib_gen(
     name = "xoshiro",
     size = "medium",
@@ -26,7 +61,22 @@ cc_test_lib_gen(
         "//src:srcs-xoshiro",
         "//tests/vector:test_xoshiro.cpp",
     ],
-    copts = HWY_OPTS,
+    copts = HWY_OPTS + [
+        "-DPRISM_DEBUG_XOSHIRO",
+    ],
+    dbg = True,
+)
+
+cc_test_lib_gen(
+    name = "xoshiro-api",
+    size = "medium",
+    src = [
+        "//src:srcs-xoshiro",
+        "//tests/vector:test_xoshiro_api.cpp",
+    ],
+    copts = HWY_OPTS + [
+        "-DPRISM_DEBUG_XOSHIRO",
+    ],
     dbg = True,
 )
 
@@ -36,7 +86,7 @@ cc_test_lib_gen(
     src = [
         "//tests/vector:test_sr_accuracy.cpp",
     ],
-    copts = HWY_OPTS,
+    copts = HWY_OPTS + DYNAMIC_COPTS,
     deps = [
         "@//src:prism-dynamic-dbg",
     ],
@@ -57,10 +107,12 @@ cc_test_lib_gen(
     size = "medium",
     src = [
         "//tests/vector:test_sr_accuracy.cpp",
-        "//src:prism-dynamic-dbg",
     ],
     copts = HWY_OPTS,
     dbg = True,
+    deps = [
+        "@//src:prism-dynamic-dbg",
+    ],
 )
 
 cc_test_lib_gen(
@@ -167,6 +219,7 @@ cc_test_lib_gen(
         "//tests/vector:test_single_sr.cpp",
     ],
     copts = HWY_OPTS,
+    dbg = True,
     linkopts = [
         "-fsanitize=address",
     ],
@@ -181,6 +234,7 @@ cc_test_lib_gen(
         "//tests/vector:test_single_ud.cpp",
     ],
     copts = HWY_OPTS,
+    dbg = True,
     linkopts = [
         "-fsanitize=address",
     ],
