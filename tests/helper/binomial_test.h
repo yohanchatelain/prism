@@ -1,13 +1,9 @@
+#ifndef __PRISM_TESTS_HELPER_BINOMIAL_TEST_H__
+#define __PRISM_TESTS_HELPER_BINOMIAL_TEST_H__
+
 #include <boost/math/distributions/binomial.hpp>
 
-#if defined(PRISM_TESTS_HELPER_BINOMIAL_TEST_H) == defined(HWY_TARGET_TOGGLE)
-#ifdef PRISM_TESTS_HELPER_BINOMIAL_TEST_H
-#undef PRISM_TESTS_HELPER_BINOMIAL_TEST_H
-#else
-#define PRISM_TESTS_HELPER_BINOMIAL_TEST_H
-#endif
-
-namespace prism::tests::helper::HWY_NAMESPACE {
+namespace prism::tests::helper {
 
 struct BinomialTest {
   double lower;
@@ -34,6 +30,6 @@ inline auto binomial_test(const int n, const int k,
   return BinomialTest{lower, upper, pvalue};
 }
 
-}; // namespace prism::tests::helper::HWY_NAMESPACE
+}; // namespace prism::tests::helper
 
 #endif // __PRISM_TESTS_HELPER_BINOMIAL_TEST_H__

@@ -1,14 +1,15 @@
-#include "hwy/base.h"
+
+#if defined(PRISM_TEST_HELPER_ASSERT_TOGGLE) == defined(HWY_TARGET_TOGGLE)
+#ifdef PRISM_TEST_HELPER_ASSERT_TOGGLE
+#undef PRISM_TEST_HELPER_ASSERT_TOGGLE
+#else
+#define PRISM_TEST_HELPER_ASSERT_TOGGLE
+#endif
+
 #include <cstdio>
 #include <cstdlib>
+#include <tuple>
 #include <type_traits>
-
-#if defined(PRISM_TESTS_HELPER_ASSERT_H) == defined(HWY_TARGET_TOGGLE)
-#ifdef PRISM_TESTS_HELPER_ASSERT_H
-#undef PRISM_TESTS_HELPER_ASSERT_H
-#else
-#define PRISM_TESTS_HELPER_ASSERT_H
-#endif
 
 #include "hwy/highway.h"
 
@@ -17,7 +18,10 @@
 #include "tests/helper/common.h"
 #include "tests/helper/counter.h"
 #include "tests/helper/distance.h"
+#include "tests/helper/operator.h"
 #include "tests/helper/pprint.h"
+
+#include "tests/helper/operator-inl.h"
 
 HWY_BEFORE_NAMESPACE(); // at file scope
 
@@ -25,7 +29,11 @@ namespace prism::tests::helper::HWY_NAMESPACE {
 
 namespace hn = hwy::HWY_NAMESPACE;
 
-template <typename Op> constexpr void hwy_assert_false() {
+inline void hwy_assert_fail() {
+  HWY_ASSERT(false); // NOLINT
+}
+
+template <typename Op> constexpr void hwy_assert_may_fail() {
 #if HWY_NATIVE_FMA
   HWY_ASSERT(false);
 #else
@@ -47,7 +55,7 @@ void assert_errors_eq_ulp(const DistanceError<H> &result) {
               << "prev:    " << hexfloat(result.prev) << "\n"
               << "next:    " << hexfloat(result.next) << "\n"
               << "ulp:     " << hexfloat(result.ulp) << std::endl;
-    HWY_ASSERT(false);
+    hwy_assert_fail();
   }
 }
 
@@ -65,7 +73,7 @@ void assert_proba_eq_one(const DistanceError<H> &result, const H reference) {
               << "error:            " << hexfloat(result.error) << "\n"
               << "error_c:          " << hexfloat(result.error_c) << "\n"
               << "ulp:              " << hexfloat(result.ulp) << std::endl;
-    HWY_ASSERT(false);
+    hwy_assert_fail();
   }
 }
 
@@ -102,7 +110,7 @@ void print_error_assert_is_proba(const DistanceError<H> &result,
             << "\n"
             << "              ↑: " << counter.up() << "\n"
             << result.msg << std::defaultfloat << flush();
-  HWY_ASSERT(false);
+  hwy_assert_fail();
 }
 
 template <typename T, typename H = typename IEEE754<T>::H>
@@ -120,22 +128,27 @@ void assert_is_proba(const DistanceError<H> &result, Counter<T> &counter) {
   }
 }
 
-template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
-void assert_equal_inputs(D d, V a) {
-  auto a_min = hn::ReduceMin(d, a);
-  auto a_max = hn::ReduceMax(d, a);
-  if (isnan(a_min) and isnan(a_max)) {
-    return;
+template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>,
+          typename... Args>
+void assert_equal_inputs(D d, Args... args) {
+  int i = 1;
+  for (const auto &a : {args...}) {
+    static_assert(std::is_same_v<const V &, decltype(a)>,
+                  "All arguments must be highwy vectors");
+    const auto a_min = reduce_min(d, a);
+    const auto a_max = reduce_max(d, a);
+    if (isnan(a_min) and isnan(a_max)) {
+      return;
+    }
+    if (a_min != a_max) {
+      std::cerr << "Vector does not have equal inputs!\n"
+                << "Index: " << i << "\n"
+                << "min(a): " << hexfloat(a_min) << "\n"
+                << "max(a): " << hexfloat(a_max) << std::endl;
+      hwy_assert_fail();
+    }
   }
-
-#if HWY_TARGET != HWY_EMU128
-  if (a_min != a_max) {
-    std::cerr << "Vector does not have equal inputs!\n"
-              << "min(a): " << hexfloat(a_min) << "\n"
-              << "max(a): " << hexfloat(a_max) << std::endl;
-    HWY_ASSERT(false);
-  }
-#endif
+  i++;
 }
 
 template <typename T, typename H = typename IEEE754<T>::H>
@@ -168,7 +181,7 @@ void assert_counter_infnan_values(const DistanceError<H> &distance_error,
               << "counter.up(): " << counter.up() << "\n"
               << "reference: " << reference << "\n"
               << distance_error.msg << std::defaultfloat << flush();
-    HWY_ASSERT(false);
+    hwy_assert_fail();
   }
 
   const auto is_nan_down = isnan(counter.down());
@@ -182,7 +195,7 @@ void assert_counter_infnan_values(const DistanceError<H> &distance_error,
               << "counter.down(): " << counter.down() << "\n"
               << "reference: " << reference << "\n"
               << distance_error.msg << std::defaultfloat << flush();
-    HWY_ASSERT(false);
+    hwy_assert_fail();
   }
 }
 
@@ -256,7 +269,7 @@ void assert_unique_value_eq_reference(const DistanceError<H> &distance_error,
 
   print_assert_error<Op>(distance_error, counter, args, alpha, 1, 1,
                          "Unique value is not equal to reference");
-  hwy_assert_false<Op>();
+  hwy_assert_may_fail<Op>();
 }
 
 template <typename Op, typename T, typename H = typename IEEE754<T>::H>
@@ -279,13 +292,13 @@ void assert_value_eq_reference(const DistanceError<H> &distance_error,
   if (distance_error.next != counter.up()) {
     print_assert_error<Op>(distance_error, counter, args, alpha, lane, lanes,
                            "Value ↑ is not equal to reference");
-    hwy_assert_false<Op>();
+    hwy_assert_may_fail<Op>();
   }
 
   if (distance_error.prev != counter.down()) {
     print_assert_error<Op>(distance_error, counter, args, alpha, lane, lanes,
                            "Value ↓ is not equal to reference");
-    hwy_assert_false<Op>();
+    hwy_assert_may_fail<Op>();
   }
 }
 
@@ -306,15 +319,14 @@ void assert_binomial_test(const DistanceError<H> &distance_error,
     print_assert_error<Op>(distance_error, counter, args, alpha, lane, lanes,
                            "Null hypotheis rejected!");
     if constexpr (M::is_sr) {
-      hwy_assert_false<Op>();
+      hwy_assert_may_fail<Op>();
     }
   }
 }
 
 template <class Op, class D, class V = hn::VFromD<D>,
-          typename T = hn::TFromD<D>>
-auto eval_op(D d, V x, V y, V z,
-             const int repetitions) -> std::vector<Counter<T>> {
+          typename T = hn::TFromD<D>, typename... Args>
+auto eval_op(int repetitions, D d, Args... args) -> std::vector<Counter<T>> {
 
 #ifdef SR_DEBUG
   const size_t lanes = 1;
@@ -325,16 +337,8 @@ auto eval_op(D d, V x, V y, V z,
   Op op{};
 
   std::vector<Counter<T>> c(lanes);
-  V v;
-
   for (int i = 0; i < repetitions; i++) {
-    if constexpr (Op::arity == 1) {
-      v = op(d, x);
-    } else if constexpr (Op::arity == 2) {
-      v = op(d, x, y);
-    } else if constexpr (Op::arity == 3) {
-      v = op(d, x, y, z);
-    }
+    const auto v = op(d, args...);
     for (size_t j = 0; j < lanes; j++) {
       auto vj = hn::ExtractLane(v, j);
       c[j][vj]++;
@@ -344,27 +348,34 @@ auto eval_op(D d, V x, V y, V z,
   return c;
 }
 
+template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>,
+          typename... Args>
+auto get_lane(D d, Args... args) -> std::array<T, sizeof...(Args)> {
+  return {hn::GetLane(args)...};
+}
+
 template <class M, class Op, class D, class V = hn::VFromD<D>,
-          typename T = hn::TFromD<D>>
-void CheckDistributionResults(D d, ConfigTest &config, V va,
-                              V vb = hn::Zero(D{}), V vc = hn::Zero(D{})) {
+          typename T = hn::TFromD<D>, typename... Args>
+void CheckDistributionResults(D d, ConfigTest &config, Args... args) {
   using H = typename IEEE754<T>::H;
 
-  auto a = hn::GetLane(va);
-  auto b = hn::GetLane(vb);
-  auto c = hn::GetLane(vc);
+  static_assert(sizeof...(Args) == Op::arity,
+                "Number of arguments must match the arity of the operation");
+  static_assert(Op::arity <= 3,
+                "Operation arity must be less than or equal to 3");
+  static_assert((std::is_same_v<Args, V> && ...),
+                "All arguments must be of type highway vector V");
 
-  const std::vector<T> args = {a, b, c};
+  const auto scalar_args_array = get_lane(d, args...);
+  helper::Args<T> scalar_args = {scalar_args_array.begin(),
+                                 scalar_args_array.end()};
 
   // ensure that we have vector of same value
-  assert_equal_inputs(d, va);
-  assert_equal_inputs(d, vb);
-  assert_equal_inputs(d, vc);
+  assert_equal_inputs(d, args...);
 
-  auto counters = eval_op<Op>(d, va, vb, vc, config.repetitions);
-
-  H reference = Op::reference(args);
-  auto distance_error = compute_distance_error(args, reference);
+  auto counters = eval_op<Op>(config.repetitions, d, args...);
+  H reference = Op::reference(scalar_args);
+  auto distance_error = compute_distance_error(scalar_args, reference);
   assert_errors_eq_ulp<T>(distance_error);
   assert_proba_eq_one<T>(distance_error, reference);
 
@@ -393,12 +404,12 @@ void CheckDistributionResults(D d, ConfigTest &config, V va,
     // check values for sr rounding mode only
     if constexpr (M::is_sr) {
       // Assert value is equal to reference if exact operation
-      assert_unique_value_eq_reference<Op>(distance_error, counter, args,
+      assert_unique_value_eq_reference<Op>(distance_error, counter, scalar_args,
                                            config.alpha);
 
       // Assert values are equal to reference if not exact operation
-      assert_value_eq_reference<Op>(distance_error, counter, args, config.alpha,
-                                    lane, lanes);
+      assert_value_eq_reference<Op>(distance_error, counter, scalar_args,
+                                    config.alpha, lane, lanes);
 
       pdown = static_cast<double>(distance_error.probability_down);
     } else {
@@ -408,8 +419,8 @@ void CheckDistributionResults(D d, ConfigTest &config, V va,
 
     // binomial test
     auto test = binomial_test(config.repetitions, count_down, pdown);
-    assert_binomial_test<M, Op>(distance_error, counter, test, args, alpha_bon,
-                                lane, lanes);
+    assert_binomial_test<M, Op>(distance_error, counter, test, scalar_args,
+                                alpha_bon, lane, lanes);
 
     config.distribution_tests_counter++;
     lane++;
@@ -417,8 +428,19 @@ void CheckDistributionResults(D d, ConfigTest &config, V va,
   }
 }
 
+template <typename Args, class M, class Op, class D, class V = hn::VFromD<D>,
+          typename T = hn::TFromD<D>>
+void CheckDistributionResultsWrapper(D d, ConfigTest &config, Args &&args) {
+  std::apply(
+      [&](auto &&...unpacked_args) {
+        CheckDistributionResults<M, Op>(
+            d, config, std::forward<decltype(unpacked_args)>(unpacked_args)...);
+      },
+      std::forward<Args>(args));
+}
+
 }; // namespace prism::tests::helper::HWY_NAMESPACE
 
 HWY_AFTER_NAMESPACE(); // at file scope
 
-#endif // PRISM_TESTS_HELPER_ASSERT_H
+#endif // PRISM_TEST_HELPER_ASSERT_TOGGLE

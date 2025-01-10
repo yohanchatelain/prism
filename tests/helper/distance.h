@@ -1,4 +1,5 @@
-
+#ifndef __PRISM_TESTS_HELPER_DISTANCE_H__
+#define __PRISM_TESTS_HELPER_DISTANCE_H__
 
 #include <string>
 
@@ -163,4 +164,4 @@ auto compute_distance_error(Args<T> args, H reference) -> DistanceError<H> {
 
 }; // namespace prism::tests::helper
 
-#endif // PRISM_TESTS_HELPER_DISTANCE_H
+#endif // __PRISM_TESTS_HELPER_DISTANCE_H__

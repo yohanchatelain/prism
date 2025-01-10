@@ -114,6 +114,42 @@ struct Operator {
 private:
   Type _type = Type::Unknown;
 };
+
+template <size_t N, typename T> struct TupleN {
+  template <size_t i> static constexpr auto tupleN_impl(const T &t = T{}) {
+    static_assert(N <= 3, "Only 3 args are supported");
+    if constexpr (i == 0) {
+      return std::make_tuple();
+    } else {
+      return std::tuple_cat(tupleN_impl<i - 1>(), std::make_tuple(t));
+    }
+  }
+  using type = decltype(tupleN_impl<N>());
+
+  auto get(T t) const { return tupleN_impl<N>(t); }
+};
+
+template <size_t N, typename... Args, typename T = std::common_type_t<Args...>>
+constexpr auto take_n_first(Args &&...args) {
+  if constexpr (N == 0) {
+    return std::make_tuple();
+  } else {
+    constexpr auto idx = N - 1;
+    return std::tuple_cat(
+        take_n_first<idx>(args...),
+        std::make_tuple(std::get<idx>(std::forward_as_tuple(args...))));
+  }
+}
+
+template <typename Tuple, std::size_t... I>
+auto tuple_to_array_impl(const Tuple &t, std::index_sequence<I...>) {
+  return std::array{std::get<I>(t)...};
+}
+
+template <typename... T> auto tuple_to_array(const std::tuple<T...> &t) {
+  return tuple_to_array_impl(t, std::index_sequence_for<T...>{});
+}
+
 } // namespace prism::tests::helper
 
 #endif // PRISM_TESTS_HELPER_COMMON_H_

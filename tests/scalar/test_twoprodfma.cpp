@@ -17,7 +17,7 @@ namespace helper = prism::tests::helper;
 namespace reference {
 // return pred(|s|)
 
-// twosum reference
+// twoprodfma reference
 // compute in double precision if the input type is float
 // compute in quad precision if the input type is double
 template <typename T, typename R = typename prism::utils::IEEE754<T>::H>
@@ -84,156 +84,36 @@ template <typename T> void is_close(T a, T b) {
                        << "rel_diff     : " << static_cast<double>(rel);
 }
 
-#define test_equality(a, b) is_close(a, b)
+template <typename T> void test_equality(T a, T b) { is_close(a, b); }
 
-template <typename T> std::vector<T> get_simple_case() {
-  std::vector<T> simple_case = {0.0,
-                                1.0,
-                                2.0,
-                                3.0,
-                                std::numeric_limits<T>::min(),
-                                std::numeric_limits<T>::lowest(),
-                                std::numeric_limits<T>::max(),
-                                std::numeric_limits<T>::epsilon(),
-                                std::numeric_limits<T>::infinity(),
-                                std::numeric_limits<T>::denorm_min(),
-                                std::numeric_limits<T>::quiet_NaN(),
-                                std::numeric_limits<T>::signaling_NaN()};
-  return simple_case;
+constexpr auto arity = 2;
+
+TEST(GetTwoProdFmaTest, BasicAssertions) {
+  helper::TestBasic<float, arity>(test_equality<float>);
+  helper::TestBasic<double, arity>(test_equality<double>);
 }
 
-TEST(GetTwoSumTest, BasicAssertions) {
-
-  std::vector<float> simple_case_float = get_simple_case<float>();
-  for (auto a : simple_case_float) {
-    for (auto b : simple_case_float) {
-      test_equality(a, b);
-      test_equality(a, -b);
-      test_equality(-a, b);
-      test_equality(-a, -b);
-    }
-  }
-
-  std::vector<double> simple_case_double = get_simple_case<double>();
-  for (auto a : simple_case_double) {
-    for (auto b : simple_case_double) {
-      test_equality(a, b);
-      test_equality(a, -b);
-      test_equality(-a, b);
-      test_equality(-a, -b);
-    }
-  }
+TEST(GetTwoProdFmaTest, Random01Assertions) {
+  helper::TestRandom01<float, arity>(test_equality<float>);
+  helper::TestRandom01<double, arity>(test_equality<double>);
 }
 
-TEST(GetTwoSumTest, Random01Assertions) {
-  helper::RNG rng;
-
-  for (int i = 0; i < 1000; i++) {
-    float a = rng();
-    float b = rng();
-    test_equality(a, b);
-    test_equality(a, -b);
-    test_equality(-a, b);
-    test_equality(-a, -b);
-  }
-
-  for (int i = 0; i < 1000; i++) {
-    double a = rng();
-    double b = rng();
-    test_equality(a, b);
-    test_equality(a, -b);
-    test_equality(-a, b);
-    test_equality(-a, -b);
-  }
+TEST(GetTwoProdFmaTest, RandomNoOverlapAssertions) {
+  helper::TestRandomNoOverlap<float, arity>(test_equality<float>);
+  helper::TestRandomNoOverlap<double, arity>(test_equality<double>);
 }
 
-TEST(GetTwoSumTest, RandomNoOverlapAssertions) {
-  helper::RNG rng_0v1_float(0, 1);
-  helper::RNG rng_24v25_float(0x1p24, 0x1p25);
-
-  for (int i = 0; i < 1000; i++) {
-    float a = rng_0v1_float();
-    float b = rng_24v25_float();
-    test_equality(a, b);
-    test_equality(a, -b);
-    test_equality(-a, b);
-    test_equality(-a, -b);
-  }
-
-  helper::RNG rng_0v1_double(0, 1);
-  helper::RNG rng_53v54_double(0x1p53, 0x1p54);
-
-  for (int i = 0; i < 1000; i++) {
-    double a = rng_0v1_double();
-    double b = rng_53v54_double();
-    test_equality(a, b);
-    test_equality(a, -b);
-    test_equality(-a, b);
-    test_equality(-a, -b);
-  }
+TEST(GetTwoProdFmaTest, RandomLastBitOverlapAssertions) {
+  helper::TestRandomLastBitOverlap<float, arity>(test_equality<float>);
+  helper::TestRandomLastBitOverlap<double, arity>(test_equality<double>);
 }
 
-TEST(GetTwoSumTest, RandomLastBitOverlapAssertions) {
-  helper::RNG rng_1v2_float(1, 2);
-  helper::RNG rng_23v24_float(0x1p23, 0x1p24);
-
-  for (int i = 0; i < 1000; i++) {
-    float a = rng_1v2_float();
-    float b = rng_23v24_float();
-    test_equality(a, b);
-    test_equality(a, -b);
-    test_equality(-a, b);
-    test_equality(-a, -b);
-  }
-
-  helper::RNG rng_1v2_double(1, 2);
-  helper::RNG rng_52v53_double(0x1p52, 0x1p53);
-
-  for (int i = 0; i < 1000; i++) {
-    double a = rng_1v2_double();
-    double b = rng_52v53_double();
-    test_equality(a, b);
-    test_equality(a, -b);
-    test_equality(-a, b);
-    test_equality(-a, -b);
-  }
+TEST(GetTwoProdFmaTest, RandomMidOverlapAssertions) {
+  helper::TestRandomMidOverlap<float, arity>(test_equality<float>);
+  helper::TestRandomMidOverlap<double, arity>(test_equality<double>);
 }
 
-TEST(GetTwoSumTest, RandomMidOverlapAssertions) {
-  helper::RNG rng_0v1_float(0, 1);
-  helper::RNG rng_12v13_float(0x1p12, 0x1p13);
-
-  for (int i = 0; i < 1000; i++) {
-    float a = rng_0v1_float();
-    float b = rng_12v13_float();
-    test_equality(a, b);
-    test_equality(a, -b);
-    test_equality(-a, b);
-    test_equality(-a, -b);
-  }
-
-  helper::RNG rng_0v1_double(0, 1);
-  helper::RNG rng_26v27_double(0x1p26, 0x1p27);
-
-  for (int i = 0; i < 1000; i++) {
-    double a = rng_0v1_double();
-    double b = rng_26v27_double();
-    test_equality(a, b);
-    test_equality(a, -b);
-    test_equality(-a, b);
-    test_equality(-a, -b);
-  }
-}
-
-template <typename T> void run_test_binade() {
-  constexpr auto min_exponent = helper::IEEE754<T>::min_exponent_subnormal;
-  constexpr auto max_exponent = helper::IEEE754<T>::max_exponent;
-  auto test = is_close<T>;
-  for (int i = min_exponent; i <= max_exponent; i++)
-    helper::test_binade<T>(i, test);
-}
-
-TEST(GetTwoSumTest, BinadeAssertions) {
-  run_test_binade<float>();
-  run_test_binade<double>();
+TEST(GetTwoProdFmaTest, BinadeAssertions) {
+  helper::TestAllBinades<float, arity>(test_equality<float>);
+  helper::TestAllBinades<double, arity>(test_equality<double>);
 }

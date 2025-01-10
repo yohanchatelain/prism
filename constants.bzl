@@ -28,7 +28,6 @@ DYNAMIC_COPTS = [
 
 DEBUG_COPTS = [
     "-DPRISM_DEBUG",
-    "-DPRISM_DEBUG_XOSHIRO",
     "-Og",
     "-g",
     "-fno-omit-frame-pointer",

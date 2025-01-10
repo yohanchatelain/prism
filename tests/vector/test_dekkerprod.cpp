@@ -28,7 +28,8 @@ namespace sr::vector::HWY_NAMESPACE {
 
 namespace hn = hwy::HWY_NAMESPACE;
 namespace dbg = prism::vector::HWY_NAMESPACE;
-namespace helper = prism::tests::helper::HWY_NAMESPACE;
+namespace helper_hwy = prism::tests::helper::HWY_NAMESPACE;
+namespace helper = prism::tests::helper;
 
 namespace reference {
 
@@ -98,10 +99,10 @@ void is_close(D d, T a, T b) {
 
   sr::DekkerProd(d, va, vb, vpi_hi, vpi_lo);
 
-  H ah = static_cast<H>(helper::extract_unique_lane(d, va));
-  H bh = static_cast<H>(helper::extract_unique_lane(d, vb));
-  H pi_hi = static_cast<H>(helper::extract_unique_lane(d, vpi_hi));
-  H pi_lo = static_cast<H>(helper::extract_unique_lane(d, vpi_lo));
+  H ah = static_cast<H>(helper_hwy::extract_unique_lane(d, va));
+  H bh = static_cast<H>(helper_hwy::extract_unique_lane(d, vb));
+  H pi_hi = static_cast<H>(helper_hwy::extract_unique_lane(d, vpi_hi));
+  H pi_lo = static_cast<H>(helper_hwy::extract_unique_lane(d, vpi_lo));
   H target = pi_hi + pi_lo;
 
   if (is_not_finite(target, ref_cast)) {
@@ -156,7 +157,7 @@ void do_test_binade(D d, const int n, const int repetitions = 10) {
 struct TestDekkerProdBasicAssertions {
   template <typename T, typename D>
   HWY_NOINLINE void operator()(T /* unused */, D d) {
-    auto simple_case = helper::get_simple_case<T>();
+    auto simple_case = helper::SimpleCase<T>();
     for (const auto &a : simple_case) {
       for (const auto &b : simple_case) {
         do_test(d, a, b);

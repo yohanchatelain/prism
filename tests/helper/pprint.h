@@ -1,19 +1,15 @@
+#ifndef __PRISM_TESTS_HELPER_PPRINT_H__
+#define __PRISM_TESTS_HELPER_PPRINT_H__
+
 #include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <string>
 
-#if defined(PRISM_TESTS_HELPER_PPRINT_H) == defined(HWY_TARGET_TOGGLE)
-#ifdef PRISM_TESTS_HELPER_PPRINT_H
-#undef PRISM_TESTS_HELPER_PPRINT_H
-#else
-#define PRISM_TESTS_HELPER_PPRINT_H
-#endif
-
 #include "src/utils.h"
 #include "tests/helper/operator.h"
 
-namespace prism::tests::helper::HWY_NAMESPACE {
+namespace prism::tests::helper {
 
 template <typename T> auto fmt_proba(const T &x) -> std::string {
   std::ostringstream os;
@@ -54,6 +50,6 @@ auto get_args_str(Args<T> args, H reference) -> std::string {
   return args_str;
 }
 
-}; // namespace prism::tests::helper::HWY_NAMESPACE
+}; // namespace prism::tests::helper
 
-#endif // PRISM_TESTS_HELPER_PPRINT_H
+#endif // __PRISM_TESTS_HELPER_PPRINT_H__

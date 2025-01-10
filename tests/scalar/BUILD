@@ -51,14 +51,14 @@ cc_test_lib_gen(
 # Single tests for testing specific inputs
 # These tests are useful for debugging
 cc_test_binary(
-    name = "sr-single-test",
+    name = "sr-single",
     src = ["//tests/scalar:test_single_sr.cpp"],
     dbg = True,
     mode = "dynamic",
 )
 
 cc_test_binary(
-    name = "ud-single-test",
+    name = "ud-single",
     src = ["//tests/scalar:test_single_ud.cpp"],
     dbg = True,
     mode = "dynamic",

@@ -7,25 +7,10 @@
 
 #include "src/debug.h"
 #include "src/utils.h"
-#include "tests/helper/counter.h"
 
 namespace prism::tests::helper {
 
 template <typename T> using Args = const std::vector<T> &;
-
-/* Operators */
-
-template <typename T> struct FTypeName {
-  static constexpr auto name = "unknown";
-};
-
-template <> struct FTypeName<float> {
-  static constexpr auto name = "float";
-};
-
-template <> struct FTypeName<double> {
-  static constexpr auto name = "double";
-};
 
 using Float128_boost = boost::multiprecision::cpp_bin_float_quad;
 
@@ -310,73 +295,4 @@ struct PrFma {
 };
 }; // namespace prism::tests::helper
 
-// Highway specific functions
-
-#if defined(PRISM_TESTS_HELPER_OPERATOR_H) == defined(HWY_TARGET_TOGGLE)
-#ifdef PRISM_TESTS_HELPER_OPERATOR_H
-#undef PRISM_TESTS_HELPER_OPERATOR_H
-#else
-#define PRISM_TESTS_HELPER_OPERATOR_H
-#endif
-
-#include "hwy/highway.h"
-
-HWY_BEFORE_NAMESPACE(); // at file scope
-
-namespace prism::test::helper::HWY_NAMESPACE {
-
-namespace hn = hwy::HWY_NAMESPACE;
-
-template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
-auto reduce_min(D d, V v) -> T {
-#if HWY_TARGET == HWY_EMU128
-  const auto N = hn::Lanes(d);
-  T _min = std::numeric_limits<T>::infinity();
-  for (auto i = 0; i < N; i++) {
-    const auto lane = hn::ExtractLane(v, i);
-    _min = std::isnan(lane) ? lane : std::min(_min, lane);
-  }
-  return _min;
-#else
-  return hn::ReduceMin(d, v);
-#endif
-}
-
-template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
-auto reduce_max(D d, V v) -> T {
-#if HWY_TARGET == HWY_EMU128
-  const auto N = hn::Lanes(d);
-  T _max = -std::numeric_limits<T>::infinity();
-  for (auto i = 0; i < N; i++) {
-    const auto lane = hn::ExtractLane(v, i);
-    _max = std::isnan(lane) ? lane : std::max(_max, lane);
-  }
-  return _max;
-#else
-  return hn::ReduceMax(d, v);
-#endif
-}
-
-template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
-auto extract_unique_lane(D d, V v) -> T {
-  const T _min = reduce_min(d, v);
-  const T _max = reduce_max(d, v);
-  if (_min != _max and not(isnan(_min) and isnan(_max))) {
-    std::cerr << "Failed for\n"
-              << "min: " << _min << "\n"
-              << "max: " << _max << std::endl;
-
-    const auto N = hn::Lanes(d);
-    for (auto i = 0; i < N; i++) {
-      std::cerr << "lane[" << i << "]: " << hn::ExtractLane(v, i) << std::endl;
-    }
-    HWY_ASSERT(_min == _max);
-  }
-  return _min;
-}
-}; // namespace prism::test::helper::HWY_NAMESPACE
-
-HWY_AFTER_NAMESPACE(); // at file scope
-
-#endif // PRISM_TESTS_HELPER_OPERATOR_H
-#endif // PRISM_TESTS_HELPER_OPERATOR_H
+#endif // __PRISM_TESTS_HELPER_OPERATOR_H__

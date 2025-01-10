@@ -1,7 +1,6 @@
 filegroup(
     name = "headers-helper",
     srcs = [
-        "//tests/helper:assert.h",
         "//tests/helper:binomial_test.h",
         "//tests/helper:common.h",
         "//tests/helper:counter.h",
@@ -10,6 +9,10 @@ filegroup(
         "//tests/helper:pprint.h",
         "//tests/helper:random.h",
         "//tests/helper:tests.h",
+    ] + [
+        "//tests/helper:assert-inl.h",
+        "//tests/helper:operator-inl.h",
+        "//tests/helper:tests-inl.h",
     ],
     visibility = ["//visibility:public"],
 )

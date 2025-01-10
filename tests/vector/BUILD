@@ -134,7 +134,7 @@ cc_test_lib_gen(
     src = [
         "//tests/vector:test_threads.cpp",
     ],
-    copts = HWY_OPTS + DYNAMIC_COPTS + SANITIZE_COPTS,
+    copts = DYNAMIC_COPTS + SANITIZE_COPTS,
     linkopts = SANITIZE_COPTS,
     mode = "dynamic",
 )
@@ -145,7 +145,7 @@ cc_test_lib_gen(
     src = [
         "//tests/vector:test_threads.cpp",
     ],
-    copts = HWY_OPTS + [
+    copts = [
         "-march=native",
         "-fsanitize=thread",
     ],
@@ -163,7 +163,7 @@ cc_test_lib_gen(
     name = "sr-perf",
     size = "medium",
     src = ["//tests/vector:test_sr_performance_dynamic.cpp"],
-    copts = HWY_OPTS + [
+    copts = [
         "-Wno-psabi",
         "-fno-omit-frame-pointer",
         "-fsanitize=address",
@@ -181,7 +181,7 @@ cc_test_lib_gen(
     name = "sr-perf-static",
     size = "medium",
     src = ["//tests/vector:test_sr_performance_static.cpp"],
-    copts = HWY_OPTS + [
+    copts = [
         "-march=native",
         "-Wno-psabi",
     ],
@@ -195,7 +195,7 @@ cc_test_lib_gen(
     name = "ud-perf",
     size = "medium",
     src = ["//tests/vector:test_ud_performance_dynamic.cpp"],
-    copts = HWY_OPTS + [
+    copts = [
         "-Wno-psabi",
     ],
     deps = [
@@ -208,7 +208,7 @@ cc_test_lib_gen(
     name = "ud-perf-static",
     size = "medium",
     src = ["//tests/vector:test_ud_performance_static.cpp"],
-    copts = HWY_OPTS + [
+    copts = [
         "-march=native",
         "-Wno-psabi",
     ],
@@ -225,7 +225,6 @@ cc_test_lib_gen(
     src = [
         "//tests/vector:test_single_sr.cpp",
     ],
-    copts = HWY_OPTS,
     dbg = True,
     linkopts = [
         "-fsanitize=address",
@@ -240,7 +239,6 @@ cc_test_lib_gen(
     src = [
         "//tests/vector:test_single_ud.cpp",
     ],
-    copts = HWY_OPTS,
     dbg = True,
     linkopts = [
         "-fsanitize=address",
