@@ -7,9 +7,10 @@
 
 #include "src/eft.h"
 #include "src/utils.h"
-#include "tests/helper/distance.h"
-#include "tests/helper/random.h"
+
 #include "tests/helper/tests.h"
+
+#include "tests/helper/distance.h"
 
 namespace reference {
 // return pred(|s|)
@@ -18,7 +19,7 @@ namespace reference {
 // compute in double precision if the input type is float
 // compute in quad precision if the input type is double
 template <typename T, typename R = typename prism::utils::IEEE754<T>::H>
-R twoprodfma(T a, T b) {
+auto twoprodfma(T a, T b) -> R {
   using H = typename prism::utils::IEEE754<T>::H;
   return static_cast<H>(a) * static_cast<H>(b);
 }

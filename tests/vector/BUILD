@@ -1,56 +1,43 @@
+load("//:constants.bzl", "DYNAMIC_COPTS", "SANITIZE_COPTS")
 load("//tests:macros.bzl", "cc_test_gen_vector", "cc_test_lib_gen")
 
-HWY_OPTS = [
-    "-std=c++17",
-    "-O2",
-    "-Wfatal-errors",
-]
-
-DYNAMIC_COPTS = [
-    "-DHWY_COMPILE_ALL_ATTAINABLE",
-    "-DPRISM_DISPATCH=dynamic_dispatch",
+XOSHIRO_DEBUGS_COPTS = [
+    "-DPRISM_DEBUG_XOSHIRO",
 ]
 
 # Tests
 cc_test_gen_vector(
     name = "test_get_pow2",
-    copts = HWY_OPTS,
     dbg = True,
 )
 
 cc_test_gen_vector(
     name = "test_get_exponent",
-    copts = HWY_OPTS,
     dbg = True,
 )
 
 cc_test_gen_vector(
     name = "test_twosum",
-    copts = HWY_OPTS,
     dbg = True,
 )
 
 cc_test_gen_vector(
     name = "test_fma",
-    copts = HWY_OPTS,
     dbg = True,
 )
 
 cc_test_gen_vector(
     name = "test_dekkerprod",
-    copts = HWY_OPTS,
     dbg = True,
 )
 
 cc_test_gen_vector(
     name = "test_split",
-    copts = HWY_OPTS,
     dbg = True,
 )
 
 cc_test_gen_vector(
     name = "test_splitbit",
-    copts = HWY_OPTS,
     dbg = True,
 )
 
@@ -61,9 +48,7 @@ cc_test_lib_gen(
         "//src:srcs-xoshiro",
         "//tests/vector:test_xoshiro.cpp",
     ],
-    copts = HWY_OPTS + [
-        "-DPRISM_DEBUG_XOSHIRO",
-    ],
+    copts = XOSHIRO_DEBUGS_COPTS,
     dbg = True,
 )
 
@@ -74,9 +59,7 @@ cc_test_lib_gen(
         "//src:srcs-xoshiro",
         "//tests/vector:test_xoshiro_api.cpp",
     ],
-    copts = HWY_OPTS + [
-        "-DPRISM_DEBUG_XOSHIRO",
-    ],
+    copts = XOSHIRO_DEBUGS_COPTS,
     dbg = True,
 )
 
@@ -86,10 +69,7 @@ cc_test_lib_gen(
     src = [
         "//tests/vector:test_sr_accuracy.cpp",
     ],
-    copts = HWY_OPTS + DYNAMIC_COPTS,
-    deps = [
-        "@//src:prism-dynamic-dbg",
-    ],
+    mode = "dynamic",
 )
 
 cc_test_lib_gen(
@@ -98,8 +78,34 @@ cc_test_lib_gen(
     src = [
         "//tests/vector:test_ud_accuracy.cpp",
     ],
-    copts = HWY_OPTS,
-    deps = ["//src:prism-dynamic-dbg"],
+    mode = "dynamic",
+)
+
+cc_test_lib_gen(
+    name = "ud-accuracy-fullbits",
+    size = "medium",
+    src = [
+        "//tests/vector:test_ud_accuracy.cpp",
+    ],
+    copts = [
+        "-DPRISM_FULL_BITS",
+    ],
+    mode = "",
+    deps = ["//src:prism-dynamic-fullbits-dbg"],
+)
+
+cc_test_lib_gen(
+    name = "ud-accuracy-fullbits-dbg",
+    size = "medium",
+    src = [
+        "//tests/vector:test_ud_accuracy.cpp",
+    ],
+    copts = [
+        "-DPRISM_FULL_BITS",
+    ],
+    dbg = True,
+    mode = "",
+    deps = ["//src:prism-dynamic-fullbits-dbg"],
 )
 
 cc_test_lib_gen(
@@ -108,11 +114,18 @@ cc_test_lib_gen(
     src = [
         "//tests/vector:test_sr_accuracy.cpp",
     ],
-    copts = HWY_OPTS,
     dbg = True,
-    deps = [
-        "@//src:prism-dynamic-dbg",
+    mode = "dynamic",
+)
+
+cc_test_lib_gen(
+    name = "ud-accuracy-dbg",
+    size = "medium",
+    src = [
+        "//tests/vector:test_ud_accuracy.cpp",
     ],
+    dbg = True,
+    mode = "dynamic",
 )
 
 cc_test_lib_gen(
@@ -121,16 +134,9 @@ cc_test_lib_gen(
     src = [
         "//tests/vector:test_threads.cpp",
     ],
-    copts = HWY_OPTS + [
-        "-fsanitize=address",
-        "-DPRISM_DISPATCH=dynamic_dispatch",
-    ],
-    linkopts = [
-        "-fsanitize=address",
-    ],
-    deps = [
-        "@//src:prism-dynamic-dbg",
-    ],
+    copts = HWY_OPTS + DYNAMIC_COPTS + SANITIZE_COPTS,
+    linkopts = SANITIZE_COPTS,
+    mode = "dynamic",
 )
 
 cc_test_lib_gen(
@@ -146,6 +152,7 @@ cc_test_lib_gen(
     linkopts = [
         "-fsanitize=thread",
     ],
+    mode = "static",
     deps = [
         "@//src:prism-static-dbg",
     ],
@@ -155,7 +162,7 @@ cc_test_lib_gen(
 cc_test_lib_gen(
     name = "sr-perf",
     size = "medium",
-    src = ["//tests/vector:test_sr_performance.cpp"],
+    src = ["//tests/vector:test_sr_performance_dynamic.cpp"],
     copts = HWY_OPTS + [
         "-Wno-psabi",
         "-fno-omit-frame-pointer",
@@ -173,7 +180,7 @@ cc_test_lib_gen(
 cc_test_lib_gen(
     name = "sr-perf-static",
     size = "medium",
-    src = ["//tests/vector:test_sr_performance.cpp"],
+    src = ["//tests/vector:test_sr_performance_static.cpp"],
     copts = HWY_OPTS + [
         "-march=native",
         "-Wno-psabi",
@@ -187,7 +194,7 @@ cc_test_lib_gen(
 cc_test_lib_gen(
     name = "ud-perf",
     size = "medium",
-    src = ["//tests/vector:test_ud_performance.cpp"],
+    src = ["//tests/vector:test_ud_performance_dynamic.cpp"],
     copts = HWY_OPTS + [
         "-Wno-psabi",
     ],
@@ -200,7 +207,7 @@ cc_test_lib_gen(
 cc_test_lib_gen(
     name = "ud-perf-static",
     size = "medium",
-    src = ["//tests/vector:test_ud_performance.cpp"],
+    src = ["//tests/vector:test_ud_performance_static.cpp"],
     copts = HWY_OPTS + [
         "-march=native",
         "-Wno-psabi",

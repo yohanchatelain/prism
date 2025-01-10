@@ -4,6 +4,8 @@
 #include <cassert>
 #include <cstdlib>
 
+// NOLINTBEGIN
+
 extern auto is_debug() -> bool;
 extern void prism_debug_printf(const char *fmt, ...);
 extern void prism_debug_header_start(const char *func);
@@ -104,5 +106,7 @@ inline void prism_debug_flush() {
 #define debug_flush()
 #define debug_reset()
 #endif // PRISM_DEBUG
+
+// NOLINTEND
 
 #endif // __PRISM_DEBUG_H__

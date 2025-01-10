@@ -1,5 +1,6 @@
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#include <cstdint>
 #endif
 #include <stdlib.h>
 #include <unistd.h>
@@ -75,9 +76,31 @@ HWY_FLATTEN auto random() -> std::uint64_t {
   return internal::get_rng()->operator()();
 }
 
+HWY_FLATTEN auto randombit(std::uint64_t /* unused */) -> std::uint64_t {
+  static std::size_t idx = 0;
+  static std::uint64_t u = random();
+  if (idx == UINT64_WIDTH) {
+    u = random();
+    idx = 0;
+  }
+  return u & (UINT64_C(1) << idx);
+}
+
+HWY_FLATTEN auto randombit(std::uint32_t /* unused */) -> std::uint32_t {
+  static std::size_t idx = 0;
+  static std::uint64_t u = random();
+  if (idx == UINT64_WIDTH) {
+    u = random();
+    idx = 0;
+  }
+  return u & (UINT64_C(1) << idx);
+}
+
 } // namespace prism::scalar::xoshiro::HWY_NAMESPACE
 
 namespace prism::vector::xoshiro::HWY_NAMESPACE {
+
+namespace dbg = prism::vector::HWY_NAMESPACE;
 
 namespace internal {
 thread_local RNG *rng = nullptr;
@@ -134,6 +157,36 @@ HWY_FLATTEN auto random(std::uint32_t u) -> internal::VU32 {
 
 HWY_FLATTEN auto random(std::uint64_t u) -> internal::VU64 {
   return internal::get_rng()->operator()(u);
+}
+
+HWY_FLATTEN auto randombit(std::uint32_t u) -> internal::VU32 {
+  dbg::debug_msg("\n[randombit] u32 START");
+  constexpr auto u32_tag = hn::DFromV<internal::VU32>();
+  const auto last_bit = hn::Set(u32_tag, UINT32_C(1));
+  static std::size_t idx = 0;
+  static auto u32 = random(u);
+  dbg::debug_vec(u32_tag, "[randombit] u32", u32);
+  u32 = (idx == UINT32_WIDTH) ? random(u) : u32;
+  idx = (idx == UINT32_WIDTH) ? 0 : idx + 1;
+  const auto msg = "[randombit] idx: " + std::to_string(idx) + "\n";
+  dbg::debug_msg(msg.c_str());
+  u32 = hn::ShiftRight<1>(u32);
+  dbg::debug_vec(u32_tag, "[randombit] u32 >> 1", u32);
+  const auto ret = hn::And(u32, last_bit);
+  dbg::debug_vec(u32_tag, "[randombit] ret", ret);
+  dbg::debug_msg("[randombit] u32 END\n");
+  return ret;
+}
+
+HWY_FLATTEN auto randombit(std::uint64_t u) -> internal::VU64 {
+  constexpr auto u64_tag = hn::DFromV<internal::VU64>();
+  const auto last_bit = hn::Set(u64_tag, UINT64_C(1));
+  static std::size_t idx = 0;
+  static auto u64 = random(u);
+  u64 = (idx == UINT64_WIDTH) ? random(u) : u64;
+  idx = (idx == UINT64_WIDTH) ? 0 : idx + 1;
+  u64 = hn::ShiftRight<1>(u64);
+  return hn::And(u64, last_bit);
 }
 
 } // namespace prism::vector::xoshiro::HWY_NAMESPACE

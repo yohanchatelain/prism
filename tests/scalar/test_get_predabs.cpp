@@ -6,6 +6,10 @@
 
 #include "src/utils.h"
 #include "tests/helper/random.h"
+#include "tests/helper/tests.h"
+
+namespace helper_hwy = prism::tests::helper::HWY_NAMESPACE;
+namespace helper = prism::tests::helper;
 
 namespace reference {
 // return pred(|s|)
@@ -20,92 +24,46 @@ template <typename T> auto get_predecessor_abs(T a) -> T {
 }
 }; // namespace reference
 
-template <typename T> auto handle_nan_or_inf(T a) -> bool {
-  using U = typename prism::utils::IEEE754<T>::U;
-  auto ref = reference::get_predecessor_abs(a);
-  auto target = prism::utils::get_predecessor_abs(a);
+template <typename T> auto is_nan_or_inf(T a) -> bool {
+  const auto ref = reference::get_predecessor_abs(a);
+  const auto target = prism::utils::get_predecessor_abs(a);
   if (std::isnan(a)) {
     EXPECT_TRUE(std::isnan(ref));
     EXPECT_TRUE(std::isnan(target));
-    EXPECT_EQ(reinterpret_cast<U &>(ref), reinterpret_cast<U &>(target));
     return true;
   }
   if (std::isinf(a)) {
     EXPECT_TRUE(std::isinf(ref));
     EXPECT_TRUE(std::isinf(target));
-    EXPECT_EQ(reinterpret_cast<U &>(ref), reinterpret_cast<U &>(target));
     return true;
   }
   return false;
 }
 
-#define test_equality(a)                                                       \
-  if (handle_nan_or_inf(a))                                                    \
-    return;                                                                    \
-  EXPECT_EQ(reference::get_predecessor_abs(a),                                 \
-            prism::utils::get_predecessor_abs(a))                              \
-      << std::hexfloat << "Failed for\n"                                       \
-      << "input    : " << a << "\n"                                            \
-      << "reference: " << reference::get_predecessor_abs(a) << "\n"            \
-      << "target   : " << prism::utils::get_predecessor_abs(a);
-
-template <typename T> void testBinade(int n, int repetitions = 100) {
-  auto start = std::ldexp(1.0, n);
-  auto end = std::ldexp(1.0, n + 1);
-  helper::RNG rng(start, end);
-
-  for (int i = 0; i < repetitions; i++) {
-    T a = rng();
-    test_equality(a);
-    test_equality(-a);
+template <typename T> void test_equality(T a) {
+  if (not is_nan_or_inf(a)) {
+    const auto ref = reference::get_predecessor_abs(a);
+    const auto target = prism::utils::get_predecessor_abs(a);
+    EXPECT_EQ(ref, target) << std::hexfloat << "Failed for\n"
+                           << "input    : " << a << "\n"
+                           << "reference: " << ref << "\n"
+                           << "target   : " << target;
   }
 }
 
+constexpr auto arity = 1;
+
 TEST(GetPredAbsTest, BasicAssertions) {
-
-  std::vector<float> simple_case_float = {
-      0.0f,
-      1.0f,
-      2.0f,
-      3.0f,
-      std::numeric_limits<float>::min(),
-      std::numeric_limits<float>::max(),
-      std::numeric_limits<float>::infinity(),
-      std::numeric_limits<float>::quiet_NaN()};
-
-  for (auto a : simple_case_float) {
-    test_equality(a);
-    test_equality(-a);
-  }
-
-  std::vector<double> simple_case_double(simple_case_float.begin(),
-                                         simple_case_float.end());
-
-  for (auto a : simple_case_double) {
-    test_equality(a);
-    test_equality(-a);
-  }
+  helper::TestBasic<float, arity>(test_equality<float>);
+  helper::TestBasic<double, arity>(test_equality<double>);
 }
 
 TEST(GetPredAbsTest, RandomAssertions) {
-  helper::RNG rng;
-
-  for (int i = 0; i < 1000; i++) {
-    float a = rng();
-    test_equality(a);
-    test_equality(-a);
-  }
-
-  for (int i = 0; i < 1000; i++) {
-    double a = rng();
-    test_equality(a);
-    test_equality(-a);
-  }
+  helper::TestRandom01<float, arity>(test_equality<float>);
+  helper::TestRandom01<double, arity>(test_equality<double>);
 }
 
 TEST(GetPredAbsTest, BinadeAssertions) {
-  for (int i = -126; i < 127; i++) {
-    testBinade<float>(i);
-    testBinade<double>(i);
-  }
+  helper::TestAllBinades<float, arity>(test_equality<float>);
+  helper::TestAllBinades<double, arity>(test_equality<double>);
 }

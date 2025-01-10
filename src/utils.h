@@ -3,8 +3,7 @@
 
 #include <cstdint>
 #include <cstring>
-#include <immintrin.h>
-#include <variant>
+#include <string>
 
 #include "src/debug.h"
 
@@ -30,6 +29,7 @@ template <> struct IEEE754<float> {
   static constexpr I exponent = 8;
   static constexpr I mantissa = 23;
   static constexpr I precision = 24;
+  static constexpr I precision10 = 7;
   static constexpr float ulp = 0x1.0p-23F;
   static constexpr float half_ulp = 0x1.0p-24F;
   static constexpr I bias = 127;
@@ -42,6 +42,7 @@ template <> struct IEEE754<float> {
   static constexpr I max_exponent = 127;
   static constexpr I min_exponent_subnormal = -149;
   static constexpr U inf_nan_mask = 0x7F800000;
+  static constexpr const char *format = "%.6a";
 };
 
 template <> struct IEEE754<double> {
@@ -52,6 +53,7 @@ template <> struct IEEE754<double> {
   static constexpr I exponent = 11;
   static constexpr I mantissa = 52;
   static constexpr I precision = 53;
+  static constexpr I precision10 = 17;
   static constexpr double ulp = 0x1.0p-52;
   static constexpr double half_ulp = 0x1.0p-53;
   static constexpr I bias = 1023;
@@ -64,6 +66,7 @@ template <> struct IEEE754<double> {
   static constexpr I max_exponent = 1023;
   static constexpr I min_exponent_subnormal = -1074;
   static constexpr U inf_nan_mask = 0x7FF0000000000000;
+  static constexpr const char *format = "%.13a";
 };
 
 template <typename T> union binaryN {};

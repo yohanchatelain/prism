@@ -1,10 +1,10 @@
 """
 """
 
-COPTS = [
-    "-std=c++17",
+load("//:constants.bzl", "COPTS", "DEBUG_COPTS", "DYNAMIC_COPTS", "STATIC_COPTS")
+
+COPTS_TEST = COPTS + [
     "-I.",
-    "-Wfatal-errors",
     "-DHWY_IS_TEST",
 ]
 
@@ -38,49 +38,115 @@ HEADERS = [
     "//tests/helper:headers-helper",
 ]
 
-def cc_test_gen_scalar(name, src = None, deps = DEPS, copts = COPTS, size = "small", dbg = False):
+def get_copts(copts):
+    """_summary_
+
+    Args:
+        copts (_type_): _description_
+    """
+    return (copts if copts else []) + COPTS_TEST
+
+def get_copts_mode(mode):
+    """_summary_
+
+    Args:
+        mode (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    if mode == "dynamic":
+        return DYNAMIC_COPTS
+    elif mode == "static":
+        return STATIC_COPTS
+    else:
+        return []
+
+def get_dbg_copts(dbg):
+    """_summary_
+
+    Args:
+        dbg (_type_): _description_
+    """
+    return DEBUG_COPTS if dbg else []
+
+def get_deps(deps, mode, dbg):
+    """
+    Get the dependencies for the test.
+
+    Args:
+        deps (list): Additional dependencies.
+        mode (str): The mode of the build, either "dynamic" or "static".
+        dbg (bool): Whether to include debug dependencies.
+
+    Returns:
+        list: The complete list of dependencies.
+    """
+    _deps = DEPS + (deps if deps else [])
+    if mode == "dynamic":
+        prism_deps = ["@//src:prism-dynamic" + ("-dbg" if dbg else "")]
+    elif mode == "static":
+        prism_deps = ["@//src:prism-static" + ("-dbg" if dbg else "")]
+    else:
+        prism_deps = []
+
+    return _deps + prism_deps
+
+def cc_test_gen_scalar(name, src = None, deps = None, copts = COPTS, size = "small", dbg = False, mode = None):
     srcs = (src if src else []) + [name + ".cpp"]
     native.cc_test(
         name = name,
         srcs = srcs + HEADERS + SRCS_SCALAR,
-        copts = COPTS + (copts if copts else []) + (["-DPRISM_DEBUG"] if dbg else []),
-        deps = deps,
+        copts = get_copts(copts) + get_dbg_copts(dbg) + get_copts_mode(mode),
+        deps = get_deps(deps, mode, dbg),
         size = size,
     )
 
-def cc_test_gen_vector(name, src = None, deps = DEPS, copts = COPTS, size = "small", dbg = False):
+def cc_test_gen_vector(name, src = None, deps = None, copts = COPTS, size = "small", dbg = False, mode = None):
     srcs = (src if src else []) + [name + ".cpp"]
     native.cc_test(
         name = name,
         srcs = srcs + HEADERS + SRCS_VECTOR,
-        copts = COPTS + (copts if copts else []) + (["-DPRISM_DEBUG"] if dbg else []),
-        deps = deps,
+        copts = get_copts(copts) + get_dbg_copts(dbg) + get_copts_mode(mode),
+        deps = get_deps(deps, mode, dbg),
         size = size,
         features = ["vector"],
     )
 
-def cc_test_lib_gen(name, src = None, deps = None, copts = COPTS, linkopts = None, size = "small", dbg = False):
+def cc_test_lib_gen(name, src = None, deps = None, copts = COPTS, linkopts = None, size = "small", dbg = False, mode = None):
     srcs = src if src else [name + ".cpp"]
     srcs += HEADERS
     native.cc_test(
         name = name,
         srcs = srcs + SRCS,
-        copts = COPTS + (copts if copts else []) + (["-DPRISM_DEBUG"] if dbg else []),
+        copts = get_copts(copts) + get_dbg_copts(dbg) + get_copts_mode(mode),
         linkopts = linkopts,
-        deps = DEPS + (deps if deps else []),
+        deps = get_deps(deps, mode, dbg),
         size = size,
         visibility = ["//visibility:public"],
     )
 
-def cc_lib_gen(name, src = None, deps = None, copts = COPTS, linkopts = None, size = "small", dbg = False):
+def cc_lib_gen(name, src = None, deps = None, copts = COPTS, linkopts = None, size = "small", dbg = False, mode = None):
     srcs = src if src else [name + ".cpp"]
     srcs += HEADERS
     native.cc_library(
         name = name,
         srcs = srcs + SRCS,
-        copts = COPTS + (copts if copts else []) + (["-DPRISM_DEBUG"] if dbg else []),
+        copts = get_copts(copts) + get_dbg_copts(dbg) + get_copts_mode(mode),
         linkopts = linkopts,
-        deps = DEPS + (deps if deps else []),
+        deps = get_deps(deps, mode, dbg),
         size = size,
+        visibility = ["//visibility:public"],
+    )
+
+def cc_test_binary(name, src = None, deps = None, copts = COPTS, linkopts = None, dbg = False, mode = None):
+    srcs = src if src else [name + ".cpp"]
+    srcs += HEADERS
+    native.cc_binary(
+        name = name,
+        srcs = srcs + SRCS,
+        copts = get_copts(copts) + get_dbg_copts(dbg) + get_copts_mode(mode),
+        linkopts = linkopts,
+        deps = get_deps(deps, mode, dbg),
         visibility = ["//visibility:public"],
     )

@@ -11,6 +11,7 @@
 #include "hwy/tests/test_util-inl.h"
 
 #include "src/sr_vector.h"
+
 namespace prism::sr::vector {
 
 constexpr size_t repetitions = 10000;
@@ -31,7 +32,7 @@ using ternary_f64_op = void (*)(const VecArgf64 &, const VecArgf64 &,
                                 const VecArgf64 &, const VecArgf64 &,
                                 const size_t);
 
-template <typename T> constexpr const char *GetFormatString() {
+template <typename T> constexpr auto GetFormatString() -> const char * {
   if constexpr (std::is_same_v<T, float>) {
     return "%+.6a ";
   } else {
@@ -49,7 +50,7 @@ void MeasureFunction(Op func, const std::size_t lanes = 0,
   const auto b = hwy::MakeUniqueAlignedArray<T>(inputs_size);
   const auto c = hwy::MakeUniqueAlignedArray<T>(inputs_size);
   auto r = hwy::MakeUniqueAlignedArray<T>(inputs_size);
-  constexpr T ulp = std::is_same_v<T, float> ? 0x1.0p-24f : 0x1.0p-53;
+  constexpr T ulp = std::is_same_v<T, float> ? 0x1.0p-24F : 0x1.0p-53;
   constexpr const char *fmt = GetFormatString<T>();
 
   for (size_t i = 0; i < inputs_size; i++) {
@@ -178,6 +179,8 @@ void MeasureFunctionX(Op func, const std::size_t lanes = 0,
     op##type(a.get(), b.get(), c.get(), d.get(), count);                       \
   }
 
+namespace dynamic_dispatch {
+
 define_array_test_un(sqrt, f32);
 define_array_test_bin(add, f32);
 define_array_test_bin(sub, f32);
@@ -192,26 +195,99 @@ define_array_test_bin(mul, f64);
 define_array_test_bin(div, f64);
 define_array_test_ter(fma, f64);
 
+/* Test vector inputs (dynamic dispatch) */
+
+#define define_vector_test_dynamic_un(op, type, count)                         \
+  void test_##op##type##x##count##_d(const VecArg##type &a, VecArg##type &r,   \
+                                     int) {                                    \
+    op##type##x##count(a.get(), r.get());                                      \
+  }
+
+#define define_vector_test_dynamic_bin(op, type, count)                        \
+  void test_##op##type##x##count##_d(const VecArg##type &a,                    \
+                                     const VecArg##type &b,                    \
+                                     const VecArg##type &r, int) {             \
+    op##type##x##count(a.get(), b.get(), r.get());                             \
+  }
+
+#define define_vector_test_dynamic_ter(op, type, count)                        \
+  void test_##op##type##x##count##_d(                                          \
+      const VecArg##type &a, const VecArg##type &b, const VecArg##type &c,     \
+      const VecArg##type &r, int) {                                            \
+    op##type##x##count(a.get(), b.get(), c.get(), r.get());                    \
+  }
+
+define_vector_test_dynamic_un(sqrt, f32, 2);
+define_vector_test_dynamic_bin(add, f32, 2);
+define_vector_test_dynamic_bin(sub, f32, 2);
+define_vector_test_dynamic_bin(mul, f32, 2);
+define_vector_test_dynamic_bin(div, f32, 2);
+define_vector_test_dynamic_ter(fma, f32, 2);
+
+define_vector_test_dynamic_un(sqrt, f64, 2);
+define_vector_test_dynamic_bin(add, f64, 2);
+define_vector_test_dynamic_bin(sub, f64, 2);
+define_vector_test_dynamic_bin(mul, f64, 2);
+define_vector_test_dynamic_bin(div, f64, 2);
+define_vector_test_dynamic_ter(fma, f64, 2);
+
+define_vector_test_dynamic_un(sqrt, f32, 4);
+define_vector_test_dynamic_bin(add, f32, 4);
+define_vector_test_dynamic_bin(sub, f32, 4);
+define_vector_test_dynamic_bin(mul, f32, 4);
+define_vector_test_dynamic_bin(div, f32, 4);
+define_vector_test_dynamic_ter(fma, f32, 4);
+
+define_vector_test_dynamic_un(sqrt, f64, 4);
+define_vector_test_dynamic_bin(add, f64, 4);
+define_vector_test_dynamic_bin(sub, f64, 4);
+define_vector_test_dynamic_bin(mul, f64, 4);
+define_vector_test_dynamic_bin(div, f64, 4);
+define_vector_test_dynamic_ter(fma, f64, 4);
+
+define_vector_test_dynamic_un(sqrt, f32, 8);
+define_vector_test_dynamic_bin(add, f32, 8);
+define_vector_test_dynamic_bin(sub, f32, 8);
+define_vector_test_dynamic_bin(mul, f32, 8);
+define_vector_test_dynamic_bin(div, f32, 8);
+define_vector_test_dynamic_ter(fma, f32, 8);
+
+define_vector_test_dynamic_un(sqrt, f64, 8);
+define_vector_test_dynamic_bin(add, f64, 8);
+define_vector_test_dynamic_bin(sub, f64, 8);
+define_vector_test_dynamic_bin(mul, f64, 8);
+define_vector_test_dynamic_bin(div, f64, 8);
+define_vector_test_dynamic_ter(fma, f64, 8);
+
+define_vector_test_dynamic_un(sqrt, f32, 16);
+define_vector_test_dynamic_bin(add, f32, 16);
+define_vector_test_dynamic_bin(sub, f32, 16);
+define_vector_test_dynamic_bin(mul, f32, 16);
+define_vector_test_dynamic_bin(div, f32, 16);
+define_vector_test_dynamic_ter(fma, f32, 16);
+}; // namespace dynamic_dispatch
+namespace static_dispatch {
+
 /* Test vector inputs (static dispatch) */
 
 #define define_vector_test_un(op, type, size)                                  \
   type##x##size##_v test_##op##type##x##size##_v(const type##x##size##_v a,    \
                                                  const size_t count) {         \
-    return op##type##x##size##_static(a);                                      \
+    return op##type##x##size(a);                                               \
   }
 
 #define define_vector_test_bin(op, type, size)                                 \
   type##x##size##_v test_##op##type##x##size##_v(const type##x##size##_v a,    \
                                                  const type##x##size##_v b,    \
                                                  const size_t count) {         \
-    return op##type##x##size##_static(a, b);                                   \
+    return op##type##x##size(a, b);                                            \
   }
 
 #define define_vector_test_ter(op, type, size)                                 \
   type##x##size##_v test_##op##type##x##size##_v(                              \
       const type##x##size##_v a, const type##x##size##_v b,                    \
       const type##x##size##_v c, const size_t count) {                         \
-    return op##type##x##size##_static(a, b, c);                                \
+    return op##type##x##size(a, b, c);                                         \
   }
 
 /* 64-bits */
@@ -277,76 +353,7 @@ define_vector_test_bin(div, f32, 16);
 define_vector_test_ter(fma, f32, 16);
 #endif
 
-/* Test vector inputs (dynamic dispatch) */
-
-#define define_vector_test_dynamic_un(op, type, count)                         \
-  void test_##op##type##x##count##_d(const VecArg##type &a, VecArg##type &r,   \
-                                     int) {                                    \
-    op##type##x##count##_dynamic(a.get(), r.get());                            \
-  }
-
-#define define_vector_test_dynamic_bin(op, type, count)                        \
-  void test_##op##type##x##count##_d(const VecArg##type &a,                    \
-                                     const VecArg##type &b,                    \
-                                     const VecArg##type &r, int) {             \
-    op##type##x##count##_dynamic(a.get(), b.get(), r.get());                   \
-  }
-
-#define define_vector_test_dynamic_ter(op, type, count)                        \
-  void test_##op##type##x##count##_d(                                          \
-      const VecArg##type &a, const VecArg##type &b, const VecArg##type &c,     \
-      const VecArg##type &r, int) {                                            \
-    op##type##x##count##_dynamic(a.get(), b.get(), c.get(), r.get());          \
-  }
-
-define_vector_test_dynamic_un(sqrt, f32, 2);
-define_vector_test_dynamic_bin(add, f32, 2);
-define_vector_test_dynamic_bin(sub, f32, 2);
-define_vector_test_dynamic_bin(mul, f32, 2);
-define_vector_test_dynamic_bin(div, f32, 2);
-define_vector_test_dynamic_ter(fma, f32, 2);
-
-define_vector_test_dynamic_un(sqrt, f64, 2);
-define_vector_test_dynamic_bin(add, f64, 2);
-define_vector_test_dynamic_bin(sub, f64, 2);
-define_vector_test_dynamic_bin(mul, f64, 2);
-define_vector_test_dynamic_bin(div, f64, 2);
-define_vector_test_dynamic_ter(fma, f64, 2);
-
-define_vector_test_dynamic_un(sqrt, f32, 4);
-define_vector_test_dynamic_bin(add, f32, 4);
-define_vector_test_dynamic_bin(sub, f32, 4);
-define_vector_test_dynamic_bin(mul, f32, 4);
-define_vector_test_dynamic_bin(div, f32, 4);
-define_vector_test_dynamic_ter(fma, f32, 4);
-
-define_vector_test_dynamic_un(sqrt, f64, 4);
-define_vector_test_dynamic_bin(add, f64, 4);
-define_vector_test_dynamic_bin(sub, f64, 4);
-define_vector_test_dynamic_bin(mul, f64, 4);
-define_vector_test_dynamic_bin(div, f64, 4);
-define_vector_test_dynamic_ter(fma, f64, 4);
-
-define_vector_test_dynamic_un(sqrt, f32, 8);
-define_vector_test_dynamic_bin(add, f32, 8);
-define_vector_test_dynamic_bin(sub, f32, 8);
-define_vector_test_dynamic_bin(mul, f32, 8);
-define_vector_test_dynamic_bin(div, f32, 8);
-define_vector_test_dynamic_ter(fma, f32, 8);
-
-define_vector_test_dynamic_un(sqrt, f64, 8);
-define_vector_test_dynamic_bin(add, f64, 8);
-define_vector_test_dynamic_bin(sub, f64, 8);
-define_vector_test_dynamic_bin(mul, f64, 8);
-define_vector_test_dynamic_bin(div, f64, 8);
-define_vector_test_dynamic_ter(fma, f64, 8);
-
-define_vector_test_dynamic_un(sqrt, f32, 16);
-define_vector_test_dynamic_bin(add, f32, 16);
-define_vector_test_dynamic_bin(sub, f32, 16);
-define_vector_test_dynamic_bin(mul, f32, 16);
-define_vector_test_dynamic_bin(div, f32, 16);
-define_vector_test_dynamic_ter(fma, f32, 16);
+}; // namespace static_dispatch
 
 // Recursion function to call MeasureFunction with powers of 2
 template <size_t N, size_t Max, typename T, size_t A, typename Op>
@@ -356,6 +363,8 @@ void callMeasureFunctions(Op function) {
     callMeasureFunctions<N * 2, Max, T, A, Op>(function);
   }
 }
+
+namespace dynamic_dispatch {
 
 /* Test on Array inputs */
 
@@ -434,11 +443,12 @@ TEST(SRArrayBenchmark, SRFmaF64) {
   std::cout << "Measure function sr::fmaf64 with " << N << " repetitions\n";
   callMeasureFunctions<2, 1024, double, 3>(&test_fmaf64);
 }
+}; // namespace dynamic_dispatch
 
+namespace static_dispatch {
 /* Test on single vector passed by value with static dispatch */
 
 /* IEEE-754 binary32 x2 */
-
 const auto kVerbose = false;
 
 TEST(SRVectorBenchmark, SRAddF32x2Static) {
@@ -899,6 +909,11 @@ TEST(SRVectorBenchmark, SRFmaF32x16Static) {
   GTEST_SKIP() << "SRFmaF32x16Static is not available";
 #endif
 }
+}; // namespace static_dispatch
+
+namespace dynamic_dispatch {
+
+const auto kVerbose = false;
 
 /* Test on single vector passed by value with dynamic dispatch */
 
@@ -1191,6 +1206,7 @@ TEST(SRVectorDynamicBenchmark, SRFmaF32x16D) {
   using Op = decltype(&test_fmaf32x16_d);
   MeasureFunction<16, float, Op, 3>(&test_fmaf32x16_d, 16, kVerbose);
 }
+}; // namespace dynamic_dispatch
 
 } // namespace prism::sr::vector
 

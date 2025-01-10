@@ -49,6 +49,8 @@ void init_rng(std::uint64_t seed, std::uint64_t tid);
 auto uniform(float) -> float;
 auto uniform(double) -> double;
 auto random() -> std::uint64_t;
+auto randombit(std::uint64_t) -> std::uint64_t;
+auto randombit(std::uint32_t) -> std::uint32_t;
 
 } // namespace prism::scalar::xoshiro::HWY_NAMESPACE
 
@@ -67,10 +69,12 @@ void init_rng(std::uint64_t seed, std::uint64_t tid);
 
 namespace hn = hwy::HWY_NAMESPACE;
 
-auto uniform(float) -> hn::Vec<hn::ScalableTag<float>>;
-auto uniform(double) -> hn::Vec<hn::ScalableTag<double>>;
-auto random(std::uint32_t) -> hn::Vec<hn::ScalableTag<std::uint32_t>>;
-auto random(std::uint64_t) -> hn::Vec<hn::ScalableTag<std::uint64_t>>;
+auto uniform(float) -> internal::VF32;
+auto uniform(double) -> internal::VF64;
+auto random(std::uint32_t) -> internal::VU32;
+auto random(std::uint64_t) -> internal::VU64;
+auto randombit(std::uint32_t) -> internal::VU32;
+auto randombit(std::uint64_t) -> internal::VU64;
 
 } // namespace prism::vector::xoshiro::HWY_NAMESPACE
 HWY_AFTER_NAMESPACE(); // at file scope

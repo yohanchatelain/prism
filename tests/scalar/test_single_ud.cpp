@@ -1,100 +1,101 @@
 #include <iostream>
-#include <map>
 #include <vector>
 
 #include "hwy/highway.h"
 #include "hwy/print-inl.h"
 
-#include "src/ud.h"
+#include "src/ud_scalar-inl.h"
 
-const auto op_map = std::map<std::string, int>{
-    {"add", 0}, {"sub", 1}, {"mul", 2}, {"div", 3}, {"sqrt", 4}, {"fma", 5},
-};
-const auto type_map = std::map<std::string, int>{
-    {"f32", 0},
-    {"f64", 1},
-};
+#include "tests/helper/common.h"
+#include "tests/helper/operator.h"
 
-template <typename T>
-void test_op(const std::vector<T> &args, int op, int num_args) {
+namespace ud = prism::ud::scalar::HWY_NAMESPACE;
+namespace helper = prism::tests::helper;
+using Op = helper::Operator;
+
+template <typename T> void print(const T a) {
+  constexpr const char *fmt = helper::IEEE754<T>::format;
+  fprintf(stderr, fmt, a);
+}
+
+template <typename T> void test_op(helper::Args<T> args, const Op op) {
 
   constexpr const char *fptype = std::is_same_v<T, float> ? "f32" : "f64";
-  constexpr const char *opname[] = {"Add", "Sub", "Mul", "Div", "Sqrt", "Fma"};
-  constexpr const char *fmt = std::is_same_v<T, float> ? "%+.6a " : "%+.13a ";
 
-  const std::string opstr = opname[op];
-  std::cerr << opstr << fptype << ":\n";
+  std::cerr << op.name() << fptype << ":\n";
 
-  switch (op) {
-  case 0:
-    fprintf(stderr, fmt, prism::ud::scalar::add(args[0], args[1]));
+  switch (op.type()) {
+  case Op::Type::Add:
+    print(ud::add(args[0], args[1]));
     break;
-  case 1:
-    fprintf(stderr, fmt, prism::ud::scalar::sub(args[0], args[1]));
+  case Op::Type::Sub:
+    print(ud::sub(args[0], args[1]));
     break;
-  case 2:
-    fprintf(stderr, fmt, prism::ud::scalar::mul(args[0], args[1]));
+  case Op::Type::Mul:
+    print(ud::mul(args[0], args[1]));
     break;
-  case 3:
-    fprintf(stderr, fmt, prism::ud::scalar::div(args[0], args[1]));
+  case Op::Type::Div:
+    print(ud::div(args[0], args[1]));
     break;
-  case 4:
-    fprintf(stderr, fmt, prism::ud::scalar::sqrt(args[0]));
+  case Op::Type::Sqrt:
+    print(ud::sqrt(args[0]));
     break;
-  case 5:
-    fprintf(stderr, fmt, prism::ud::scalar::fma(args[0], args[1], args[2]));
+  case Op::Type::Fma:
+    print(ud::fma(args[0], args[1], args[2]));
+    break;
+  default:
+    std::cerr << "Unknown operation: " << op.name() << std::endl;
     break;
   }
 
   std::cerr << std::endl;
 }
 
-int main(int argc, char *argv[]) {
+template <typename T>
+auto handle_args(int argi, int argc, char *argv[],
+                 int arity) -> std::vector<T> {
+  std::vector<T> args(arity);
+
+  if (argc != argi + arity) {
+    std::cerr << "Usage: " << argv[0] << " <type> <op> <args...>\n";
+    std::exit(1);
+  }
+
+  for (int i = 0; i < arity; i++) {
+    args[i] = static_cast<T>(strtod(argv[argi++], NULL));
+  }
+
+  return args;
+}
+
+auto main(int argc, char *argv[]) -> int {
+
+  int arg_index = 0;
 
   if (argc <= 2) {
-    std::cerr << "Usage: " << argv[0] << " <type> <op> <args...>\n";
+    std::cerr << "Usage: " << argv[arg_index++] << " <type> <op> <args...>\n";
+    return 1;
+  }
+  arg_index++;
+
+  const std::string type_name = std::string(argv[arg_index++]);
+  const std::string op_name = std::string(argv[arg_index++]);
+
+  const auto op = Op(op_name);
+  if (op.type() == Op::Type::Unknown) {
+    std::cerr << "Unknown operation: " << op_name << std::endl;
     return 1;
   }
 
-  const std::string type = std::string(argv[1]);
-  const std::string op = std::string(argv[2]);
-
-  if ((op == "sqrt") and argc != 4) {
-    std::cerr << "Usage: " << argv[0] << " <type> sqrt <arg1>\n";
+  if (type_name == "f32") {
+    const auto args = handle_args<float>(arg_index, argc, argv, op.arity());
+    test_op(args, op);
+  } else if (type_name == "f64") {
+    const auto args = handle_args<double>(arg_index, argc, argv, op.arity());
+    test_op(args, op);
+  } else {
+    std::cerr << "Unknown type: " << type_name << std::endl;
     return 1;
-  } else if ((op == "fma") and argc != 6) {
-    std::cerr << "Usage: " << argv[0] << " <type> fma <arg1> <arg2> <arg3>\n";
-    return 1;
-  } else if (((op == "add") or (op == "sub") or (op == "mul") or
-              (op == "div")) and
-             argc != 5) {
-    std::cerr << "Usage: " << argv[0] << " <type> <op> <arg1> <arg2> \n";
-    return 1;
-  }
-
-  std::vector<double> args(3);
-  args[0] = strtod(argv[3], NULL);
-  if (argc > 4)
-    args[1] = strtod(argv[4], NULL);
-  if (argc > 5)
-    args[2] = strtod(argv[5], NULL);
-
-  std::vector<float> argsf;
-  for (const auto &arg : args)
-    argsf.push_back(static_cast<float>(arg));
-
-  if (op_map.find(op) == op_map.end()) {
-    std::cerr << "Unknown op: " << op << std::endl;
-    std::exit(1);
-  }
-
-  if (type == "f32")
-    test_op<float>(argsf, op_map.at(op), argsf.size());
-  else if (type == "f64")
-    test_op<double>(args, op_map.at(op), args.size());
-  else {
-    std::cerr << "Unknown type: " << type << std::endl;
-    std::exit(1);
   }
 
   return 0;

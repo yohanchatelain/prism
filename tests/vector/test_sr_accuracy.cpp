@@ -1,7 +1,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
-#include <iostream>
+#include <mutex>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -30,105 +30,94 @@ namespace prism::HWY_NAMESPACE {
 namespace hn = hwy::HWY_NAMESPACE;
 namespace helper = prism::tests::helper::HWY_NAMESPACE;
 
+using M = helper::RoundingMode::SR;
 namespace {
 
-using ::testing::AllOf;
-using ::testing::Ge;
-using ::testing::Le;
-using ::testing::Lt;
+constexpr auto default_repetitions_values = 10'000;
+constexpr auto default_alpha = 0.000001;
 
-constexpr auto default_alpha = 0.0001;
-
-const int get_repetitions() {
+auto get_repetitions() -> int {
+  static std::mutex mtx;
+  std::lock_guard<std::mutex> lock(mtx);
   const char *env_repetitions = getenv("PRISM_TEST_REPETITIONS");
-  if (env_repetitions) {
+  if (env_repetitions != nullptr) {
     return std::stoi(env_repetitions);
   }
 #ifdef SR_DEBUG
   return 100;
 #else
-  return 1'000;
+  return default_repetitions_values;
 #endif
 }
 
-const auto default_repetitions = get_repetitions();
+auto get_alpha() -> double {
+  static std::mutex mtx;
+  std::lock_guard<std::mutex> lock(mtx);
+  const char *env_alpha = getenv("PRISM_TEST_THRESHOLD");
+  if (env_alpha != nullptr) {
+    return std::stod(env_alpha);
+  }
+  return default_alpha;
+}
 
-static auto distribution_failed_tests_counter = 0;
-static auto distribution_tests_counter = 0;
+auto default_repetitions() -> int {
+  static const int repetitions = get_repetitions();
+  return repetitions;
+}
 
-namespace sr = prism::sr::vector::PRISM_DISPATCH::HWY_NAMESPACE;
+namespace ud = prism::sr::vector::PRISM_DISPATCH::HWY_NAMESPACE;
 
 struct SRAdd : public helper::PrAdd {
   template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
   auto operator()(D d, V a, V b) const -> V {
-    return sr::add(d, a, b);
+    return ud::add(d, a, b);
   }
 };
 
 struct SRSub : public helper::PrSub {
   template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
   auto operator()(D d, V a, V b) const -> V {
-    return sr::sub(d, a, b);
+    return ud::sub(d, a, b);
   }
 };
 
 struct SRMul : public helper::PrMul {
   template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
   auto operator()(D d, V a, V b) const -> V {
-    return sr::mul(d, a, b);
+    return ud::mul(d, a, b);
   }
 };
 
 struct SRDiv : public helper::PrDiv {
   template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
   auto operator()(D d, V a, V b) const -> V {
-    return sr::div(d, a, b);
+    return ud::div(d, a, b);
   }
 };
 
 struct SRSqrt : public helper::PrSqrt {
   template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
   auto operator()(D d, V a) const -> V {
-    return sr::sqrt(d, a);
+    return ud::sqrt(d, a);
   }
 };
 
 struct SRFma : public helper::PrFma {
   template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
   auto operator()(D d, V a, V b, V c) const -> V {
-    return sr::fma(d, a, b, c);
+    return ud::fma(d, a, b, c);
   }
 };
-
-void check_failed_tests(float threshold, bool skip = false) {
-  const auto failed_ratio =
-      distribution_failed_tests_counter / (double)distribution_tests_counter;
-  if (failed_ratio > threshold) {
-    std::cerr << "Number of failed tests above threshold!\n"
-              << "Threshold:       " << threshold << "\n"
-              << "Failed tests:    " << distribution_failed_tests_counter
-              << " (" << failed_ratio << ")\n"
-              << "Number of tests: " << distribution_tests_counter << "\n"
-              << std::endl;
-    HWY_ASSERT(skip);
-  }
-  distribution_failed_tests_counter = 0;
-  distribution_tests_counter = 0;
-}
-
-void assert_exact() { check_failed_tests(0); }
-void assert_almost_exact(bool skip = false) { check_failed_tests(0.05, skip); }
 
 struct TestExactOperationsAdd {
   helper::ConfigTest config = {.name = "TestExactOperationsAdd",
                                .description =
                                    "Test exact operations for addition",
-                               .repetitions = default_repetitions,
-                               .alpha = default_alpha};
+                               .repetitions = default_repetitions(),
+                               .alpha = get_alpha()};
 
   template <typename T, class D> void operator()(T /*unused*/, D d) {
-    helper::do_run_test_exact_add<SRAdd>(d, config);
-    assert_exact();
+    helper::TestExactAdd<M, SRAdd>(d, config);
   }
 };
 
@@ -140,12 +129,11 @@ template <class Op> struct TestBasicAssertions {
   helper::ConfigTest config = {
       .name = "TestBasicAssertions",
       .description = "Test basic assertions for arithmetic operations",
-      .repetitions = default_repetitions,
-      .alpha = default_alpha};
+      .repetitions = default_repetitions(),
+      .alpha = get_alpha()};
 
   template <typename T, class D> void operator()(T /*unused*/, D d) {
-    helper::do_run_test_simple_case<Op>(d, config);
-    assert_almost_exact();
+    helper::TestSimpleCase<M, Op>(d, config);
   }
 };
 
@@ -185,11 +173,11 @@ template <class Op> struct TestRandom01Assertions {
       .name = "TestRandom01Assertions",
       .description =
           "Test random numbers in (0,1) assertions for arithmetic operations",
-      .repetitions = default_repetitions,
-      .alpha = default_alpha};
+      .repetitions = default_repetitions(),
+      .alpha = get_alpha()};
 
   template <typename T, class D> void operator()(T /*unused*/, D d) {
-    helper::do_run_test_random<Op>(d, config);
+    helper::TestRandom<M, Op>(d, config);
   }
 };
 
@@ -228,11 +216,11 @@ template <class Op> struct TestRandomNoOverlapAssertions {
   helper::ConfigTest config = {
       .name = "TestRandomNoOverlapAssertions",
       .description = "Test random with no overlap assertions for arithmetic ",
-      .repetitions = default_repetitions,
-      .alpha = default_alpha};
+      .repetitions = default_repetitions(),
+      .alpha = get_alpha()};
 
   template <typename T, class D> void operator()(T /*unused*/, D d) {
-    helper::do_random_no_overlap_test<Op>(d, config);
+    helper::TestRandomNoOverlap<M, Op>(d, config);
   }
 };
 
@@ -278,11 +266,11 @@ template <class Op> struct TestRandomLastBitOverlap {
       .name = "TestRandomLastBitOverlap",
       .description =
           "Test random with last bit overlapping assertions for arithmetic ",
-      .repetitions = default_repetitions,
-      .alpha = default_alpha};
+      .repetitions = default_repetitions(),
+      .alpha = get_alpha()};
 
   template <typename T, class D> void operator()(T /*unused*/, D d) {
-    helper::do_random_last_bit_overlap<Op>(d, config);
+    helper::TestRandomLastBitOverlap<M, Op>(d, config);
   }
 };
 
@@ -310,13 +298,11 @@ HWY_NOINLINE void TestAllRandomLastBitOverlapDiv() {
 }
 
 HWY_NOINLINE void TestAllRandomLastBitOverlapSqrt() {
-  hn::ForFloat3264Types(
-      hn::ForPartialVectors<TestRandomLastBitOverlap<SRSqrt>>());
+  hn::ForFloat3264Types(hn::ForPartialVectors<TestRandomLastBitOverlapSqrt>());
 }
 
 HWY_NOINLINE void TestAllRandomLastBitOverlapFma() {
-  hn::ForFloat3264Types(
-      hn::ForPartialVectors<TestRandomLastBitOverlap<SRFma>>());
+  hn::ForFloat3264Types(hn::ForPartialVectors<TestRandomLastBitOverlapFma>());
 }
 
 template <class Op> struct TestRandomMidOverlap {
@@ -324,11 +310,11 @@ template <class Op> struct TestRandomMidOverlap {
       .name = "TestRandomMidOverlap",
       .description =
           "Test random number with mid overlap assertions for arithmetic",
-      .repetitions = default_repetitions,
-      .alpha = default_alpha};
+      .repetitions = default_repetitions(),
+      .alpha = get_alpha()};
 
   template <typename T, class D> void operator()(T /*unused*/, D d) {
-    helper::do_random_mid_overlap_test<Op>(d, config);
+    helper::TestRandomMidOverlap<M, Op>(d, config);
   }
 };
 
@@ -356,11 +342,11 @@ HWY_NOINLINE void TestAllRandomMidOverlapDiv() {
 }
 
 HWY_NOINLINE void TestAllRandomMidOverlapSqrt() {
-  hn::ForFloat3264Types(hn::ForPartialVectors<TestRandomMidOverlap<SRSqrt>>());
+  hn::ForFloat3264Types(hn::ForPartialVectors<TestRandomMidOverlapSqrt>());
 }
 
 HWY_NOINLINE void TestAllRandomMidOverlapFma() {
-  hn::ForFloat3264Types(hn::ForPartialVectors<TestRandomMidOverlap<SRFma>>());
+  hn::ForFloat3264Types(hn::ForPartialVectors<TestRandomMidOverlapFma>());
 }
 
 } // namespace
@@ -368,45 +354,51 @@ HWY_NOINLINE void TestAllRandomMidOverlapFma() {
 HWY_AFTER_NAMESPACE();
 
 #if HWY_ONCE
-namespace prism {
-namespace HWY_NAMESPACE {
+namespace prism::HWY_NAMESPACE {
 
-HWY_BEFORE_TEST(SRRoundTest);
-HWY_EXPORT_AND_TEST_P(SRRoundTest, TestAllExactOperationsAdd);
-HWY_EXPORT_AND_TEST_P(SRRoundTest, TestAllBasicAssertionsAdd);
-HWY_EXPORT_AND_TEST_P(SRRoundTest, TestAllBasicAssertionsSub);
-HWY_EXPORT_AND_TEST_P(SRRoundTest, TestAllBasicAssertionsMul);
-HWY_EXPORT_AND_TEST_P(SRRoundTest, TestAllBasicAssertionsDiv);
-HWY_EXPORT_AND_TEST_P(SRRoundTest, TestAllBasicAssertionsSqrt);
-HWY_EXPORT_AND_TEST_P(SRRoundTest, TestAllBasicAssertionsFma);
-HWY_EXPORT_AND_TEST_P(SRRoundTest, TestAllRandom01AssertionsAdd);
-HWY_EXPORT_AND_TEST_P(SRRoundTest, TestAllRandom01AssertionsSub);
-HWY_EXPORT_AND_TEST_P(SRRoundTest, TestAllRandom01AssertionsMul);
-HWY_EXPORT_AND_TEST_P(SRRoundTest, TestAllRandom01AssertionsDiv);
-HWY_EXPORT_AND_TEST_P(SRRoundTest, TestAllRandom01AssertionsSqrt);
-HWY_EXPORT_AND_TEST_P(SRRoundTest, TestAllRandom01AssertionsFma);
-HWY_EXPORT_AND_TEST_P(SRRoundTest, TestAllRandomNoOverlapAssertionsAdd);
-HWY_EXPORT_AND_TEST_P(SRRoundTest, TestAllRandomNoOverlapAssertionsSub);
-HWY_EXPORT_AND_TEST_P(SRRoundTest, TestAllRandomNoOverlapAssertionsMul);
-HWY_EXPORT_AND_TEST_P(SRRoundTest, TestAllRandomNoOverlapAssertionsDiv);
-HWY_EXPORT_AND_TEST_P(SRRoundTest, TestAllRandomNoOverlapAssertionsSqrt);
-HWY_EXPORT_AND_TEST_P(SRRoundTest, TestAllRandomNoOverlapAssertionsFma);
-HWY_EXPORT_AND_TEST_P(SRRoundTest, TestAllRandomLastBitOverlapAdd);
-HWY_EXPORT_AND_TEST_P(SRRoundTest, TestAllRandomLastBitOverlapSub);
-HWY_EXPORT_AND_TEST_P(SRRoundTest, TestAllRandomLastBitOverlapMul);
-HWY_EXPORT_AND_TEST_P(SRRoundTest, TestAllRandomLastBitOverlapDiv);
-HWY_EXPORT_AND_TEST_P(SRRoundTest, TestAllRandomLastBitOverlapSqrt);
-HWY_EXPORT_AND_TEST_P(SRRoundTest, TestAllRandomLastBitOverlapFma);
-HWY_EXPORT_AND_TEST_P(SRRoundTest, TestAllRandomMidOverlapAdd);
-HWY_EXPORT_AND_TEST_P(SRRoundTest, TestAllRandomMidOverlapSub);
-HWY_EXPORT_AND_TEST_P(SRRoundTest, TestAllRandomMidOverlapMul);
-HWY_EXPORT_AND_TEST_P(SRRoundTest, TestAllRandomMidOverlapDiv);
-HWY_EXPORT_AND_TEST_P(SRRoundTest, TestAllRandomMidOverlapSqrt);
-HWY_EXPORT_AND_TEST_P(SRRoundTest, TestAllRandomMidOverlapFma);
+// NOLINTBEGIN
+HWY_BEFORE_TEST(SRVectorAccuracyTest);
+HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllExactOperationsAdd);
+HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllBasicAssertionsAdd);
+HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllBasicAssertionsSub);
+HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllBasicAssertionsMul);
+HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllBasicAssertionsDiv);
+HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllBasicAssertionsSqrt);
+HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllBasicAssertionsFma);
+HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllRandom01AssertionsAdd);
+HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllRandom01AssertionsSub);
+HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllRandom01AssertionsMul);
+HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllRandom01AssertionsDiv);
+HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllRandom01AssertionsSqrt);
+HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllRandom01AssertionsFma);
+HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest,
+                      TestAllRandomNoOverlapAssertionsAdd);
+HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest,
+                      TestAllRandomNoOverlapAssertionsSub);
+HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest,
+                      TestAllRandomNoOverlapAssertionsMul);
+HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest,
+                      TestAllRandomNoOverlapAssertionsDiv);
+HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest,
+                      TestAllRandomNoOverlapAssertionsSqrt);
+HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest,
+                      TestAllRandomNoOverlapAssertionsFma);
+HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllRandomLastBitOverlapAdd);
+HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllRandomLastBitOverlapSub);
+HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllRandomLastBitOverlapMul);
+HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllRandomLastBitOverlapDiv);
+HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllRandomLastBitOverlapSqrt);
+HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllRandomLastBitOverlapFma);
+HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllRandomMidOverlapAdd);
+HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllRandomMidOverlapSub);
+HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllRandomMidOverlapMul);
+HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllRandomMidOverlapDiv);
+HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllRandomMidOverlapSqrt);
+HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllRandomMidOverlapFma);
 HWY_AFTER_TEST();
+// NOLINTEND
 
-} // namespace HWY_NAMESPACE
-} // namespace prism
+} // namespace prism::HWY_NAMESPACE
 
 HWY_TEST_MAIN();
 

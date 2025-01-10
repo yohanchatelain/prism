@@ -1,3 +1,5 @@
+load("//:constants.bzl", "COPTS", "DEBUG_COPTS", "DYNAMIC_COPTS", "NATIVE_COPTS", "STATIC_COPTS")
+
 exports_files([
     "debug.h",
     "debug_vector-inl.h",
@@ -22,40 +24,6 @@ exports_files([
     "xoshiro.h",
     "xoshiro_vector.cpp",
 ])
-
-# Compiler options
-COPTS = [
-    "-std=c++17",
-    "-Wfatal-errors",
-    "-O2",
-    "-Wall",
-    "-Wno-psabi",
-]
-
-NATIVE_COPTS = [
-    "-march=native",
-    "-mtune=native",
-]
-
-STATIC_COPTS = [
-    "-DWARN_FMA_EMULATION",
-    "-DHWY_COMPILE_ONLY_STATIC",
-    "-DPRISM_DISPATCH=static_dispatch",
-]
-
-DYNAMIC_COPTS = [
-    "-DHWY_COMPILE_ALL_ATTAINABLE",
-    "-DPRISM_DISPATCH=dynamic_dispatch",
-]
-
-DEBUG_COPTS = [
-    "-DPRISM_DEBUG",
-    "-DPRISM_DEBUG_XOSHIRO",
-    "-Og",
-    "-g",
-    "-fno-omit-frame-pointer",
-    "-fsanitize=address",
-]
 
 filegroup(
     name = "srcs-xoshiro",
@@ -142,11 +110,39 @@ cc_library(
     ],
 )
 
+# Version of the dynamic library that uses full bits for random numbers.
+cc_library(
+    name = "prism-dynamic-fullbits",
+    srcs = [":srcs-prism-dynamic"],
+    hdrs = [":headers-prism"],
+    copts = COPTS + DYNAMIC_COPTS + [
+        "-DPRISM_UD_RANDOM_FULLBITS",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@hwy",
+    ],
+)
+
+cc_library(
+    name = "prism-dynamic-fullbits-dbg",
+    srcs = [":srcs-prism-dynamic"],
+    hdrs = [":headers-prism"],
+    copts = COPTS + DYNAMIC_COPTS + DEBUG_COPTS + [
+        "-DPRISM_UD_RANDOM_FULLBITS",
+    ],
+    linkopts = ["-fsanitize=address"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@hwy",
+    ],
+)
+
 cc_library(
     name = "prism-static",
     srcs = [":srcs-prism-static"],
     hdrs = [":headers-prism"],
-    copts = COPTS + NATIVE_COPTS + STATIC_COPTS,
+    copts = COPTS + NATIVE_COPTS,
     visibility = ["//visibility:public"],
     deps = [
         "@hwy",
@@ -157,7 +153,7 @@ cc_library(
     name = "prism-static-dbg",
     srcs = [":srcs-prism-static"],
     hdrs = [":headers-prism"],
-    copts = COPTS + STATIC_COPTS + NATIVE_COPTS + DEBUG_COPTS,
+    copts = COPTS + STATIC_COPTS + DEBUG_COPTS,
     linkopts = ["-fsanitize=address"],
     visibility = ["//visibility:public"],
     deps = [

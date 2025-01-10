@@ -37,13 +37,13 @@ namespace prism::vector::HWY_NAMESPACE {
 
 namespace hn = hwy::HWY_NAMESPACE;
 
-HWY_API void debug_msg(const char *msg) {
 #ifdef PRISM_DEBUG
+
+HWY_API void debug_msg(const char *msg) {
   if (not prism_print_debug()) {
     return;
   }
   fprintf(stderr, "%s\n", msg);
-#endif
 }
 
 template <typename T> auto _get_format_string(const bool hex) -> const char * {
@@ -67,19 +67,16 @@ template <typename T> auto _get_format_string(const bool hex) -> const char * {
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
 HWY_API void debug_vec(const D d, const char *msg, const V &a,
                        const bool hex = true) {
-#ifdef PRISM_DEBUG
   if (not prism_print_debug()) {
     return;
   }
   const char *format = _get_format_string<T>(hex);
   const auto N = hn::Lanes(d);
   hn::Print(d, msg, a, 0, N, format);
-#endif
 }
 
 template <class D, class M, typename T = hn::TFromD<D>>
 HWY_API void debug_mask(const D d, const char *msg, M a) {
-#ifdef PRISM_DEBUG
   if (not prism_print_debug()) {
     return;
   }
@@ -91,14 +88,15 @@ HWY_API void debug_mask(const D d, const char *msg, M a) {
   const auto mu = hn::RebindMask(du, a);
   const auto ma = hn::VecFromMask(du, mu);
   hn::Print(du, msg, ma, 0, N, format);
-#endif
 }
 
-#define DISABLED_DEBUG_VEC                                                     \
-  template <typename... Args> constexpr void debug_vec(Args &&...args) {};
+#else
 
-#define DISABLED_DEBUG_MSG                                                     \
-  template <typename... Args> constexpr void debug_msg(Args &&...args) {};
+template <typename... Args> constexpr void debug_msg(Args &&...args) {};
+template <typename... Args> constexpr void debug_vec(Args &&...args) {};
+template <typename... Args> constexpr void debug_mask(Args &&...args) {};
+
+#endif
 
 // NOLINTNEXTLINE(google-readability-namespace-comments)
 } // namespace prism::vector::HWY_NAMESPACE

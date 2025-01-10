@@ -34,17 +34,16 @@
 
 HWY_BEFORE_NAMESPACE(); // required if not using HWY_ATTR
 
+#define PRISM_DEBUG_STATE PRISM_DEBUG
+#ifndef PRISM_DEBUG_XOSHIRO
+#undef PRISM_DEBUG
+#endif
+
 namespace hwy {
 
 namespace HWY_NAMESPACE { // required: unique per target
 
-#ifdef PRISM_DEBUG_XOSHIRO
 namespace dbg = prism::vector::HWY_NAMESPACE;
-using namespace dbg;
-#else
-DISABLED_DEBUG_VEC
-DISABLED_DEBUG_MSG
-#endif
 
 constexpr uint32_t expF32 = prism::utils::IEEE754<float>::exponent;
 constexpr uint64_t expF64 = prism::utils::IEEE754<double>::exponent;
@@ -258,7 +257,7 @@ public:
 
   auto operator()(std::uint32_t /*unused*/,
                   const std::size_t n) -> AlignedVector<std::uint32_t> {
-    debug_msg("\n[VectorXoshiro] START AlignedVector<uint32_t>");
+    dbg::debug_msg("\n[VectorXoshiro] START AlignedVector<uint32_t>");
     const auto u32_tag = ScalableTag<std::uint32_t>{};
     AlignedVector<std::uint32_t> result(2 * n);
     const ScalableTag<std::uint64_t> tag{};
@@ -269,15 +268,15 @@ public:
     for (std::uint64_t i = 0; i < n; i += Lanes(u32_tag)) {
       const auto next = Update(s0, s1, s2, s3);
       const auto next_u32 = BitCast(u32_tag, next);
-      debug_vec(tag, "[VectorXoshiro] next", next);
-      debug_vec(u32_tag, "[VectorXoshiro] next_u32", next_u32);
+      dbg::debug_vec(tag, "[VectorXoshiro] next", next);
+      dbg::debug_vec(u32_tag, "[VectorXoshiro] next_u32", next_u32);
       Store(next_u32, u32_tag, result.data() + i);
     }
     Store(s0, tag, state_[{0}].data());
     Store(s1, tag, state_[{1}].data());
     Store(s2, tag, state_[{2}].data());
     Store(s3, tag, state_[{3}].data());
-    debug_msg("[VectorXoshiro] END AlignedVector<uint32_t>");
+    dbg::debug_msg("[VectorXoshiro] END AlignedVector<uint32_t>");
     return result;
   }
 
@@ -303,7 +302,7 @@ public:
   template <std::uint32_t N>
   auto operator()(std::uint32_t /*unused*/) noexcept
       -> std::array<std::uint32_t, 2 * N> {
-    debug_msg("\n[VectorXoshiro] START array<uint32_t>");
+    dbg::debug_msg("\n[VectorXoshiro] START array<uint32_t>");
     alignas(HWY_ALIGNMENT) std::array<std::uint32_t, 2 * N> result;
     const ScalableTag<std::uint64_t> tag{};
     const ScalableTag<std::uint32_t> u32_tag{};
@@ -314,15 +313,15 @@ public:
     for (std::uint64_t i = 0; i < N; i += Lanes(u32_tag)) {
       const auto next = Update(s0, s1, s2, s3);
       const auto next_u32 = BitCast(u32_tag, next);
-      debug_vec(tag, "[VectorXoshiro] next", next);
-      debug_vec(u32_tag, "[VectorXoshiro] next_u32", next_u32);
+      dbg::debug_vec(tag, "[VectorXoshiro] next", next);
+      dbg::debug_vec(u32_tag, "[VectorXoshiro] next_u32", next_u32);
       Store(next_u32, u32_tag, result.data() + i);
     }
     Store(s0, tag, state_[{0}].data());
     Store(s1, tag, state_[{1}].data());
     Store(s2, tag, state_[{2}].data());
     Store(s3, tag, state_[{3}].data());
-    debug_msg("[VectorXoshiro] END array<uint32_t>");
+    dbg::debug_msg("[VectorXoshiro] END array<uint32_t>");
     return result;
   }
 
@@ -369,26 +368,26 @@ public:
   [[nodiscard]] auto GetState() const -> const StateType & { return state_; }
 
   HWY_INLINE auto Uniform(float) noexcept -> VF32 {
-    debug_msg("\n[VectorXoshiro] START Uniform<float>");
+    dbg::debug_msg("\n[VectorXoshiro] START Uniform<float>");
     const ScalableTag<std::uint64_t> tag{};
     const ScalableTag<std::uint32_t> u32_tag{};
     const ScalableTag<float> real_tag{};
     const auto MUL_VALUE = Set(real_tag, internal::kMulConstF);
     const auto bits = Next();
     const auto bitscast = BitCast(u32_tag, bits);
-    debug_vec(tag, "[VectorXoshiro] bits", bits);
-    debug_vec(u32_tag, "[VectorXoshiro] u32 bits", bitscast);
+    dbg::debug_vec(tag, "[VectorXoshiro] bits", bits);
+    dbg::debug_vec(u32_tag, "[VectorXoshiro] u32 bits", bitscast);
     const auto bitsshift = ShiftRight<expF32>(bitscast);
     const auto real = ConvertTo(real_tag, bitsshift);
-    debug_vec(real_tag, "[VectorXoshiro] real", real);
+    dbg::debug_vec(real_tag, "[VectorXoshiro] real", real);
     const auto res = Mul(real, MUL_VALUE);
-    debug_vec(real_tag, "[VectorXoshiro] res", res);
+    dbg::debug_vec(real_tag, "[VectorXoshiro] res", res);
     return res;
   }
 
   HWY_INLINE auto Uniform(float /*unused*/,
                           const std::size_t n) -> AlignedVector<float> {
-    debug_msg("\n[VectorXoshiro] START AlignedVector<float>");
+    dbg::debug_msg("\n[VectorXoshiro] START AlignedVector<float>");
     AlignedVector<float> result(2 * n);
     const ScalableTag<std::uint32_t> u32_tag{};
     const ScalableTag<std::uint64_t> tag{};
@@ -406,17 +405,17 @@ public:
       const auto bitscast = ShiftRight<expF32>(bits);
       const auto real = ConvertTo(real_tag, bitscast);
       const auto uniform = Mul(real, MUL_VALUE);
-      debug_vec(tag, "[VectorXoshiro] bits", next);
-      debug_vec(u32_tag, "[VectorXoshiro] bits u32", bitscast);
-      debug_vec(real_tag, "[VectorXoshiro] real", real);
-      debug_vec(real_tag, "[VectorXoshiro] uniform", uniform);
+      dbg::debug_vec(tag, "[VectorXoshiro] bits", next);
+      dbg::debug_vec(u32_tag, "[VectorXoshiro] bits u32", bitscast);
+      dbg::debug_vec(real_tag, "[VectorXoshiro] real", real);
+      dbg::debug_vec(real_tag, "[VectorXoshiro] uniform", uniform);
       Store(uniform, real_tag, result.data() + i);
     }
     Store(s0, tag, state_[{0}].data());
     Store(s1, tag, state_[{1}].data());
     Store(s2, tag, state_[{2}].data());
     Store(s3, tag, state_[{3}].data());
-    debug_msg("[VectorXoshiro] END AlignedVector<float>");
+    dbg::debug_msg("[VectorXoshiro] END AlignedVector<float>");
     return result;
   }
 
@@ -608,5 +607,9 @@ private:
 } // namespace hwy
 
 HWY_AFTER_NAMESPACE();
+
+#ifndef PRISM_DEBUG_XOSHIRO
+#define PRISM_DEBUG PRISM_DEBUG_STATE
+#endif
 
 #endif // HIGHWAY_HWY_CONTRIB_MATH_MATH_INL_H_

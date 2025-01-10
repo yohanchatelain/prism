@@ -14,21 +14,19 @@
 #include "hwy/highway.h"
 #include "hwy/print-inl.h"
 #include "src/debug_vector-inl.h"
-#include "src/utils.h"
 #include "src/target_utils.h"
 #include "src/xoshiro.h"
 // clang-format on
 
 HWY_BEFORE_NAMESPACE(); // at file scope
-namespace prism::ud::vector::PRISM_DISPATCH {
-namespace HWY_NAMESPACE {
+namespace prism::ud::vector::PRISM_DISPATCH::HWY_NAMESPACE {
 
 namespace hn = hwy::HWY_NAMESPACE;
 namespace dbg = prism::vector::HWY_NAMESPACE;
 namespace rng = prism::vector::xoshiro::HWY_NAMESPACE;
 
 template <class D, class V, typename T = hn::TFromD<D>>
-V round(const D d, const V a) {
+auto round(const D d, const V a) -> V {
   debug_start();
   dbg::debug_vec(d, "[round] a", a);
 
@@ -38,16 +36,26 @@ V round(const D d, const V a) {
   const DI di{};
   const U u{};
 
+  const auto one_di = hn::Set(di, 1);
+
   const auto is_not_zero = hn::Ne(a, hn::Set(d, 0));
   const auto is_finite = hn::IsFinite(a);
   const auto must_be_rounded = hn::And(is_finite, is_not_zero);
 
   // rand = 1 - 2 * (z & 1)
+#ifdef PRISM_UD_RANDOM_FULLBITS
   const auto z = rng::random(u);
   const auto z_di = hn::ResizeBitCast(di, z);
-
-  const auto one_di = hn::Set(di, 1);
   const auto z_last_bit = hn::And(one_di, z_di);
+#else
+  const auto z = rng::randombit(u);
+  const auto z_last_bit = hn::ResizeBitCast(di, z);
+#endif
+
+  const auto dz = hn::DFromV<decltype(z)>{};
+  dbg::debug_vec(dz, "[round] z", z);
+  dbg::debug_vec(di, "[round] z_last_bit", z_last_bit);
+
   const auto z_last_bit_two = hn::ShiftLeft<1>(z_last_bit);
   const auto rand = hn::Sub(one_di, z_last_bit_two);
 
@@ -64,7 +72,7 @@ V round(const D d, const V a) {
 }
 
 template <class D, class V, typename T = hn::TFromD<D>>
-V add(const D d, const V a, const V b) {
+auto add(const D d, const V a, const V b) -> V {
   debug_start();
   dbg::debug_vec(d, "[add] a", a);
   dbg::debug_vec(d, "[add] b", b);
@@ -80,7 +88,7 @@ V add(const D d, const V a, const V b) {
 }
 
 template <class D, class V, typename T = hn::TFromD<D>>
-V sub(const D d, const V a, const V b) {
+auto sub(const D d, const V a, const V b) -> V {
   debug_start();
   dbg::debug_vec(d, "[sub] a", a);
   dbg::debug_vec(d, "[sub] b", b);
@@ -96,7 +104,7 @@ V sub(const D d, const V a, const V b) {
 }
 
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
-V mul(const D d, const V a, const V b) {
+auto mul(const D d, const V a, const V b) -> V {
   debug_start();
   dbg::debug_vec(d, "[mul] a", a);
   dbg::debug_vec(d, "[mul] b", b);
@@ -111,7 +119,7 @@ V mul(const D d, const V a, const V b) {
 }
 
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
-V div(const D d, const V a, const V b) {
+auto div(const D d, const V a, const V b) -> V {
   debug_start();
   dbg::debug_vec(d, "[div] a", a);
   dbg::debug_vec(d, "[div] b", b);
@@ -126,7 +134,7 @@ V div(const D d, const V a, const V b) {
 }
 
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
-V sqrt(const D d, const V a) {
+auto sqrt(const D d, const V a) -> V {
   debug_start();
   dbg::debug_vec(d, "[sqrt] a", a);
 
@@ -140,7 +148,7 @@ V sqrt(const D d, const V a) {
 }
 
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
-V fma(const D d, const V a, const V b, const V c) {
+auto fma(const D d, const V a, const V b, const V c) -> V {
   debug_start();
   dbg::debug_vec(d, "[fma] a", a);
   dbg::debug_vec(d, "[fma] b", b);
@@ -156,8 +164,7 @@ V fma(const D d, const V a, const V b, const V c) {
 }
 
 // NOLINTNEXTLINE(google-readability-namespace-comments)
-} // namespace HWY_NAMESPACE
-} // namespace prism::ud::vector::PRISM_DISPATCH
+} // namespace prism::ud::vector::PRISM_DISPATCH::HWY_NAMESPACE
 HWY_AFTER_NAMESPACE();
 
 #endif // PRISM_UD_VECTOR_INL_H_

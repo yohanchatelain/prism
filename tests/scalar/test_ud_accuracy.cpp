@@ -1,7 +1,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
-#include <iostream>
+#include <mutex>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -17,7 +17,10 @@
 
 #include "src/debug_vector-inl.h"
 #include "src/ud_scalar-inl.h"
-#include "tests/helper.h"
+
+#include "tests/helper/assert.h"
+#include "tests/helper/tests.h"
+
 // clang-format on
 
 HWY_BEFORE_NAMESPACE(); // at file scope
@@ -25,746 +28,389 @@ HWY_BEFORE_NAMESPACE(); // at file scope
 namespace prism::HWY_NAMESPACE {
 
 namespace hn = hwy::HWY_NAMESPACE;
+namespace helper = prism::tests::helper::HWY_NAMESPACE;
+
+using M = helper::RoundingMode::UD;
 
 namespace {
 
-using ::testing::AllOf;
-using ::testing::Eq;
-using ::testing::Ge;
-using ::testing::Le;
-using ::testing::Lt;
-
+constexpr auto default_repetitions_values = 10'000;
 constexpr auto default_alpha = 0.00001;
-#ifdef SR_DEBUG
-constexpr auto default_repetitions = 10;
+
+auto get_repetitions() -> int {
+  static std::mutex mtx;
+  std::lock_guard<std::mutex> lock(mtx);
+  const char *env_repetitions = getenv("PRISM_TEST_REPETITIONS");
+  if (env_repetitions != nullptr) {
+    return std::stoi(env_repetitions);
+  }
+#ifdef UD_DEBUG
+  return 100;
 #else
-constexpr auto default_repetitions = 10'000;
+  return default_repetitions_values;
 #endif
-namespace reference {
-// return pred(|s|)
-
-// twosum reference
-// compute in double precision if the input type is float
-// compute in quad precision if the input type is double
-template <typename T, typename H = typename helper::IEEE754<T>::H>
-auto add(const std::vector<T> &args) -> H {
-  auto a = args[0];
-  auto b = args[1];
-  return static_cast<H>(a) + static_cast<H>(b);
 }
 
-template <typename T, typename H = typename helper::IEEE754<T>::H>
-auto sub(const std::vector<T> &args) -> H {
-  auto a = args[0];
-  auto b = args[1];
-  return static_cast<H>(a) - static_cast<H>(b);
+auto default_repetitions() -> int {
+  static const int repetitions = get_repetitions();
+  return repetitions;
 }
 
-template <typename T, typename H = typename helper::IEEE754<T>::H>
-auto mul(const std::vector<T> &args) -> H {
-  auto a = args[0];
-  auto b = args[1];
-  return static_cast<H>(a) * static_cast<H>(b);
-}
+namespace ud = prism::ud::scalar::HWY_NAMESPACE;
 
-template <typename T, typename H = typename helper::IEEE754<T>::H>
-auto div(const std::vector<T> &args) -> H {
-  auto a = args[0];
-  auto b = args[1];
-  return static_cast<H>(a) / static_cast<H>(b);
-}
-
-template <typename T, typename H = typename helper::IEEE754<T>::H>
-auto sqrt(const std::vector<T> &args) -> H {
-  auto a = args[0];
-  return helper::sqrt<H>(a);
-}
-
-template <typename T, typename H = typename helper::IEEE754<T>::H>
-auto fma(const std::vector<T> &args) -> H {
-  auto a = args[0];
-  auto b = args[1];
-  auto c = args[2];
-  return helper::fma<H>(a, b, c);
-}
-
-template <typename T, typename Op, typename H = typename helper::IEEE754<T>::H>
-auto get_operator() -> std::function<H(const std::vector<T> &)> {
-  static_assert(std::is_base_of_v<helper::Operator<T>, Op>);
-  if constexpr (std::is_same_v<helper::AddOp<T>, Op>) {
-    return add<T>;
+struct UDAdd : public helper::PrAdd {
+  template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
+  auto operator()(D d, V a, V b) const -> V {
+    const auto sa = hn::GetLane(a);
+    const auto sb = hn::GetLane(b);
+    const auto sres = ud::add(sa, sb);
+    return hn::Set(d, sres);
   }
-  if constexpr (std::is_same_v<Op, helper::SubOp<T>>) {
-    return sub<T>;
+};
+
+struct UDSub : public helper::PrSub {
+  template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
+  auto operator()(D d, V a, V b) const -> V {
+    const auto sa = hn::GetLane(a);
+    const auto sb = hn::GetLane(b);
+    const auto sres = ud::sub(sa, sb);
+    return hn::Set(d, sres);
   }
-  if constexpr (std::is_same_v<Op, helper::MulOp<T>>) {
-    return mul<T>;
+};
+
+struct UDMul : public helper::PrMul {
+  template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
+  auto operator()(D d, V a, V b) const -> V {
+    const auto sa = hn::GetLane(a);
+    const auto sb = hn::GetLane(b);
+    const auto sres = ud::mul(sa, sb);
+    return hn::Set(d, sres);
   }
-  if constexpr (std::is_same_v<Op, helper::DivOp<T>>) {
-    return div<T>;
+};
+
+struct UDDiv : public helper::PrDiv {
+  template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
+  auto operator()(D d, V a, V b) const -> V {
+    const auto sa = hn::GetLane(a);
+    const auto sb = hn::GetLane(b);
+    const auto sres = ud::div(sa, sb);
+    return hn::Set(d, sres);
   }
-  if constexpr (std::is_same_v<Op, helper::SqrtOp<T>>) {
-    return sqrt<T>;
+};
+
+struct UDSqrt : public helper::PrSqrt {
+  template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
+  auto operator()(D d, V a) const -> V {
+    const auto sa = hn::GetLane(a);
+    const auto sres = ud::sqrt(sa);
+    return hn::Set(d, sres);
   }
-  if constexpr (std::is_same_v<Op, helper::FmaOp<T>>) {
-    return fma<T>;
+};
+
+struct UDFma : public helper::PrFma {
+  template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
+  auto operator()(D d, V a, V b, V c) const -> V {
+    const auto sa = hn::GetLane(a);
+    const auto sb = hn::GetLane(b);
+    const auto sc = hn::GetLane(c);
+    const auto sres = ud::fma(sa, sb, sc);
+    return hn::Set(d, sres);
   }
-}
-
-}; // namespace reference
-
-template <typename T, typename Op> typename Op::function get_target_operator() {
-  static_assert(std::is_base_of_v<helper::Operator<T>, Op>);
-
-  if constexpr (std::is_same_v<Op, helper::AddOp<T>>) {
-    return prism::ud::scalar::add<T>;
-  }
-  if constexpr (std::is_same_v<Op, helper::SubOp<T>>) {
-    return prism::ud::scalar::sub<T>;
-  }
-  if constexpr (std::is_same_v<Op, helper::MulOp<T>>) {
-    return prism::ud::scalar::mul<T>;
-  }
-  if constexpr (std::is_same_v<Op, helper::DivOp<T>>) {
-    return prism::ud::scalar::div<T>;
-  }
-  if constexpr (std::is_same_v<Op, helper::SqrtOp<T>>) {
-    return prism::ud::scalar::sqrt<T>;
-  }
-  if constexpr (std::is_same_v<Op, helper::FmaOp<T>>) {
-    return prism::ud::scalar::fma<T>;
-  }
-}
-
-template <typename T, typename H = typename helper::IEEE754<T>::H>
-std::tuple<H, H, H, H, H, std::string>
-compute_distance_error(const std::vector<T> &args, H reference) {
-  T ref_cast = static_cast<T>(reference);
-
-  bool is_exact = false;
-  for (const auto &a : args) {
-    if (helper::isnan(a) or helper::isinf(a)) {
-      is_exact = true;
-      break;
-    }
-  }
-
-  bool is_nan = helper::isnan(reference) or helper::isnan(ref_cast);
-  bool is_inf = helper::isinf(reference) or helper::isinf(ref_cast);
-
-  if (is_exact or is_inf or is_nan) {
-    return {0, 0, reference, reference, 0, ""};
-  }
-
-  H error = 0, error_c = 0;
-  H probability_down = 0, probability_up = 0;
-  H next = 0, prev = 0;
-  H ulp = helper::get_ulp(ref_cast);
-
-  if (ref_cast == reference) {
-    error = 0;
-    probability_down = 1;
-    probability_up = 1;
-    prev = reference;
-    next = reference;
-  } else {
-    error = helper::absolute_distance(reference, static_cast<H>(ref_cast));
-    error_c = helper::absolute_distance(static_cast<H>(ulp), error);
-    prev = (ref_cast < reference) ? ref_cast : (ref_cast - ulp);
-    next = (ref_cast < reference) ? (ref_cast + ulp) : ref_cast;
-    probability_down = (next - reference) / ulp;
-    probability_up = (reference - prev) / ulp;
-
-    if (((error + error_c) != ulp)) {
-      std::cerr << "error + error_c != ulp" << "\n"
-                << "error:   " << helper::hexfloat(error) << "\n"
-                << "error_c: " << helper::hexfloat(error_c) << "\n"
-                << "prev:    " << helper::hexfloat(prev) << "\n"
-                << "next:    " << helper::hexfloat(next) << "\n"
-                << "ulp:     " << helper::hexfloat(ulp) << std::endl;
-      HWY_ASSERT(false);
-    }
-    if (probability_down + probability_up != 1) {
-      std::cerr << "probability_down + probability_up != 1" << "\n"
-                << "probability_down: " << probability_down << "\n"
-                << "probability_up:   " << probability_up << "\n"
-                << "reference:        " << helper::hexfloat(reference) << "\n"
-                << "prev:             " << helper::hexfloat(prev) << "\n"
-                << "next:             " << helper::hexfloat(next) << "\n"
-                << "error:            " << helper::hexfloat(error) << "\n"
-                << "error_c:          " << helper::hexfloat(error_c) << "\n"
-                << "ulp:              " << helper::hexfloat(ulp) << std::endl;
-      HWY_ASSERT(false);
-    }
-  }
-
-  std::ostringstream os;
-  os << std::hexfloat << std::setprecision(13);
-  os << "-- compute_distance_error --" << std::endl;
-  os << "         reference: " << helper::hexfloat(reference) << std::endl;
-  if constexpr (std::is_same_v<T, float>) {
-    os << "  (float)reference: " << helper::hexfloat(ref_cast) << std::endl;
-    os << "  |ref-(float)ref|: " << helper::hexfloat(error) << std::endl;
-  }
-  if constexpr (std::is_same_v<T, double>) {
-    os << " (double)reference: " << helper::hexfloat(ref_cast) << std::endl;
-    os << " |ref-(double)ref|: " << helper::hexfloat(error) << std::endl;
-  }
-  os << "           error_c: " << helper::hexfloat(error_c) << std::endl;
-  os << "               ulp: " << helper::hexfloat(ulp) << std::endl;
-  os << "       reference ↓: " << helper::hexfloat(prev) << std::endl;
-  os << "       reference ↑: " << helper::hexfloat(next) << std::endl;
-  os << std::defaultfloat;
-  os << "                 p: " << probability_down << std::endl;
-  os << "               1-p: " << probability_up << std::endl;
-  auto msg = os.str();
-
-  return {probability_down, probability_up, prev, next, error, msg};
-}
-
-template <typename T, typename Op>
-T decurry(const typename Op::function &f, const std::vector<T> &args) {
-  // decurry the function
-  if constexpr (std::is_base_of_v<helper::BinaryOperator<T>, Op>) {
-    return f(args[0], args[1]);
-  } else if constexpr (std::is_base_of_v<helper::UnaryOperator<T>, Op>) {
-    return f(args[0]);
-  } else if constexpr (std::is_base_of_v<helper::TernaryOperator<T>, Op>) {
-    return f(args[0], args[1], args[2]);
-  }
-}
-
-template <typename T, typename Op>
-helper::Counter<T> eval_op(const std::vector<T> &args, const int repetitions) {
-
-  auto op = get_target_operator<T, Op>();
-  helper::Counter<T> c;
-  for (int i = 0; i < repetitions; i++) {
-    debug_print("*** repetition %d ***\n", i);
-    T v = decurry<T, Op>(op, args);
-    c[v]++;
-  }
-
-  return c;
-}
-
-template <typename T> std::string fmt_proba(const T &x) {
-  std::ostringstream os;
-  os << std::fixed << std::setprecision(5) << x << std::defaultfloat;
-  return os.str();
-}
-
-std::string flush() {
-  debug_flush();
-  return "";
-}
-
-template <typename T, typename Op, typename H = typename helper::IEEE754<T>::H>
-std::string get_args_str(const std::vector<T> &args, H reference) {
-  const auto symbol = std::string(Op::symbol);
-
-  std::string symbol_op = "";
-  std::string args_str = "";
-  if constexpr (std::is_base_of_v<helper::BinaryOperator<T>, Op>) {
-    auto a = args[0];
-    auto b = args[1];
-    symbol_op = "             a" + symbol + "b: ";
-    args_str = "               a: " + helper::hexfloat(a) + "\n" +
-               "               b: " + helper::hexfloat(b) + "\n" + symbol_op +
-               helper::hexfloat(reference) + "\n";
-  } else if constexpr (std::is_base_of_v<helper::UnaryOperator<T>, Op>) {
-    auto a = args[0];
-    symbol_op = "     " + symbol + "a: ";
-    args_str = "               a: " + helper::hexfloat(a) + "\n" + symbol_op +
-               helper::hexfloat(reference) + "\n";
-  } else if constexpr (std::is_base_of_v<helper::TernaryOperator<T>, Op>) {
-    auto a = args[0];
-    auto b = args[1];
-    auto c = args[2];
-    symbol_op = "     " + symbol + "(a, b, c): ";
-    args_str = "               a: " + helper::hexfloat(a) + "\n" +
-               "               b: " + helper::hexfloat(b) + "\n" +
-               "               c: " + helper::hexfloat(c) + "\n" + symbol_op +
-               helper::hexfloat(reference) + "\n";
-  }
-  return args_str;
-}
-
-template <typename T, typename Op>
-void check_distribution_match(const std::vector<T> &args,
-                              const long repetitions = default_repetitions,
-                              const float alpha = default_alpha) {
-  using H = typename helper::IEEE754<T>::H;
-
-  const auto op_name = Op::name;
-  const auto ftype = Op::ftype;
-
-  auto reference_op = reference::get_operator<T, Op>();
-  H reference = reference_op(args);
-
-  auto [probability_down, probability_up, down, up, distance_error,
-        distance_error_msg] = compute_distance_error(args, reference);
-
-  auto counter = eval_op<T, Op>(args, repetitions);
-  auto count_down = counter.down_count();
-  auto count_up = counter.up_count();
-  auto probability_down_estimated = count_down / (double)repetitions;
-  auto probability_up_estimated = count_up / (double)repetitions;
-
-  if (not helper::isfinite(counter.up()) or
-      not helper::isfinite(counter.down())) {
-    if (helper::isnan(counter.up()) and helper::isnan(reference))
-      return;
-    if (helper::isnan(counter.down()) and helper::isnan(reference))
-      return;
-    if (helper::isinf(counter.up()) and helper::isinf(reference)) {
-      EXPECT_EQ(counter.up(), reference);
-    }
-    if (helper::isinf(counter.down()) and helper::isinf(reference)) {
-      EXPECT_EQ(counter.down(), reference);
-    }
-    return;
-  }
-
-  EXPECT_THAT(static_cast<double>(probability_down), AllOf(Ge(0.0), Le(1.0)))
-      << "Probability ↓ is not in [0, 1] range\n"
-      << "-- theoretical -\n"
-      << "   probability ↓: " << fmt_proba(probability_down) << "\n"
-      << "   probability ↑: " << fmt_proba(probability_up) << "\n"
-      << "--- estimated --\n"
-      << "     sample size: " << repetitions << "\n"
-      << "              #↓: " << count_down << " ("
-      << fmt_proba(probability_down_estimated) << ")\n"
-      << "              #↑: " << count_up << " ("
-      << fmt_proba(probability_up_estimated) << ")\n"
-      << std::hexfloat << "" << "              ↓: " << counter.down() << "\n"
-      << "              ↑: " << counter.up() << "\n"
-      << distance_error_msg << std::defaultfloat << flush();
-
-  // do the test only if the operation is not exact (probability is not zero)
-  bool is_exact = probability_down == 1 and probability_up == 1;
-
-  // do the test only if the operation is not exact (probability is not zero)
-  // do the test if the distance between the reference and the estimated value
-  // is greater than the minimum subnormal
-  // do not the test if the probability is lower than 1/repetitions
-  bool compare_down_values = not is_exact and down != 0 and
-                             probability_down > (1.0 / repetitions) and
-                             distance_error > helper::IEEE754<T>::min_subnormal;
-  bool compare_up_values = not is_exact and up != 0 and
-                           probability_up > (1.0 / repetitions) and
-                           distance_error > helper::IEEE754<T>::min_subnormal;
-
-  // binomial test
-  auto test = helper::binomial_test(repetitions, count_down, 0.5);
-
-  auto args_str = get_args_str<T, Op>(args, reference);
-
-  // check probability if we compare the values
-  if (compare_down_values and compare_up_values)
-    EXPECT_THAT(alpha / 2, Lt(test.pvalue))
-        << "Null hypotheis rejected!\n"
-        << "            type: " << ftype << "\n"
-        << "              op: " << op_name << "\n"
-        << "           alpha: " << alpha << "\n"
-        << std::hexfloat << std::setprecision(13) << args_str
-        << std::defaultfloat << "" << "-- theoretical -\n"
-        << "   probability ↓: " << fmt_proba(probability_down) << "\n"
-        << "   probability ↑: " << fmt_proba(probability_up) << "\n"
-        << "--- estimated --\n"
-        << "     sample size: " << repetitions << "\n"
-        << "              #↓: " << count_down << " ("
-        << fmt_proba(probability_down_estimated) << ")\n"
-        << "              #↑: " << count_up << " ("
-        << fmt_proba(probability_up_estimated) << ")\n"
-        << "         p-value: " << test.pvalue << "\n"
-        << std::hexfloat << ""
-        << "              ↓: " << helper::hexfloat(counter.down()) << "\n"
-        << "              ↑: " << helper::hexfloat(counter.up()) << "\n"
-        << distance_error_msg << std::defaultfloat << flush();
-  debug_reset();
-}
-
-template <typename T, typename Op>
-void check_distribution_match(std::initializer_list<T> args,
-                              const long repetitions = default_repetitions,
-                              const float alpha = default_alpha) {
-  check_distribution_match<T, Op>(std::vector<T>(args), repetitions, alpha);
-}
-
-template <typename T> std::vector<T> get_simple_case() {
-  std::vector<T> simple_case = {0.0,
-                                1.0,
-                                2.0,
-                                3.0,
-                                std::numeric_limits<T>::min(),
-                                std::numeric_limits<T>::lowest(),
-                                std::numeric_limits<T>::max(),
-                                std::numeric_limits<T>::epsilon(),
-                                std::numeric_limits<T>::infinity(),
-                                std::numeric_limits<T>::denorm_min(),
-                                std::numeric_limits<T>::quiet_NaN(),
-                                std::numeric_limits<T>::signaling_NaN()};
-  return simple_case;
-}
-
-template <typename T> void do_run_test_exact_add() {
-  constexpr int32_t mantissa = helper::IEEE754<T>::mantissa;
-
-  T a = 1.25F;
-  T b;
-  T p;
-
-  for (size_t i = 0; i <= 5; i++) {
-    b = std::ldexp(1.0, -(mantissa + i));
-    p = 1 - (1.0 / (1U << i));
-    check_distribution_match<T, helper::AddOp<T>>({a, b});
-  }
-}
-
-template <class Op, typename T> void do_run_test_simple_case() {
-  auto simple_case = get_simple_case<T>();
-
-  if constexpr (std::is_base_of_v<helper::UnaryOperator<T>, Op>) {
-    for (auto a : simple_case) {
-      check_distribution_match<T, Op>({a});
-      check_distribution_match<T, Op>({-a});
-    }
-  } else if constexpr (std::is_base_of_v<helper::BinaryOperator<T>, Op>) {
-    for (auto a : simple_case) {
-      for (auto b : simple_case) {
-        check_distribution_match<T, Op>({a, b});
-        check_distribution_match<T, Op>({a, -b});
-        check_distribution_match<T, Op>({-a, b});
-        check_distribution_match<T, Op>({-a, -b});
-      }
-    }
-  } else if constexpr (std::is_base_of_v<helper::TernaryOperator<T>, Op>) {
-    for (auto a : simple_case) {
-      for (auto b : simple_case) {
-        for (auto c : simple_case) {
-          check_distribution_match<T, Op>({a, b, c});
-          check_distribution_match<T, Op>({a, -b, c});
-          check_distribution_match<T, Op>({a, b, -c});
-          check_distribution_match<T, Op>({a, -b, -c});
-          check_distribution_match<T, Op>({-a, b, c});
-          check_distribution_match<T, Op>({-a, -b, c});
-          check_distribution_match<T, Op>({-a, b, -c});
-          check_distribution_match<T, Op>({-a, -b, -c});
-        }
-      }
-    }
-  }
-}
-
-template <class Op, typename T>
-void do_run_test_random(const double start_range_1st = 0.0,
-                        const double end_range_1st = 1.0,
-                        const double start_range_2nd = 0.0,
-                        const double end_range_2nd = 1.0,
-                        const double start_range_3rd = 0.0,
-                        const double end_range_3rd = 1.0) {
-  helper::RNG rng1(start_range_1st, end_range_1st);
-  helper::RNG rng2(start_range_2nd, end_range_2nd);
-  helper::RNG rng3(start_range_3rd, end_range_3rd);
-
-  if constexpr (std::is_base_of_v<helper::UnaryOperator<T>, Op>) {
-    for (int i = 0; i < 100; i++) {
-      T a = rng1();
-      check_distribution_match<T, Op>({a});
-      check_distribution_match<T, Op>({-a});
-    }
-  } else if constexpr (std::is_base_of_v<helper::BinaryOperator<T>, Op>) {
-    for (int i = 0; i < 100; i++) {
-      T a = rng1();
-      T b = rng2();
-      check_distribution_match<T, Op>({a, b});
-      check_distribution_match<T, Op>({a, -b});
-      check_distribution_match<T, Op>({-a, b});
-      check_distribution_match<T, Op>({-a, -b});
-    }
-  } else if constexpr (std::is_base_of_v<helper::TernaryOperator<T>, Op>) {
-    for (int i = 0; i < 100; i++) {
-      T a = rng1();
-      T b = rng2();
-      T c = rng3();
-      check_distribution_match<T, Op>({a, b, c});
-      check_distribution_match<T, Op>({a, -b, c});
-      check_distribution_match<T, Op>({a, b, -c});
-      check_distribution_match<T, Op>({a, -b, -c});
-      check_distribution_match<T, Op>({-a, b, c});
-      check_distribution_match<T, Op>({-a, -b, c});
-      check_distribution_match<T, Op>({-a, b, -c});
-      check_distribution_match<T, Op>({-a, -b, -c});
-    }
-  }
-}
+};
 
 struct TestExactOperationsAdd {
-  template <typename T> void operator()(T t) { do_run_test_exact_add<T>(); }
+  helper::ConfigTest config = {.name = "TestExactOperationsAdd",
+                               .description =
+                                   "Test exact operations for addition",
+                               .repetitions = default_repetitions(),
+                               .alpha = default_alpha};
+
+  template <typename T, class D> void operator()(T /*unused*/, D d) {
+    helper::TestExactAdd<M, UDAdd>(d, config);
+    // assert_exact();
+  }
 };
 
 HWY_NOINLINE void TestAllExactOperationsAdd() {
-  hn::ForFloat3264Types(TestExactOperationsAdd());
+  hn::ForFloat3264Types(hn::ForPartialVectors<TestExactOperationsAdd>());
 }
 
 template <class Op> struct TestBasicAssertions {
-  template <typename T> void operator()(T t) {
-    do_run_test_simple_case<Op, T>();
+  helper::ConfigTest config = {
+      .name = "TestBasicAssertions",
+      .description = "Test basic assertions for arithmetic operations",
+      .repetitions = default_repetitions(),
+      .alpha = default_alpha};
+
+  template <typename T, class D> void operator()(T /*unused*/, D d) {
+    helper::TestSimpleCase<M, Op>(d, config);
+    // assert_almost_exact();
   }
 };
 
-using ud = prism::ud::scalar::PRISM_DISPATCH::HWY_NAMESPACE;
+using TestBasicAssertionsAdd = TestBasicAssertions<UDAdd>;
+using TestBasicAssertionsSub = TestBasicAssertions<UDSub>;
+using TestBasicAssertionsMul = TestBasicAssertions<UDMul>;
+using TestBasicAssertionsDiv = TestBasicAssertions<UDDiv>;
+using TestBasicAssertionsSqrt = TestBasicAssertions<UDSqrt>;
+using TestBasicAssertionsFma = TestBasicAssertions<UDFma>;
 
-using TestBasicAssertionsAdd = TestBasicAssertions<ud::add>;
-
-TEST(SRRoundTest, BasicAssertionsAdd) {
-  do_run_test_simple_case<float, helper::AddOp<float>>();
-  do_run_test_simple_case<double, helper::AddOp<double>>();
+HWY_NOINLINE void TestAllBasicAssertionsAdd() {
+  hn::ForFloat3264Types(hn::ForPartialVectors<TestBasicAssertionsAdd>());
 }
 
-TEST(SRRoundTest, BasicAssertionsSub) {
-  do_run_test_simple_case<float, helper::SubOp<float>>();
-  do_run_test_simple_case<double, helper::SubOp<double>>();
+HWY_NOINLINE void TestAllBasicAssertionsSub() {
+  hn::ForFloat3264Types(hn::ForPartialVectors<TestBasicAssertionsSub>());
 }
 
-TEST(SRRoundTest, BasicAssertionsMul) {
-  do_run_test_simple_case<float, helper::MulOp<float>>();
-  do_run_test_simple_case<double, helper::MulOp<double>>();
+HWY_NOINLINE void TestAllBasicAssertionsMul() {
+  hn::ForFloat3264Types(hn::ForPartialVectors<TestBasicAssertionsMul>());
 }
 
-TEST(SRRoundTest, BasicAssertionsDiv) {
-  do_run_test_simple_case<float, helper::DivOp<float>>();
-  do_run_test_simple_case<double, helper::DivOp<double>>();
+HWY_NOINLINE void TestAllBasicAssertionsDiv() {
+  hn::ForFloat3264Types(hn::ForPartialVectors<TestBasicAssertionsDiv>());
 }
 
-TEST(SRRoundTest, BasicAssertionsSqrt) {
-  do_run_test_simple_case<float, helper::SqrtOp<float>>();
-  do_run_test_simple_case<double, helper::SqrtOp<double>>();
+HWY_NOINLINE void TestAllBasicAssertionsSqrt() {
+  hn::ForFloat3264Types(hn::ForPartialVectors<TestBasicAssertionsSqrt>());
 }
 
-TEST(SRRoundTest, BasicAssertionsFma) {
-  do_run_test_simple_case<float, helper::FmaOp<float>>();
-  do_run_test_simple_case<double, helper::FmaOp<double>>();
+HWY_NOINLINE void TestAllBasicAssertionsFma() {
+  hn::ForFloat3264Types(hn::ForPartialVectors<TestBasicAssertionsFma>());
 }
 
-TEST(SRRoundTest, Random01AssertionsAdd) {
-  do_run_test_random<float, helper::AddOp<float>>();
-  do_run_test_random<double, helper::AddOp<double>>();
-}
+template <class Op> struct TestRandom01Assertions {
+  helper::ConfigTest config = {
+      .name = "TestRandom01Assertions",
+      .description =
+          "Test random numbers in (0,1) assertions for arithmetic operations",
+      .repetitions = default_repetitions(),
+      .alpha = default_alpha};
 
-TEST(SRRoundTest, Random01AssertionsSub) {
-  do_run_test_random<float, helper::AddOp<float>>();
-  do_run_test_random<double, helper::SubOp<double>>();
-}
-
-TEST(SRRoundTest, Random01AssertionsMul) {
-  do_run_test_random<float, helper::MulOp<float>>();
-  do_run_test_random<double, helper::MulOp<double>>();
-}
-
-TEST(SRRoundTest, Random01AssertionsDiv) {
-  do_run_test_random<float, helper::DivOp<float>>();
-  do_run_test_random<double, helper::DivOp<double>>();
-}
-
-TEST(SRRoundTest, Random01AssertionsSqrt) {
-  do_run_test_random<float, helper::SqrtOp<float>>();
-  do_run_test_random<double, helper::SqrtOp<double>>();
-}
-
-TEST(SRRoundTest, Random01AssertionsFma) {
-  do_run_test_random<float, helper::FmaOp<float>>();
-  do_run_test_random<double, helper::FmaOp<double>>();
-}
-
-template <typename T, typename Op> void do_random_no_overlap_test() {
-  double start_range_1st = 0.0;
-  double end_range_1st = 1.0;
-  int s2;
-  if constexpr (std::is_same_v<T, float>) {
-    s2 = -25;
-  } else {
-    s2 = -54;
-  };
-  double start_range_2nd = std::ldexp(1.0, s2 + 1);
-  double end_range_2nd = std::ldexp(1.0, s2 + 1);
-  double start_range_3rd = std::ldexp(1.0, s2 + 2);
-  double end_range_3rd = std::ldexp(1.0, s2 + 2);
-  do_run_test_random<T, Op>(start_range_1st, end_range_1st, start_range_2nd,
-                            end_range_2nd, start_range_3rd, end_range_3rd);
-}
-
-//
-TEST(SRRoundTest, RandomNoOverlapAssertionsAdd) {
-  using opf = helper::AddOp<float>;
-  using opd = helper::AddOp<double>;
-  do_random_no_overlap_test<float, opf>();
-  do_random_no_overlap_test<double, opd>();
-}
-
-TEST(SRRoundTest, RandomNoOverlapAssertionsSub) {
-  using opf = helper::SubOp<float>;
-  using opd = helper::SubOp<double>;
-  do_random_no_overlap_test<float, opf>();
-  do_random_no_overlap_test<double, opd>();
-}
-
-TEST(SRRoundTest, RandomNoOverlapAssertionsMul) {
-  using opf = helper::MulOp<float>;
-  using opd = helper::MulOp<double>;
-  do_random_no_overlap_test<float, opf>();
-  do_random_no_overlap_test<double, opd>();
-}
-
-TEST(SRRoundTest, RandomNoOverlapAssertionsDiv) {
-  using opf = helper::DivOp<float>;
-  using opd = helper::DivOp<double>;
-  do_random_no_overlap_test<float, opf>();
-  do_random_no_overlap_test<double, opd>();
-}
-
-TEST(SRRoundTest, RandomNoOverlapAssertionsSqrt) {
-  using opf = helper::SqrtOp<float>;
-  using opd = helper::SqrtOp<double>;
-  do_random_no_overlap_test<float, opf>();
-  do_random_no_overlap_test<double, opd>();
-}
-
-TEST(SRRoundTest, RandomNoOverlapAssertionsFma) {
-  using opf = helper::FmaOp<float>;
-  using opd = helper::FmaOp<double>;
-  do_random_no_overlap_test<float, opf>();
-  do_random_no_overlap_test<double, opd>();
-}
-
-template <typename T, typename Op> void do_random_last_bit_overlap() {
-  double start_range_1st = 1.0;
-  double end_range_1st = 2.0;
-  int s2;
-  if constexpr (std::is_same_v<T, float>) {
-    s2 = -24;
-  } else {
-    s2 = -53;
+  template <typename T, class D> void operator()(T /*unused*/, D d) {
+    helper::TestRandom<M, Op>(d, config);
   }
-  double start_range_2nd = std::ldexp(1.0, s2 + 1);
-  double end_range_2nd = std::ldexp(1.0, s2 + 1);
-  double start_range_3rd = std::ldexp(1.0, s2 + 2);
-  double end_range_3rd = std::ldexp(1.0, s2 + 2);
-  do_run_test_random<T, Op>(start_range_1st, end_range_1st, start_range_2nd,
-                            end_range_2nd, start_range_3rd, end_range_3rd);
+};
+
+using TestRandom01AssertionsAdd = TestRandom01Assertions<UDAdd>;
+using TestRandom01AssertionsSub = TestRandom01Assertions<UDSub>;
+using TestRandom01AssertionsMul = TestRandom01Assertions<UDMul>;
+using TestRandom01AssertionsDiv = TestRandom01Assertions<UDDiv>;
+using TestRandom01AssertionsSqrt = TestRandom01Assertions<UDSqrt>;
+using TestRandom01AssertionsFma = TestRandom01Assertions<UDFma>;
+
+HWY_NOINLINE void TestAllRandom01AssertionsAdd() {
+  hn::ForFloat3264Types(hn::ForPartialVectors<TestRandom01AssertionsAdd>());
 }
 
-TEST(SRRoundTest, RandomLastBitOverlapAddAssertions) {
-  using opf = helper::AddOp<float>;
-  using opd = helper::AddOp<double>;
-  do_random_last_bit_overlap<float, opf>();
-  do_random_last_bit_overlap<double, opd>();
+HWY_NOINLINE void TestAllRandom01AssertionsSub() {
+  hn::ForFloat3264Types(hn::ForPartialVectors<TestRandom01AssertionsSub>());
 }
 
-TEST(SRRoundTest, RandomLastBitOverlapSubAssertions) {
-  using opf = helper::SubOp<float>;
-  using opd = helper::SubOp<double>;
-  do_random_last_bit_overlap<float, opf>();
-  do_random_last_bit_overlap<double, opd>();
+HWY_NOINLINE void TestAllRandom01AssertionsMul() {
+  hn::ForFloat3264Types(hn::ForPartialVectors<TestRandom01AssertionsMul>());
 }
 
-TEST(SRRoundTest, RandomLastBitOverlapMulAssertions) {
-  using opf = helper::MulOp<float>;
-  using opd = helper::MulOp<double>;
-  do_random_last_bit_overlap<float, opf>();
-  do_random_last_bit_overlap<double, opd>();
+HWY_NOINLINE void TestAllRandom01AssertionsDiv() {
+  hn::ForFloat3264Types(hn::ForPartialVectors<TestRandom01AssertionsDiv>());
 }
 
-TEST(SRRoundTest, RandomLastBitOverlapDivAssertions) {
-  using opf = helper::DivOp<float>;
-  using opd = helper::DivOp<double>;
-  do_random_last_bit_overlap<float, opf>();
-  do_random_last_bit_overlap<double, opd>();
+HWY_NOINLINE void TestAllRandom01AssertionsSqrt() {
+  hn::ForFloat3264Types(hn::ForPartialVectors<TestRandom01AssertionsSqrt>());
 }
 
-TEST(SRRoundTest, RandomLastBitOverlapSqrtAssertions) {
-  using opf = helper::SqrtOp<float>;
-  using opd = helper::SqrtOp<double>;
-  do_random_last_bit_overlap<float, opf>();
-  do_random_last_bit_overlap<double, opd>();
+HWY_NOINLINE void TestAllRandom01AssertionsFma() {
+  hn::ForFloat3264Types(hn::ForPartialVectors<TestRandom01AssertionsFma>());
 }
 
-TEST(SRRoundTest, RandomLastBitOverlapFmaAssertions) {
-  using opf = helper::FmaOp<float>;
-  using opd = helper::FmaOp<double>;
-  do_random_last_bit_overlap<float, opf>();
-  do_random_last_bit_overlap<double, opd>();
+template <class Op> struct TestRandomNoOverlapAssertions {
+  helper::ConfigTest config = {
+      .name = "TestRandomNoOverlapAssertions",
+      .description = "Test random with no overlap assertions for arithmetic ",
+      .repetitions = default_repetitions(),
+      .alpha = default_alpha};
+
+  template <typename T, class D> void operator()(T /*unused*/, D d) {
+    helper::TestRandomNoOverlap<M, Op>(d, config);
+  }
+};
+
+using TestRandomNoOverlapAssertionsAdd = TestRandomNoOverlapAssertions<UDAdd>;
+using TestRandomNoOverlapAssertionsSub = TestRandomNoOverlapAssertions<UDSub>;
+using TestRandomNoOverlapAssertionsMul = TestRandomNoOverlapAssertions<UDMul>;
+using TestRandomNoOverlapAssertionsDiv = TestRandomNoOverlapAssertions<UDDiv>;
+using TestRandomNoOverlapAssertionsSqrt = TestRandomNoOverlapAssertions<UDSqrt>;
+using TestRandomNoOverlapAssertionsFma = TestRandomNoOverlapAssertions<UDFma>;
+
+HWY_NOINLINE void TestAllRandomNoOverlapAssertionsAdd() {
+  hn::ForFloat3264Types(
+      hn::ForPartialVectors<TestRandomNoOverlapAssertionsAdd>());
 }
 
-template <typename T, typename Op> void do_random_mid_overlap_test() {
-  double start_range_1st = 1.0;
-  double end_range_1st = 2.0;
-  int s2;
-  if constexpr (std::is_same_v<T, float>) {
-    s2 = -13;
-  } else {
-    s2 = -27;
-  };
-  double start_range_2nd = std::ldexp(1.0, s2 + 1);
-  double end_range_2nd = std::ldexp(1.0, s2 + 1);
-  double start_range_3rd = std::ldexp(1.0, s2 + 2);
-  double end_range_3rd = std::ldexp(1.0, s2 + 2);
-  do_run_test_random<T, Op>(start_range_1st, end_range_1st, start_range_2nd,
-                            end_range_2nd, start_range_3rd, end_range_3rd);
+HWY_NOINLINE void TestAllRandomNoOverlapAssertionsSub() {
+  hn::ForFloat3264Types(
+      hn::ForPartialVectors<TestRandomNoOverlapAssertionsSub>());
 }
 
-TEST(SRRoundTest, RandomMidOverlapAddAssertions) {
-  using opf = helper::AddOp<float>;
-  using opd = helper::AddOp<double>;
-  do_random_mid_overlap_test<float, opf>();
-  do_random_mid_overlap_test<double, opd>();
+HWY_NOINLINE void TestAllRandomNoOverlapAssertionsMul() {
+  hn::ForFloat3264Types(
+      hn::ForPartialVectors<TestRandomNoOverlapAssertionsMul>());
 }
 
-TEST(SRRoundTest, RandomMidOverlapSubAssertions) {
-  using opf = helper::SubOp<float>;
-  using opd = helper::SubOp<double>;
-  do_random_mid_overlap_test<float, opf>();
-  do_random_mid_overlap_test<double, opd>();
+HWY_NOINLINE void TestAllRandomNoOverlapAssertionsDiv() {
+  hn::ForFloat3264Types(
+      hn::ForPartialVectors<TestRandomNoOverlapAssertionsDiv>());
 }
 
-TEST(SRRoundTest, RandomMidOverlapMulAssertions) {
-  using opf = helper::MulOp<float>;
-  using opd = helper::MulOp<double>;
-  do_random_mid_overlap_test<float, opf>();
-  do_random_mid_overlap_test<double, opd>();
+HWY_NOINLINE void TestAllRandomNoOverlapAssertionsSqrt() {
+  hn::ForFloat3264Types(
+      hn::ForPartialVectors<TestRandomNoOverlapAssertionsSqrt>());
 }
 
-TEST(SRRoundTest, RandomMidOverlapDivAssertions) {
-  using opf = helper::DivOp<float>;
-  using opd = helper::DivOp<double>;
-  do_random_mid_overlap_test<float, opf>();
-  do_random_mid_overlap_test<double, opd>();
+HWY_NOINLINE void TestAllRandomNoOverlapAssertionsFma() {
+  hn::ForFloat3264Types(
+      hn::ForPartialVectors<TestRandomNoOverlapAssertionsFma>());
 }
 
-TEST(SRRoundTest, RandomMidOverlapSqrtAssertions) {
-  using opf = helper::SqrtOp<float>;
-  using opd = helper::SqrtOp<double>;
-  do_random_mid_overlap_test<float, opf>();
-  do_random_mid_overlap_test<double, opd>();
+template <class Op> struct TestRandomLastBitOverlap {
+  helper::ConfigTest config = {
+      .name = "TestRandomLastBitOverlap",
+      .description =
+          "Test random with last bit overlapping assertions for arithmetic ",
+      .repetitions = default_repetitions(),
+      .alpha = default_alpha};
+
+  template <typename T, class D> void operator()(T /*unused*/, D d) {
+    helper::TestRandomLastBitOverlap<M, Op>(d, config);
+  }
+};
+
+using TestRandomLastBitOverlapAdd = TestRandomLastBitOverlap<UDAdd>;
+using TestRandomLastBitOverlapSub = TestRandomLastBitOverlap<UDSub>;
+using TestRandomLastBitOverlapMul = TestRandomLastBitOverlap<UDMul>;
+using TestRandomLastBitOverlapDiv = TestRandomLastBitOverlap<UDDiv>;
+using TestRandomLastBitOverlapSqrt = TestRandomLastBitOverlap<UDSqrt>;
+using TestRandomLastBitOverlapFma = TestRandomLastBitOverlap<UDFma>;
+
+HWY_NOINLINE void TestAllRandomLastBitOverlapAdd() {
+  hn::ForFloat3264Types(hn::ForPartialVectors<TestRandomLastBitOverlapAdd>());
 }
 
-TEST(SRRoundTest, RandomMidOverlapFmaAssertions) {
-  using opf = helper::FmaOp<float>;
-  using opd = helper::FmaOp<double>;
-  do_random_mid_overlap_test<float, opf>();
-  do_random_mid_overlap_test<double, opd>();
+HWY_NOINLINE void TestAllRandomLastBitOverlapSub() {
+  hn::ForFloat3264Types(hn::ForPartialVectors<TestRandomLastBitOverlapSub>());
+}
+
+HWY_NOINLINE void TestAllRandomLastBitOverlapMul() {
+  hn::ForFloat3264Types(hn::ForPartialVectors<TestRandomLastBitOverlapMul>());
+}
+
+HWY_NOINLINE void TestAllRandomLastBitOverlapDiv() {
+  hn::ForFloat3264Types(hn::ForPartialVectors<TestRandomLastBitOverlapDiv>());
+}
+
+HWY_NOINLINE void TestAllRandomLastBitOverlapSqrt() {
+  hn::ForFloat3264Types(hn::ForPartialVectors<TestRandomLastBitOverlapSqrt>());
+}
+
+HWY_NOINLINE void TestAllRandomLastBitOverlapFma() {
+  hn::ForFloat3264Types(hn::ForPartialVectors<TestRandomLastBitOverlapFma>());
+}
+
+template <class Op> struct TestRandomMidOverlap {
+  helper::ConfigTest config = {
+      .name = "TestRandomMidOverlap",
+      .description =
+          "Test random number with mid overlap assertions for arithmetic",
+      .repetitions = default_repetitions(),
+      .alpha = default_alpha};
+
+  template <typename T, class D> void operator()(T /*unused*/, D d) {
+    helper::TestRandomMidOverlap<M, Op>(d, config);
+  }
+};
+
+using TestRandomMidOverlapAdd = TestRandomMidOverlap<UDAdd>;
+using TestRandomMidOverlapSub = TestRandomMidOverlap<UDSub>;
+using TestRandomMidOverlapMul = TestRandomMidOverlap<UDMul>;
+using TestRandomMidOverlapDiv = TestRandomMidOverlap<UDDiv>;
+using TestRandomMidOverlapSqrt = TestRandomMidOverlap<UDSqrt>;
+using TestRandomMidOverlapFma = TestRandomMidOverlap<UDFma>;
+
+HWY_NOINLINE void TestAllRandomMidOverlapAdd() {
+  hn::ForFloat3264Types(hn::ForPartialVectors<TestRandomMidOverlapAdd>());
+}
+
+HWY_NOINLINE void TestAllRandomMidOverlapSub() {
+  hn::ForFloat3264Types(hn::ForPartialVectors<TestRandomMidOverlapSub>());
+}
+
+HWY_NOINLINE void TestAllRandomMidOverlapMul() {
+  hn::ForFloat3264Types(hn::ForPartialVectors<TestRandomMidOverlapMul>());
+}
+
+HWY_NOINLINE void TestAllRandomMidOverlapDiv() {
+  hn::ForFloat3264Types(hn::ForPartialVectors<TestRandomMidOverlapDiv>());
+}
+
+HWY_NOINLINE void TestAllRandomMidOverlapSqrt() {
+  hn::ForFloat3264Types(hn::ForPartialVectors<TestRandomMidOverlapSqrt>());
+}
+
+HWY_NOINLINE void TestAllRandomMidOverlapFma() {
+  hn::ForFloat3264Types(hn::ForPartialVectors<TestRandomMidOverlapFma>());
 }
 
 } // namespace
 } // namespace prism::HWY_NAMESPACE
+HWY_AFTER_NAMESPACE();
 
 #if HWY_ONCE
 namespace prism::HWY_NAMESPACE {
 
-HWY_BEFORE_TEST(UDScalarTest);
+// NOLINTBEGIN
+HWY_BEFORE_TEST(UDScalarAccuracyTest);
+HWY_EXPORT_AND_TEST_P(UDScalarAccuracyTest, TestAllExactOperationsAdd);
+HWY_EXPORT_AND_TEST_P(UDScalarAccuracyTest, TestAllBasicAssertionsAdd);
+HWY_EXPORT_AND_TEST_P(UDScalarAccuracyTest, TestAllBasicAssertionsSub);
+HWY_EXPORT_AND_TEST_P(UDScalarAccuracyTest, TestAllBasicAssertionsMul);
+HWY_EXPORT_AND_TEST_P(UDScalarAccuracyTest, TestAllBasicAssertionsDiv);
+HWY_EXPORT_AND_TEST_P(UDScalarAccuracyTest, TestAllBasicAssertionsSqrt);
+HWY_EXPORT_AND_TEST_P(UDScalarAccuracyTest, TestAllBasicAssertionsFma);
+HWY_EXPORT_AND_TEST_P(UDScalarAccuracyTest, TestAllRandom01AssertionsAdd);
+HWY_EXPORT_AND_TEST_P(UDScalarAccuracyTest, TestAllRandom01AssertionsSub);
+HWY_EXPORT_AND_TEST_P(UDScalarAccuracyTest, TestAllRandom01AssertionsMul);
+HWY_EXPORT_AND_TEST_P(UDScalarAccuracyTest, TestAllRandom01AssertionsDiv);
+HWY_EXPORT_AND_TEST_P(UDScalarAccuracyTest, TestAllRandom01AssertionsSqrt);
+HWY_EXPORT_AND_TEST_P(UDScalarAccuracyTest, TestAllRandom01AssertionsFma);
+HWY_EXPORT_AND_TEST_P(UDScalarAccuracyTest,
+                      TestAllRandomNoOverlapAssertionsAdd);
+HWY_EXPORT_AND_TEST_P(UDScalarAccuracyTest,
+                      TestAllRandomNoOverlapAssertionsSub);
+HWY_EXPORT_AND_TEST_P(UDScalarAccuracyTest,
+                      TestAllRandomNoOverlapAssertionsMul);
+HWY_EXPORT_AND_TEST_P(UDScalarAccuracyTest,
+                      TestAllRandomNoOverlapAssertionsDiv);
+HWY_EXPORT_AND_TEST_P(UDScalarAccuracyTest,
+                      TestAllRandomNoOverlapAssertionsSqrt);
+HWY_EXPORT_AND_TEST_P(UDScalarAccuracyTest,
+                      TestAllRandomNoOverlapAssertionsFma);
+HWY_EXPORT_AND_TEST_P(UDScalarAccuracyTest, TestAllRandomLastBitOverlapAdd);
+HWY_EXPORT_AND_TEST_P(UDScalarAccuracyTest, TestAllRandomLastBitOverlapSub);
+HWY_EXPORT_AND_TEST_P(UDScalarAccuracyTest, TestAllRandomLastBitOverlapMul);
+HWY_EXPORT_AND_TEST_P(UDScalarAccuracyTest, TestAllRandomLastBitOverlapDiv);
+HWY_EXPORT_AND_TEST_P(UDScalarAccuracyTest, TestAllRandomLastBitOverlapSqrt);
+HWY_EXPORT_AND_TEST_P(UDScalarAccuracyTest, TestAllRandomLastBitOverlapFma);
+HWY_EXPORT_AND_TEST_P(UDScalarAccuracyTest, TestAllRandomMidOverlapAdd);
+HWY_EXPORT_AND_TEST_P(UDScalarAccuracyTest, TestAllRandomMidOverlapSub);
+HWY_EXPORT_AND_TEST_P(UDScalarAccuracyTest, TestAllRandomMidOverlapMul);
+HWY_EXPORT_AND_TEST_P(UDScalarAccuracyTest, TestAllRandomMidOverlapDiv);
+HWY_EXPORT_AND_TEST_P(UDScalarAccuracyTest, TestAllRandomMidOverlapSqrt);
+HWY_EXPORT_AND_TEST_P(UDScalarAccuracyTest, TestAllRandomMidOverlapFma);
 HWY_AFTER_TEST();
+// NOLINTEND
 
 } // namespace prism::HWY_NAMESPACE
+
+HWY_TEST_MAIN();
 
 #endif // HWY_ONCE
