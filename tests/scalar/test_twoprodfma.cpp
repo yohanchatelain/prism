@@ -12,6 +12,8 @@
 
 #include "tests/helper/distance.h"
 
+namespace helper = prism::tests::helper;
+
 namespace reference {
 // return pred(|s|)
 
