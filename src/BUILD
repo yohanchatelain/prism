@@ -20,6 +20,7 @@ exports_files([
     "ud_vector-inl.h",
     "ud_vector_static.cpp",
     "ud_vector_dynamic.cpp",
+    "generic_vector_dynamic-inl.h",
     "utils.h",
     "xoshiro.h",
     "xoshiro_vector.cpp",

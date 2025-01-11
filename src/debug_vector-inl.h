@@ -1,27 +1,3 @@
-
-#include <cstdint>
-#include <stdlib.h>
-
-#ifndef __PRISM_DEBUG_VECTOR_INL_H_
-#define __PRISM_DEBUG_VECTOR_INL_H_
-
-static auto __attribute__((noinline)) __attribute__((unused))
-prism_print_debug() -> bool {
-#ifdef PRISM_DEBUG
-  static int _print_debug = -1;
-  if (_print_debug == -1) {
-    const char *env = "PRISM_DEBUG";
-    const char *env_debug = getenv(env);
-    _print_debug = env_debug && env_debug[0] == '1';
-  }
-  return static_cast<bool>(_print_debug);
-#else
-  return false;
-#endif
-}
-
-#endif // __PRISM_DEBUG_VECTOR_INL_H_
-
 #if defined(PRISM_DEBUG_VECTOR_INL_H_) == defined(HWY_TARGET_TOGGLE)
 #ifdef PRISM_DEBUG_VECTOR_INL_H_
 #undef PRISM_DEBUG_VECTOR_INL_H_
@@ -38,6 +14,16 @@ namespace prism::vector::HWY_NAMESPACE {
 namespace hn = hwy::HWY_NAMESPACE;
 
 #ifdef PRISM_DEBUG
+
+HWY_API auto prism_print_debug() -> bool {
+  static int _print_debug = -1;
+  if (_print_debug == -1) {
+    const char *env = "PRISM_DEBUG";
+    const char *env_debug = getenv(env);
+    _print_debug = env_debug && env_debug[0] == '1';
+  }
+  return static_cast<bool>(_print_debug);
+}
 
 HWY_API void debug_msg(const char *msg) {
   if (not prism_print_debug()) {

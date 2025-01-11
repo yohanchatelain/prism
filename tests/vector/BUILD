@@ -155,9 +155,9 @@ cc_test_lib_gen(
 # Stochastic rounding performance tests
 
 cc_test_lib_gen(
-    name = "sr-perf",
+    name = "sr-perf-dynamic",
     size = "medium",
-    src = [":test_sr_performance_dynamic.cpp"],
+    src = [":test_sr_performance.cpp"],
     copts = DYNAMIC_COPTS,
     mode = "dynamic",
 )
@@ -173,7 +173,7 @@ cc_test_lib_gen(
 # Up/Down rounding performance tests
 
 cc_test_lib_gen(
-    name = "ud-perf",
+    name = "ud-perf-dynamic",
     size = "medium",
     src = [":test_ud_performance_dynamic.cpp"],
     copts = DYNAMIC_COPTS,
