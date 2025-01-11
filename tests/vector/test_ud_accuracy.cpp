@@ -18,17 +18,17 @@
 #include "src/debug_vector-inl.h"
 #include "src/ud_vector-inl.h"
 
-#include "tests/helper/assert.h"
-#include "tests/helper/tests.h"
+#include "tests/helper/tests-inl.h"
 
 // clang-format on
 
-HWY_BEFORE_NAMESPACE(); // at file scope
+HWY_BEFORE_NAMESPACE(); // NOLINT
 
 namespace prism::HWY_NAMESPACE {
 
 namespace hn = hwy::HWY_NAMESPACE;
-namespace helper = prism::tests::helper::HWY_NAMESPACE;
+namespace test_distribution = prism::tests::helper::distribution::HWY_NAMESPACE;
+namespace helper = prism::tests::helper;
 
 using M = helper::RoundingMode::UD;
 namespace {
@@ -117,7 +117,7 @@ struct TestExactOperationsAdd {
                                .alpha = get_alpha()};
 
   template <typename T, class D> void operator()(T /*unused*/, D d) {
-    helper::TestExactAdd<M, UDAdd>(d, config);
+    test_distribution::TestExactAdd<M, UDAdd>(d, config);
   }
 };
 
@@ -133,7 +133,7 @@ template <class Op> struct TestBasicAssertions {
       .alpha = get_alpha()};
 
   template <typename T, class D> void operator()(T /*unused*/, D d) {
-    helper::TestSimpleCase<M, Op>(d, config);
+    test_distribution::TestSimpleCase<M, Op>(d, config);
   }
 };
 
@@ -177,7 +177,7 @@ template <class Op> struct TestRandom01Assertions {
       .alpha = get_alpha()};
 
   template <typename T, class D> void operator()(T /*unused*/, D d) {
-    helper::TestRandom<M, Op>(d, config);
+    test_distribution::TestRandom01<M, Op>(d, config);
   }
 };
 
@@ -220,7 +220,7 @@ template <class Op> struct TestRandomNoOverlapAssertions {
       .alpha = get_alpha()};
 
   template <typename T, class D> void operator()(T /*unused*/, D d) {
-    helper::TestRandomNoOverlap<M, Op>(d, config);
+    test_distribution::TestRandomNoOverlap<M, Op>(d, config);
   }
 };
 
@@ -270,7 +270,7 @@ template <class Op> struct TestRandomLastBitOverlap {
       .alpha = get_alpha()};
 
   template <typename T, class D> void operator()(T /*unused*/, D d) {
-    helper::TestRandomLastBitOverlap<M, Op>(d, config);
+    test_distribution::TestRandomLastBitOverlap<M, Op>(d, config);
   }
 };
 
@@ -314,7 +314,7 @@ template <class Op> struct TestRandomMidOverlap {
       .alpha = get_alpha()};
 
   template <typename T, class D> void operator()(T /*unused*/, D d) {
-    helper::TestRandomMidOverlap<M, Op>(d, config);
+    test_distribution::TestRandomMidOverlap<M, Op>(d, config);
   }
 };
 
@@ -355,7 +355,6 @@ HWY_AFTER_NAMESPACE();
 
 #if HWY_ONCE
 namespace prism::HWY_NAMESPACE {
-
 // NOLINTBEGIN
 HWY_BEFORE_TEST(UDVectorAccuracyTest);
 HWY_EXPORT_AND_TEST_P(UDVectorAccuracyTest, TestAllExactOperationsAdd);
@@ -397,7 +396,6 @@ HWY_EXPORT_AND_TEST_P(UDVectorAccuracyTest, TestAllRandomMidOverlapSqrt);
 HWY_EXPORT_AND_TEST_P(UDVectorAccuracyTest, TestAllRandomMidOverlapFma);
 HWY_AFTER_TEST();
 // NOLINTEND
-
 } // namespace prism::HWY_NAMESPACE
 
 HWY_TEST_MAIN();

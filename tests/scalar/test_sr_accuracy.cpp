@@ -18,8 +18,10 @@
 #include "src/debug_vector-inl.h"
 #include "src/sr_scalar-inl.h"
 
-#include "tests/helper/assert.h"
-#include "tests/helper/tests.h"
+#include "tests/helper/common.h"
+
+#include "tests/helper/assert-inl.h"
+#include "tests/helper/tests-inl.h"
 
 // clang-format on
 
@@ -28,8 +30,8 @@ HWY_BEFORE_NAMESPACE(); // at file scope
 namespace prism::HWY_NAMESPACE {
 
 namespace hn = hwy::HWY_NAMESPACE;
-namespace helper_hwy = prism::tests::helper::HWY_NAMESPACE;
 namespace helper = prism::tests::helper;
+namespace test_distribution = prism::tests::helper::distribution::HWY_NAMESPACE;
 
 using M = helper::RoundingMode::SR;
 
@@ -57,14 +59,14 @@ auto default_repetitions() -> int {
   return repetitions;
 }
 
-namespace ud = prism::sr::scalar::HWY_NAMESPACE;
+namespace sr = prism::sr::scalar::HWY_NAMESPACE;
 
 struct SRAdd : public helper::PrAdd {
   template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
   auto operator()(D d, V a, V b) const -> V {
     const auto sa = hn::GetLane(a);
     const auto sb = hn::GetLane(b);
-    const auto sres = ud::add(sa, sb);
+    const auto sres = sr::add(sa, sb);
     return hn::Set(d, sres);
   }
 };
@@ -74,7 +76,7 @@ struct SRSub : public helper::PrSub {
   auto operator()(D d, V a, V b) const -> V {
     const auto sa = hn::GetLane(a);
     const auto sb = hn::GetLane(b);
-    const auto sres = ud::sub(sa, sb);
+    const auto sres = sr::sub(sa, sb);
     return hn::Set(d, sres);
   }
 };
@@ -84,7 +86,7 @@ struct SRMul : public helper::PrMul {
   auto operator()(D d, V a, V b) const -> V {
     const auto sa = hn::GetLane(a);
     const auto sb = hn::GetLane(b);
-    const auto sres = ud::mul(sa, sb);
+    const auto sres = sr::mul(sa, sb);
     return hn::Set(d, sres);
   }
 };
@@ -94,7 +96,7 @@ struct SRDiv : public helper::PrDiv {
   auto operator()(D d, V a, V b) const -> V {
     const auto sa = hn::GetLane(a);
     const auto sb = hn::GetLane(b);
-    const auto sres = ud::div(sa, sb);
+    const auto sres = sr::div(sa, sb);
     return hn::Set(d, sres);
   }
 };
@@ -103,7 +105,7 @@ struct SRSqrt : public helper::PrSqrt {
   template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
   auto operator()(D d, V a) const -> V {
     const auto sa = hn::GetLane(a);
-    const auto sres = ud::sqrt(sa);
+    const auto sres = sr::sqrt(sa);
     return hn::Set(d, sres);
   }
 };
@@ -114,7 +116,7 @@ struct SRFma : public helper::PrFma {
     const auto sa = hn::GetLane(a);
     const auto sb = hn::GetLane(b);
     const auto sc = hn::GetLane(c);
-    const auto sres = ud::fma(sa, sb, sc);
+    const auto sres = sr::fma(sa, sb, sc);
     return hn::Set(d, sres);
   }
 };
@@ -127,8 +129,7 @@ struct TestExactOperationsAdd {
                                .alpha = default_alpha};
 
   template <typename T, class D> void operator()(T /*unused*/, D d) {
-    helper_hwy::TestExactAdd<M, SRAdd>(d, config);
-    // assert_exact();
+    test_distribution::TestExactAdd<M, SRAdd>(d, config);
   }
 };
 
@@ -144,8 +145,7 @@ template <class Op> struct TestBasicAssertions {
       .alpha = default_alpha};
 
   template <typename T, class D> void operator()(T /*unused*/, D d) {
-    helper_hwy::TestSimpleCase<M, Op>(d, config);
-    // assert_almost_exact();
+    test_distribution::TestSimpleCase<M, Op>(d, config);
   }
 };
 
@@ -189,7 +189,7 @@ template <class Op> struct TestRandom01Assertions {
       .alpha = default_alpha};
 
   template <typename T, class D> void operator()(T /*unused*/, D d) {
-    helper_hwy::TestRandom<M, Op>(d, config);
+    test_distribution::TestRandom01<M, Op>(d, config);
   }
 };
 
@@ -232,7 +232,7 @@ template <class Op> struct TestRandomNoOverlapAssertions {
       .alpha = default_alpha};
 
   template <typename T, class D> void operator()(T /*unused*/, D d) {
-    helper_hwy::TestRandomNoOverlap<M, Op>(d, config);
+    test_distribution::TestRandomNoOverlap<M, Op>(d, config);
   }
 };
 
@@ -282,7 +282,7 @@ template <class Op> struct TestRandomLastBitOverlap {
       .alpha = default_alpha};
 
   template <typename T, class D> void operator()(T /*unused*/, D d) {
-    helper_hwy::TestRandomLastBitOverlap<M, Op>(d, config);
+    test_distribution::TestRandomLastBitOverlap<M, Op>(d, config);
   }
 };
 
@@ -326,7 +326,7 @@ template <class Op> struct TestRandomMidOverlap {
       .alpha = default_alpha};
 
   template <typename T, class D> void operator()(T /*unused*/, D d) {
-    helper_hwy::TestRandomMidOverlap<M, Op>(d, config);
+    test_distribution::TestRandomMidOverlap<M, Op>(d, config);
   }
 };
 

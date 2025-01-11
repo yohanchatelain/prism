@@ -118,13 +118,13 @@ HWY_NOINLINE auto TestThreads() -> void {
 HWY_AFTER_NAMESPACE();
 
 #if HWY_ONCE
-namespace prism::sr::vector::dynamic_dispatch::HWY_NAMESPACE {
-
+namespace prism::sr::vector::PRISM_DISPATCH::HWY_NAMESPACE {
+// NOLINTBEGIN
 HWY_BEFORE_TEST(SRThreadTest);
 HWY_EXPORT_AND_TEST_P(SRThreadTest, TestThreads);
-
 HWY_AFTER_TEST();
-} // namespace prism::sr::vector::dynamic_dispatch::HWY_NAMESPACE
+// NOLINTEND
+} // namespace prism::sr::vector::PRISM_DISPATCH::HWY_NAMESPACE
 
 HWY_TEST_MAIN();
 

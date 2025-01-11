@@ -10,7 +10,7 @@ namespace reference {
 // return pred(|s|)
 
 // compute 2 ** n
-template <typename T> T pow2(int n) { return std::ldexp(1.0, n); }
+template <typename T> auto pow2(int n) -> T { return std::ldexp(1.0, n); }
 }; // namespace reference
 
 template <typename T> constexpr void test_equality(int a) {

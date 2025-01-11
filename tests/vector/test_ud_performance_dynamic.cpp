@@ -8,9 +8,9 @@
 #include "hwy/tests/hwy_gtest.h"
 #include "hwy/tests/test_util-inl.h"
 
-#include "src/sr_vector.h"
+#include "src/ud_vector.h"
 
-namespace prism::sr::vector {
+namespace prism::ud::vector {
 
 constexpr size_t repetitions = 10000;
 
@@ -282,77 +282,77 @@ namespace dynamic_dispatch {
 
 /* IEEE-754 binary32 */
 
-TEST(SRArrayBenchmark, SRAddF32) {
+TEST(UDArrayBenchmark, UDAddF32) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::addf32 with " << N << " repetitions\n";
+  std::cout << "Measure function ud::addf32 with " << N << " repetitions\n";
   callMeasureFunctions<2, 1024, float, 2, decltype(&test_addf32)>(&test_addf32);
 }
 
-TEST(SRArrayBenchmark, SRSubF32) {
+TEST(UDArrayBenchmark, UDSubF32) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::subf32 with " << N << " repetitions\n";
+  std::cout << "Measure function ud::subf32 with " << N << " repetitions\n";
   callMeasureFunctions<2, 1024, float, 2>(&test_subf32);
 }
 
-TEST(SRArrayBenchmark, SRMulF32) {
+TEST(UDArrayBenchmark, UDMulF32) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::mulf32 with " << N << " repetitions\n";
+  std::cout << "Measure function ud::mulf32 with " << N << " repetitions\n";
   callMeasureFunctions<2, 1024, float, 2>(&test_mulf32);
 }
 
-TEST(SRArrayBenchmark, SRDivF32) {
+TEST(UDArrayBenchmark, UDDivF32) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::divf32 with " << N << " repetitions\n";
+  std::cout << "Measure function ud::divf32 with " << N << " repetitions\n";
   callMeasureFunctions<2, 1024, float, 2>(&test_divf32);
 }
 
-TEST(SRArrayBenchmark, SRSqrtF32) {
+TEST(UDArrayBenchmark, UDSqrtF32) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::sqrtf32 with " << N << " repetitions\n";
+  std::cout << "Measure function ud::sqrtf32 with " << N << " repetitions\n";
   callMeasureFunctions<2, 1024, float, 1>(&test_sqrtf32);
 }
 
-TEST(SRArrayBenchmark, SRFmaF32) {
+TEST(UDArrayBenchmark, UDFmaF32) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::fmaf32 with " << N << " repetitions\n";
+  std::cout << "Measure function ud::fmaf32 with " << N << " repetitions\n";
   callMeasureFunctions<2, 1024, float, 3>(&test_fmaf32);
 }
 
 /* IEEE-754 binary64 */
 
-TEST(SRArrayBenchmark, SRAddF64) {
+TEST(UDArrayBenchmark, UDAddF64) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::addf64 with " << N << " repetitions\n";
+  std::cout << "Measure function ud::addf64 with " << N << " repetitions\n";
   callMeasureFunctions<2, 1024, double, 2>(&test_addf64);
 }
 
-TEST(SRArrayBenchmark, SRSubF64) {
+TEST(UDArrayBenchmark, UDSubF64) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::subf64 with " << N << " repetitions\n";
+  std::cout << "Measure function ud::subf64 with " << N << " repetitions\n";
   callMeasureFunctions<2, 1024, double, 2>(&test_subf64);
 }
 
-TEST(SRArrayBenchmark, SRMulF64) {
+TEST(UDArrayBenchmark, UDMulF64) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::mulf64 with " << N << " repetitions\n";
+  std::cout << "Measure function ud::mulf64 with " << N << " repetitions\n";
   callMeasureFunctions<2, 1024, double, 2>(&test_mulf64);
 }
 
-TEST(SRArrayBenchmark, SRDivF64) {
+TEST(UDArrayBenchmark, UDDivF64) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::divf64 with " << N << " repetitions\n";
+  std::cout << "Measure function ud::divf64 with " << N << " repetitions\n";
   callMeasureFunctions<2, 1024, double, 2>(&test_divf64);
 }
 
-TEST(SRArrayBenchmark, SRSqrtF64) {
+TEST(UDArrayBenchmark, UDSqrtF64) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::sqrtf64 with " << N << " repetitions\n";
+  std::cout << "Measure function ud::sqrtf64 with " << N << " repetitions\n";
   callMeasureFunctions<2, 1024, double, 1>(&test_sqrtf64);
 }
 
-TEST(SRArrayBenchmark, SRFmaF64) {
+TEST(UDArrayBenchmark, UDFmaF64) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::fmaf64 with " << N << " repetitions\n";
+  std::cout << "Measure function ud::fmaf64 with " << N << " repetitions\n";
   callMeasureFunctions<2, 1024, double, 3>(&test_fmaf64);
 }
 
@@ -360,297 +360,297 @@ const auto kVerbose = false;
 
 /* Test on single vector passed by value with dynamic dispatch */
 
-TEST(SRVectorDynamicBenchmark, SRAddF32x2D) {
+TEST(UDVectorDynamicBenchmark, UDAddF32x2D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::addf32x2_d with " << N << " repetitions\n";
+  std::cout << "Measure function ud::addf32x2_d with " << N << " repetitions\n";
   MeasureFunction<2, float>(&test_addf32x2_d, 2, kVerbose);
 }
 
-TEST(SRVectorDynamicBenchmark, SRSubF32x2D) {
+TEST(UDVectorDynamicBenchmark, UDSubF32x2D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::subf32x2_d with " << N << " repetitions\n";
+  std::cout << "Measure function ud::subf32x2_d with " << N << " repetitions\n";
   MeasureFunction<2, float>(&test_subf32x2_d, 2, kVerbose);
 }
 
-TEST(SRVectorDynamicBenchmark, SRMulF32x2D) {
+TEST(UDVectorDynamicBenchmark, UDMulF32x2D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::mulf32x2_d with " << N << " repetitions\n";
+  std::cout << "Measure function ud::mulf32x2_d with " << N << " repetitions\n";
   MeasureFunction<2, float>(&test_mulf32x2_d, 2, kVerbose);
 }
 
-TEST(SRVectorDynamicBenchmark, SRDivF32x2D) {
+TEST(UDVectorDynamicBenchmark, UDDivF32x2D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::divf32x2_d with " << N << " repetitions\n";
+  std::cout << "Measure function ud::divf32x2_d with " << N << " repetitions\n";
   MeasureFunction<2, float>(&test_divf32x2_d, 2, kVerbose);
 }
 
-TEST(SRVectorDynamicBenchmark, SRSqrtF32x2D) {
+TEST(UDVectorDynamicBenchmark, UDSqrtF32x2D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::sqrtf32x2_d with " << N
+  std::cout << "Measure function ud::sqrtf32x2_d with " << N
             << " repetitions\n";
   using Op = decltype(&test_sqrtf32x2_d);
   MeasureFunction<2, float, Op, 1>(&test_sqrtf32x2_d, 2, kVerbose);
 }
 
-TEST(SRVectorDynamicBenchmark, SRFmaF32x2D) {
+TEST(UDVectorDynamicBenchmark, UDFmaF32x2D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::fmaf32x2_d with " << N << " repetitions\n";
+  std::cout << "Measure function ud::fmaf32x2_d with " << N << " repetitions\n";
   using Op = decltype(&test_fmaf32x2_d);
   MeasureFunction<2, float, Op, 3>(&test_fmaf32x2_d, 2, kVerbose);
 }
 
 /* IEEE-754 binary64 x2 */
 
-TEST(SRVectorDynamicBenchmark, SRAddF64x2D) {
+TEST(UDVectorDynamicBenchmark, UDAddF64x2D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::addf64x2_d with " << N << " repetitions\n";
+  std::cout << "Measure function ud::addf64x2_d with " << N << " repetitions\n";
   MeasureFunction<2, double>(&test_addf64x2_d, 2, kVerbose);
 }
 
-TEST(SRVectorDynamicBenchmark, SRSubF64x2D) {
+TEST(UDVectorDynamicBenchmark, UDSubF64x2D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::subf64x2_d with " << N << " repetitions\n";
+  std::cout << "Measure function ud::subf64x2_d with " << N << " repetitions\n";
   MeasureFunction<2, double>(&test_subf64x2_d, 2, kVerbose);
 }
 
-TEST(SRVectorDynamicBenchmark, SRMulF64x2D) {
+TEST(UDVectorDynamicBenchmark, UDMulF64x2D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::mulf64x2_d with " << N << " repetitions\n";
+  std::cout << "Measure function ud::mulf64x2_d with " << N << " repetitions\n";
   MeasureFunction<2, double>(&test_mulf64x2_d, 2, kVerbose);
 }
 
-TEST(SRVectorDynamicBenchmark, SRDivF64x2D) {
+TEST(UDVectorDynamicBenchmark, UDDivF64x2D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::divf64x2_d with " << N << " repetitions\n";
+  std::cout << "Measure function ud::divf64x2_d with " << N << " repetitions\n";
   MeasureFunction<2, double>(&test_divf64x2_d, 2, kVerbose);
 }
 
-TEST(SRVectorDynamicBenchmark, SRSqrtF64x2D) {
+TEST(UDVectorDynamicBenchmark, UDSqrtF64x2D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::sqrtf64x2_d with " << N
+  std::cout << "Measure function ud::sqrtf64x2_d with " << N
             << " repetitions\n";
   using Op = decltype(&test_sqrtf64x2_d);
   MeasureFunction<2, double, Op, 1>(&test_sqrtf64x2_d, 2, kVerbose);
 }
 
-TEST(SRVectorDynamicBenchmark, SRFmaF64x2D) {
+TEST(UDVectorDynamicBenchmark, UDFmaF64x2D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::fmaf64x2_d with " << N << " repetitions\n";
+  std::cout << "Measure function ud::fmaf64x2_d with " << N << " repetitions\n";
   using Op = decltype(&test_fmaf64x2_d);
   MeasureFunction<2, double, Op, 3>(&test_fmaf64x2_d, 2, kVerbose);
 }
 
 /* IEEE-754 binary32 x4 */
 
-TEST(SRVectorDynamicBenchmark, SRAddF32x4D) {
+TEST(UDVectorDynamicBenchmark, UDAddF32x4D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::addf32x4_d with " << N << " repetitions\n";
+  std::cout << "Measure function ud::addf32x4_d with " << N << " repetitions\n";
   MeasureFunction<4, float>(&test_addf32x4_d, 4, kVerbose);
 }
 
-TEST(SRVectorDynamicBenchmark, SRSubF32x4D) {
+TEST(UDVectorDynamicBenchmark, UDSubF32x4D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::subf32x4_d with " << N << " repetitions\n";
+  std::cout << "Measure function ud::subf32x4_d with " << N << " repetitions\n";
   MeasureFunction<4, float>(&test_subf32x4_d, 4, kVerbose);
 }
 
-TEST(SRVectorDynamicBenchmark, SRMulF32x4D) {
+TEST(UDVectorDynamicBenchmark, UDMulF32x4D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::mulf32x4_d with " << N << " repetitions\n";
+  std::cout << "Measure function ud::mulf32x4_d with " << N << " repetitions\n";
   MeasureFunction<4, float>(&test_mulf32x4_d, 4, kVerbose);
 }
 
-TEST(SRVectorDynamicBenchmark, SRDivF32x4D) {
+TEST(UDVectorDynamicBenchmark, UDDivF32x4D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::divf32x4_d with " << N << " repetitions\n";
+  std::cout << "Measure function ud::divf32x4_d with " << N << " repetitions\n";
   MeasureFunction<4, float>(&test_divf32x4_d, 4, kVerbose);
 }
 
-TEST(SRVectorDynamicBenchmark, SRSqrtF32x4D) {
+TEST(UDVectorDynamicBenchmark, UDSqrtF32x4D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::sqrtf32x4_d with " << N
+  std::cout << "Measure function ud::sqrtf32x4_d with " << N
             << " repetitions\n";
   using Op = decltype(&test_sqrtf32x4_d);
   MeasureFunction<4, float, Op, 1>(&test_sqrtf32x4_d, 4, kVerbose);
 }
 
-TEST(SRVectorDynamicBenchmark, SRFmaF32x4D) {
+TEST(UDVectorDynamicBenchmark, UDFmaF32x4D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::fmaf32x4_d with " << N << " repetitions\n";
+  std::cout << "Measure function ud::fmaf32x4_d with " << N << " repetitions\n";
   using Op = decltype(&test_fmaf32x4_d);
   MeasureFunction<4, float, Op, 3>(&test_fmaf32x4_d, 4, kVerbose);
 }
 
 /* IEEE-754 binary32 x8 */
 
-TEST(SRVectorDynamicBenchmark, SRAddF32x8D) {
+TEST(UDVectorDynamicBenchmark, UDAddF32x8D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::addf32x8_d with " << N << " repetitions\n";
+  std::cout << "Measure function ud::addf32x8_d with " << N << " repetitions\n";
   MeasureFunction<8, float>(&test_addf32x8_d, 8, kVerbose);
 }
 
-TEST(SRVectorDynamicBenchmark, SRSubF32x8D) {
+TEST(UDVectorDynamicBenchmark, UDSubF32x8D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::subf32x8_d with " << N << " repetitions\n";
+  std::cout << "Measure function ud::subf32x8_d with " << N << " repetitions\n";
   MeasureFunction<8, float>(&test_subf32x8_d, 8, kVerbose);
 }
 
-TEST(SRVectorDynamicBenchmark, SRMulF32x8D) {
+TEST(UDVectorDynamicBenchmark, UDMulF32x8D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::mulf32x8_d with " << N << " repetitions\n";
+  std::cout << "Measure function ud::mulf32x8_d with " << N << " repetitions\n";
   MeasureFunction<8, float>(&test_mulf32x8_d, 8, kVerbose);
 }
 
-TEST(SRVectorDynamicBenchmark, SRDivF32x8D) {
+TEST(UDVectorDynamicBenchmark, UDDivF32x8D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::divf32x8_d with " << N << " repetitions\n";
+  std::cout << "Measure function ud::divf32x8_d with " << N << " repetitions\n";
   MeasureFunction<8, float>(&test_divf32x8_d, 8, kVerbose);
 }
 
-TEST(SRVectorDynamicBenchmark, SRSqrtF32x8D) {
+TEST(UDVectorDynamicBenchmark, UDSqrtF32x8D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::sqrtf32x8_d with " << N
+  std::cout << "Measure function ud::sqrtf32x8_d with " << N
             << " repetitions\n";
   using Op = decltype(&test_sqrtf32x8_d);
   MeasureFunction<8, float, Op, 1>(&test_sqrtf32x8_d, 8, kVerbose);
 }
 
-TEST(SRVectorDynamicBenchmark, SRFmaF32x8D) {
+TEST(UDVectorDynamicBenchmark, UDFmaF32x8D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::fmaf32x8_d with " << N << " repetitions\n";
+  std::cout << "Measure function ud::fmaf32x8_d with " << N << " repetitions\n";
   using Op = decltype(&test_fmaf32x8_d);
   MeasureFunction<8, float, Op, 3>(&test_fmaf32x8_d, 8, kVerbose);
 }
 
 /* IEEE-754 binary64 x4 */
 
-TEST(SRVectorDynamicBenchmark, SRAddF64x4D) {
+TEST(UDVectorDynamicBenchmark, UDAddF64x4D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::addf64x4_d with " << N << " repetitions\n";
+  std::cout << "Measure function ud::addf64x4_d with " << N << " repetitions\n";
   MeasureFunction<4, double>(&test_addf64x4_d, 4, kVerbose);
 }
 
-TEST(SRVectorDynamicBenchmark, SRSubF64x4D) {
+TEST(UDVectorDynamicBenchmark, UDSubF64x4D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::subf64x4_d with " << N << " repetitions\n";
+  std::cout << "Measure function ud::subf64x4_d with " << N << " repetitions\n";
   MeasureFunction<4, double>(&test_subf64x4_d, 4, kVerbose);
 }
 
-TEST(SRVectorDynamicBenchmark, SRMulF64x4D) {
+TEST(UDVectorDynamicBenchmark, UDMulF64x4D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::mulf64x4_d with " << N << " repetitions\n";
+  std::cout << "Measure function ud::mulf64x4_d with " << N << " repetitions\n";
   MeasureFunction<4, double>(&test_mulf64x4_d, 4, kVerbose);
 }
 
-TEST(SRVectorDynamicBenchmark, SRDivF64x4D) {
+TEST(UDVectorDynamicBenchmark, UDDivF64x4D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::divf64x4_d with " << N << " repetitions\n";
+  std::cout << "Measure function ud::divf64x4_d with " << N << " repetitions\n";
   MeasureFunction<4, double>(&test_divf64x4_d, 4, kVerbose);
 }
 
-TEST(SRVectorDynamicBenchmark, SRSqrtF64x4D) {
+TEST(UDVectorDynamicBenchmark, UDSqrtF64x4D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::sqrtf64x4_d with " << N
+  std::cout << "Measure function ud::sqrtf64x4_d with " << N
             << " repetitions\n";
   using Op = decltype(&test_sqrtf64x4_d);
   MeasureFunction<4, double, Op, 1>(&test_sqrtf64x4_d, 4, kVerbose);
 }
 
-TEST(SRVectorDynamicBenchmark, SRFmaF64x4D) {
+TEST(UDVectorDynamicBenchmark, UDFmaF64x4D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::fmaf64x4_d with " << N << " repetitions\n";
+  std::cout << "Measure function ud::fmaf64x4_d with " << N << " repetitions\n";
   using Op = decltype(&test_fmaf64x4_d);
   MeasureFunction<4, double, Op, 3>(&test_fmaf64x4_d, 4, kVerbose);
 }
 
 /* IEEE-754 binary64 x8 */
 
-TEST(SRVectorDynamicBenchmark, SRAddF64x8D) {
+TEST(UDVectorDynamicBenchmark, UDAddF64x8D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::addf64x8_d with " << N << " repetitions\n";
+  std::cout << "Measure function ud::addf64x8_d with " << N << " repetitions\n";
   MeasureFunction<8, double>(&test_addf64x8_d, 8, kVerbose);
 }
 
-TEST(SRVectorDynamicBenchmark, SRSubF64x8D) {
+TEST(UDVectorDynamicBenchmark, UDSubF64x8D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::subf64x8_d with " << N << " repetitions\n";
+  std::cout << "Measure function ud::subf64x8_d with " << N << " repetitions\n";
   MeasureFunction<8, double>(&test_subf64x8_d, 8, kVerbose);
 }
 
-TEST(SRVectorDynamicBenchmark, SRMulF64x8D) {
+TEST(UDVectorDynamicBenchmark, UDMulF64x8D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::mulf64x8_d with " << N << " repetitions\n";
+  std::cout << "Measure function ud::mulf64x8_d with " << N << " repetitions\n";
   MeasureFunction<8, double>(&test_mulf64x8_d, 8, kVerbose);
 }
 
-TEST(SRVectorDynamicBenchmark, SRDivF64x8D) {
+TEST(UDVectorDynamicBenchmark, UDDivF64x8D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::divf64x8_d with " << N << " repetitions\n";
+  std::cout << "Measure function ud::divf64x8_d with " << N << " repetitions\n";
   MeasureFunction<8, double>(&test_divf64x8_d, 8, kVerbose);
 }
 
-TEST(SRVectorDynamicBenchmark, SRSqrtF64x8D) {
+TEST(UDVectorDynamicBenchmark, UDSqrtF64x8D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::sqrtf64x8_d with " << N
+  std::cout << "Measure function ud::sqrtf64x8_d with " << N
             << " repetitions\n";
   using Op = decltype(&test_sqrtf64x8_d);
   MeasureFunction<8, double, Op, 1>(&test_sqrtf64x8_d, 8, kVerbose);
 }
 
-TEST(SRVectorDynamicBenchmark, SRFmaF64x8D) {
+TEST(UDVectorDynamicBenchmark, UDFmaF64x8D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::fmaf64x8_d with " << N << " repetitions\n";
+  std::cout << "Measure function ud::fmaf64x8_d with " << N << " repetitions\n";
   using Op = decltype(&test_fmaf64x8_d);
   MeasureFunction<8, double, Op, 3>(&test_fmaf64x8_d, 8, kVerbose);
 }
 
 /* IEEE-754 binary32 x16 */
 
-TEST(SRVectorDynamicBenchmark, SRAddF32x16D) {
+TEST(UDVectorDynamicBenchmark, UDAddF32x16D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::addf32x16_d with " << N
+  std::cout << "Measure function ud::addf32x16_d with " << N
             << " repetitions\n";
   MeasureFunction<16, float>(&test_addf32x16_d, 16, kVerbose);
 }
 
-TEST(SRVectorDynamicBenchmark, SRSubF32x16D) {
+TEST(UDVectorDynamicBenchmark, UDSubF32x16D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::subf32x16_d with " << N
+  std::cout << "Measure function ud::subf32x16_d with " << N
             << " repetitions\n";
   MeasureFunction<16, float>(&test_subf32x16_d, 16, kVerbose);
 }
 
-TEST(SRVectorDynamicBenchmark, SRMulF32x16D) {
+TEST(UDVectorDynamicBenchmark, UDMulF32x16D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::mulf32x16_d with " << N
+  std::cout << "Measure function ud::mulf32x16_d with " << N
             << " repetitions\n";
   MeasureFunction<16, float>(&test_mulf32x16_d, 16, kVerbose);
 }
 
-TEST(SRVectorDynamicBenchmark, SRDivF32x16D) {
+TEST(UDVectorDynamicBenchmark, UDDivF32x16D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::divf32x16_d with " << N
+  std::cout << "Measure function ud::divf32x16_d with " << N
             << " repetitions\n";
   MeasureFunction<16, float>(&test_divf32x16_d, 16, kVerbose);
 }
 
-TEST(SRVectorDynamicBenchmark, SRSqrtF32x16D) {
+TEST(UDVectorDynamicBenchmark, UDSqrtF32x16D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::sqrtf32x16_d with " << N
+  std::cout << "Measure function ud::sqrtf32x16_d with " << N
             << " repetitions\n";
   using Op = decltype(&test_sqrtf32x16_d);
   MeasureFunction<16, float, Op, 1>(&test_sqrtf32x16_d, 16, kVerbose);
 }
 
-TEST(SRVectorDynamicBenchmark, SRFmaF32x16D) {
+TEST(UDVectorDynamicBenchmark, UDFmaF32x16D) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::fmaf32x16_d with " << N
+  std::cout << "Measure function ud::fmaf32x16_d with " << N
             << " repetitions\n";
   using Op = decltype(&test_fmaf32x16_d);
   MeasureFunction<16, float, Op, 3>(&test_fmaf32x16_d, 16, kVerbose);
 }
 }; // namespace dynamic_dispatch
 
-} // namespace prism::sr::vector
+} // namespace prism::ud::vector
 
 // HYW_TEST_MAIN();1

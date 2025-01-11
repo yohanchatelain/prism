@@ -26,7 +26,7 @@ namespace dbg = prism::vector::HWY_NAMESPACE;
 namespace rng = prism::vector::xoshiro::HWY_NAMESPACE;
 
 template <class D, class V, typename T = hn::TFromD<D>>
-auto round(const D d, const V a) -> V {
+HWY_FLATTEN auto round(const D d, const V a) -> V {
   debug_start();
   dbg::debug_vec(d, "[round] a", a);
 
@@ -43,13 +43,13 @@ auto round(const D d, const V a) -> V {
   const auto must_be_rounded = hn::And(is_finite, is_not_zero);
 
   // rand = 1 - 2 * (z & 1)
-#ifdef PRISM_UD_RANDOM_FULLBITS
+#ifdef PRISM_RANDOM_FULLBITS
+  const auto z = rng::randombit(u);
+  const auto z_last_bit = hn::ResizeBitCast(di, z);
+#else
   const auto z = rng::random(u);
   const auto z_di = hn::ResizeBitCast(di, z);
   const auto z_last_bit = hn::And(one_di, z_di);
-#else
-  const auto z = rng::randombit(u);
-  const auto z_last_bit = hn::ResizeBitCast(di, z);
 #endif
 
   const auto dz = hn::DFromV<decltype(z)>{};
@@ -72,7 +72,7 @@ auto round(const D d, const V a) -> V {
 }
 
 template <class D, class V, typename T = hn::TFromD<D>>
-auto add(const D d, const V a, const V b) -> V {
+HWY_FLATTEN auto add(const D d, const V a, const V b) -> V {
   debug_start();
   dbg::debug_vec(d, "[add] a", a);
   dbg::debug_vec(d, "[add] b", b);
@@ -88,7 +88,7 @@ auto add(const D d, const V a, const V b) -> V {
 }
 
 template <class D, class V, typename T = hn::TFromD<D>>
-auto sub(const D d, const V a, const V b) -> V {
+HWY_FLATTEN auto sub(const D d, const V a, const V b) -> V {
   debug_start();
   dbg::debug_vec(d, "[sub] a", a);
   dbg::debug_vec(d, "[sub] b", b);
@@ -104,7 +104,7 @@ auto sub(const D d, const V a, const V b) -> V {
 }
 
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
-auto mul(const D d, const V a, const V b) -> V {
+HWY_FLATTEN auto mul(const D d, const V a, const V b) -> V {
   debug_start();
   dbg::debug_vec(d, "[mul] a", a);
   dbg::debug_vec(d, "[mul] b", b);
@@ -119,7 +119,7 @@ auto mul(const D d, const V a, const V b) -> V {
 }
 
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
-auto div(const D d, const V a, const V b) -> V {
+HWY_FLATTEN auto div(const D d, const V a, const V b) -> V {
   debug_start();
   dbg::debug_vec(d, "[div] a", a);
   dbg::debug_vec(d, "[div] b", b);
@@ -134,7 +134,7 @@ auto div(const D d, const V a, const V b) -> V {
 }
 
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
-auto sqrt(const D d, const V a) -> V {
+HWY_FLATTEN auto sqrt(const D d, const V a) -> V {
   debug_start();
   dbg::debug_vec(d, "[sqrt] a", a);
 
@@ -148,7 +148,7 @@ auto sqrt(const D d, const V a) -> V {
 }
 
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
-auto fma(const D d, const V a, const V b, const V c) -> V {
+HWY_FLATTEN auto fma(const D d, const V a, const V b, const V c) -> V {
   debug_start();
   dbg::debug_vec(d, "[fma] a", a);
   dbg::debug_vec(d, "[fma] b", b);

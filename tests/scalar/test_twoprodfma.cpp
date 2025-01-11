@@ -20,10 +20,9 @@ namespace reference {
 // twoprodfma reference
 // compute in double precision if the input type is float
 // compute in quad precision if the input type is double
-template <typename T, typename R = typename prism::utils::IEEE754<T>::H>
-auto twoprodfma(T a, T b) -> R {
-  using H = typename prism::utils::IEEE754<T>::H;
-  return static_cast<H>(a) * static_cast<H>(b);
+template <typename T, typename H = typename helper::IEEE754<T>::H>
+auto twoprodfma(T a, T b) -> H {
+  return helper::reference::mul(helper::Args<T>{a, b});
 }
 
 }; // namespace reference
@@ -33,13 +32,12 @@ template <typename T> void is_close(T a, T b) {
     return;
   }
 
-  using H = typename prism::utils::IEEE754<T>::H;
-  H ref = reference::twoprodfma(a, b);
-  T ref_cast = static_cast<T>(ref);
+  const auto ref = reference::twoprodfma(a, b);
+  const auto ref_cast = static_cast<T>(ref);
   T x = 0;
   T e = 0;
   twoprodfma(a, b, x, e);
-  H target = static_cast<H>(x) + static_cast<H>(e);
+  const auto target = helper::reference::add(helper::Args<T>{x, e});
 
   if (std::isnan(x) and std::isnan(ref_cast)) {
     return;
@@ -71,17 +69,17 @@ template <typename T> void is_close(T a, T b) {
   }
 
   EXPECT_TRUE(correct) << std::hexfloat << "Failed for\n"
-                       << "type: " << typeid(a).name() << "\n"
-                       << "ulp: " << ulp << "\n"
-                       << "bound: " << error_bound << "\n"
-                       << "lowest: " << min_subnormal << "\n"
-                       << "a    : " << a << "\n"
-                       << "b    : " << b << "\n"
-                       << "target : " << "(" << x << " , " << e << ")\n"
-                       << "reference: " << (double)ref << "\n"
-                       << "target   : " << (double)target << "\n"
-                       << "abs_diff     : " << (double)diff << "\n"
-                       << "rel_diff     : " << static_cast<double>(rel);
+                       << "type     : " << typeid(a).name() << "\n"
+                       << "ulp      : " << ulp << "\n"
+                       << "bound    : " << error_bound << "\n"
+                       << "lowest   : " << min_subnormal << "\n"
+                       << "a        : " << a << "\n"
+                       << "b        : " << b << "\n"
+                       << "target   : " << "(" << x << " , " << e << ")\n"
+                       << "reference: " << helper::hexfloat(ref) << "\n"
+                       << "target   : " << helper::hexfloat(target) << "\n"
+                       << "abs_diff : " << helper::hexfloat(diff) << "\n"
+                       << "rel_diff : " << helper::hexfloat(rel);
 }
 
 template <typename T> void test_equality(T a, T b) { is_close(a, b); }

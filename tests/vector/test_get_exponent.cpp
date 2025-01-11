@@ -2,8 +2,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
-#include <random>
-#include <vector>
 
 // clang-format off
 #undef HWY_TARGET_INCLUDE
@@ -18,16 +16,19 @@
 
 #include "src/sr_vector-inl.h"
 
-#include "tests/helper/random.h"
-#include "tests/helper/tests.h"
+#include "tests/helper/common.h"
+
+#include "tests/helper/operator-inl.h"
+#include "tests/helper/tests-inl.h"
 
 HWY_BEFORE_NAMESPACE(); // at file scope
 
 namespace sr::vector::HWY_NAMESPACE {
 
-namespace helper = prism::tests::helper::HWY_NAMESPACE;
-namespace sr = prism::sr::vector::PRISM_DISPATCH::HWY_NAMESPACE;
 namespace hn = hwy::HWY_NAMESPACE;
+namespace helper = prism::tests::helper;
+namespace helper_simd = prism::tests::helper::HWY_NAMESPACE;
+namespace test = prism::tests::helper::generic::HWY_NAMESPACE;
 
 namespace reference {
 template <typename T> auto get_exponent(T a) -> int32_t {
@@ -55,80 +56,52 @@ template <typename T> auto get_exponent(T a) -> int32_t {
 
 namespace {
 
-template <typename T, typename D> void test_equality(D d, T a) {
+namespace sr = prism::sr::vector::PRISM_DISPATCH::HWY_NAMESPACE;
+
+template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
+void test_equality(D d, const helper::ConfigTest & /*unused*/,
+                   std::tuple<V> &&arg) {
+
   using DI = hn::RebindToSigned<D>;
   const DI di{};
 
-  const auto va = hn::Set(d, a);
+  const auto [va] = arg;
+  const auto a = helper_simd::extract_unique_lane(d, va);
   const auto reference = reference::get_exponent(a);
   const auto target = sr::get_exponent(d, va);
-
-  auto target_min = hn::ReduceMin(di, target);
-  auto target_max = hn::ReduceMax(di, target);
+  const auto target_scalar = helper_simd::extract_unique_lane(di, target);
 
   std::hexfloat(std::cerr);
 
-  if (target_min != target_max) {
-    std::cerr << "All lane's value should be the same\n"
-              << "input    : " << a << "\n"
-              << "reference: " << reference << "\n"
-              << "target   : " << target_min << " " << target_max << "\n";
-    HWY_ASSERT(false);
-  }
-
-  if (target_min != reference) {
+  if (target_scalar != reference) {
     std::cerr << "Failed for\n"
               << "input    : " << a << "\n"
               << "reference: " << reference << "\n"
-              << "target   : " << target_min << "\n";
-    HWY_ASSERT(false);
+              << "target   : " << target_scalar << "\n";
+    HWY_ASSERT(false); // NOLINT
   }
 }
 
-template <typename T, class D>
-void testBinade(D d, int n, int repetitions = 10) {
-  auto start = std::ldexp(1.0, n);
-  auto end = std::ldexp(1.0, n + 1);
-  helper::RNG rng(start, end);
-
-  for (int i = 0; i < repetitions; i++) {
-    T a = rng();
-    test_equality<T>(d, a);
-    test_equality<T>(d, -a);
-  }
-}
+constexpr auto arity = 1;
 
 struct TestGetExponentBasicAssertions {
   template <typename T, typename D>
   HWY_NOINLINE void operator()(T /* unused */, D d) {
-    auto simple_case = helper::get_simple_case<T>();
-    for (auto a : simple_case) {
-      test_equality<T>(d, a);
-      test_equality<T>(d, -a);
-    }
+    test::TestSimpleCase<arity>(test_equality<D>, d);
   }
 };
 
 struct TestGetExponentRandomAssertions {
   template <typename T, typename D>
   HWY_NOINLINE void operator()(T /* unused */, D d) {
-    helper::RNG rng;
-    for (int i = 0; i < 1000; i++) {
-      T a = rng();
-      test_equality<T>(d, a);
-      test_equality<T>(d, -a);
-    }
+    test::TestRandom01<arity>(test_equality<D>, d);
   }
 };
 
 struct TestGetExponentBinadeAssertions {
   template <typename T, typename D>
   HWY_NOINLINE void operator()(T /* unused */, D d) {
-    constexpr auto start = std::is_same_v<T, float> ? -149 : -1074;
-    constexpr auto end = std::is_same_v<T, float> ? 127 : 1023;
-    for (int i = start; i < end; i++) {
-      testBinade<T>(d, i);
-    }
+    test::TestAllBinades<arity>(test_equality<D>, d);
   }
 };
 
@@ -154,19 +127,17 @@ HWY_AFTER_NAMESPACE();
 
 #if HWY_ONCE
 
-namespace sr {
-namespace vector {
+namespace sr::vector {
 namespace {
-
+// NOLINTBEGIN
 HWY_BEFORE_TEST(SRTest);
 HWY_EXPORT_AND_TEST_P(SRTest, TestAllGetExponentBasicAssertions);
 HWY_EXPORT_AND_TEST_P(SRTest, TestAllGetExponentRandomAssertions);
 HWY_EXPORT_AND_TEST_P(SRTest, TestAllGetExponentBinadeAssertions);
 HWY_AFTER_TEST();
-
+// NOLINTEND
 } // namespace
-} // namespace vector
-} // namespace sr
+} // namespace sr::vector
 
 HWY_TEST_MAIN();
 

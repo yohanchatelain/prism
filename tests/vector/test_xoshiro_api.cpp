@@ -525,6 +525,7 @@ HWY_AFTER_NAMESPACE(); // required if not using HWY_ATTR
 #if HWY_ONCE
 namespace hwy::HWY_NAMESPACE {
 namespace {
+// NOLINTBEGIN
 HWY_BEFORE_TEST(PRISMXoshiroAPITest);
 HWY_EXPORT_AND_TEST_P(PRISMXoshiroAPITest, TestSeedingAPI);
 HWY_EXPORT_AND_TEST_P(PRISMXoshiroAPITest, TestMultiThreadSeeding);
@@ -541,7 +542,7 @@ HWY_EXPORT_AND_TEST_P(PRISMXoshiroAPITest, TestNextFixedNUniformDist);
 HWY_EXPORT_AND_TEST_P(PRISMXoshiroAPITest, TestNextFixedNUniformVecDistF32);
 HWY_EXPORT_AND_TEST_P(PRISMXoshiroAPITest, TestCachedXorshiro);
 HWY_EXPORT_AND_TEST_P(PRISMXoshiroAPITest, TestUniformCachedXorshiro);
-
+// NOLINTEND
 HWY_AFTER_TEST();
 } // namespace
 } // namespace hwy::HWY_NAMESPACE

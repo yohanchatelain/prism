@@ -28,7 +28,7 @@ namespace hn = hwy::HWY_NAMESPACE;
 
 template <typename TestFunc, class D, class V = hn::VFromD<D>,
           typename T = hn::TFromD<D>>
-void TestExactAdd(TestFunc &&check, const D d, ConfigTest &config) {
+void TestExactAdd(TestFunc &&check, const D d, const ConfigTest &config) {
 
   constexpr int32_t mantissa = prism::utils::IEEE754<T>::mantissa;
   constexpr auto repetitions = 5;
@@ -43,8 +43,9 @@ void TestExactAdd(TestFunc &&check, const D d, ConfigTest &config) {
 // TODO(yohan): Parallelize this function
 template <size_t arity, typename TestFunc, class D, class V = hn::VFromD<D>,
           typename T = hn::TFromD<D>>
-void TestSimpleCase(TestFunc &&check, D d, ConfigTest &config) {
+void TestSimpleCase(TestFunc &&check, D d, ConfigTest config = {}) {
   const auto simple_case = SimpleCase<T>();
+
   if constexpr (arity == 1) {
     for (auto a : simple_case) {
       auto va = hn::Set(d, a);
@@ -74,7 +75,7 @@ void TestSimpleCase(TestFunc &&check, D d, ConfigTest &config) {
 
 template <size_t arity, typename TestFunc, class D, class V = hn::VFromD<D>,
           typename T = hn::TFromD<D>>
-void TestRandom(TestFunc &&check, D d, ConfigTest &config,
+void TestRandom(TestFunc &&check, D d, const ConfigTest &config,
                 std::array<Range, arity> ranges) {
 
   constexpr auto repetitions = 10;
@@ -119,6 +120,85 @@ void TestRandom(TestFunc &&check, D d, ConfigTest &config,
   }
 }
 
+template <size_t arity, typename TestFunc, class D, class V = hn::VFromD<D>,
+          typename T = hn::TFromD<D>>
+void TestRandom01(TestFunc &&check, D d, const ConfigTest config = {}) {
+  const auto range = Range{0, 1};
+  std::array<Range, arity> ranges;
+  ranges.fill(range);
+  TestRandom<arity>(check, d, config, ranges);
+}
+
+template <size_t arity, typename TestFunc, class D, class V = hn::VFromD<D>,
+          typename T = hn::TFromD<D>>
+void TestRandomNoOverlap(TestFunc &&check, D d, const ConfigTest config = {}) {
+  constexpr auto s2 = IEEE754<T>::precision - 1;
+  const auto _start = [](int s) -> double { return std::ldexp(1.0, s + 1); };
+  const auto _end = [](int s) -> double { return std::ldexp(1.0, s + 2); };
+
+  const Range range_1st{1, 2};
+  const Range range_2nd{_start(s2), _end(s2)};
+  const Range range_3rd{_start(s2), _end(s2)};
+
+  const auto ranges_tpl = take_n_first<arity>(range_1st, range_2nd, range_3rd);
+  const std::array<Range, arity> ranges = tuple_to_array(ranges_tpl);
+  TestRandom<arity>(check, d, config, ranges);
+}
+
+template <size_t arity, typename TestFunc, class D, class V = hn::VFromD<D>,
+          typename T = hn::TFromD<D>>
+void TestRandomLastBitOverlap(TestFunc &&check, D d,
+                              const ConfigTest config = {}) {
+  constexpr auto s2 = IEEE754<T>::precision;
+  const auto _start = [](int s) -> double { return std::ldexp(1.0, s + 1); };
+  const auto _end = [](int s) -> double { return std::ldexp(1.0, s + 2); };
+
+  const Range range_1st{1, 2};
+  const Range range_2nd{_start(s2), _end(s2)};
+  const Range range_3rd{_start(s2), _end(s2)};
+
+  const auto ranges_tpl = take_n_first<arity>(range_1st, range_2nd, range_3rd);
+  const std::array<Range, arity> ranges = tuple_to_array(ranges_tpl);
+  TestRandom<arity>(check, d, config, ranges);
+}
+
+template <size_t arity, typename TestFunc, class D, class V = hn::VFromD<D>,
+          typename T = hn::TFromD<D>>
+void TestRandomMidOverlap(TestFunc &&check, D d, const ConfigTest config = {}) {
+  constexpr auto s2 = IEEE754<T>::precision / 2;
+  const auto _start = [](int s) -> double { return std::ldexp(1.0, s + 1); };
+  const auto _end = [](int s) -> double { return std::ldexp(1.0, s + 2); };
+
+  const Range range_1st{1, 2};
+  const Range range_2nd{_start(s2), _end(s2)};
+  const Range range_3rd{_start(s2), _end(s2)};
+
+  const auto ranges_tpl = take_n_first<arity>(range_1st, range_2nd, range_3rd);
+  const std::array<Range, arity> ranges = tuple_to_array(ranges_tpl);
+  TestRandom<arity>(check, d, config, ranges);
+}
+
+template <int arity, typename TestFunc, class D, class V = hn::VFromD<D>,
+          typename T = hn::TFromD<D>>
+void TestBinade(TestFunc &&test, D d, const ConfigTest config = {}, int n = 0) {
+  auto start = std::ldexp(1.0, n);
+  auto end = std::ldexp(1.0, n + 1);
+  const auto range = Range{start, end};
+  const auto ranges_tpl = take_n_first<arity>(range, range, range);
+  const std::array<Range, arity> ranges = tuple_to_array(ranges_tpl);
+  TestRandom<arity>(test, d, config, ranges);
+}
+
+template <int arity, typename TestFunc, class D, class V = hn::VFromD<D>,
+          typename T = hn::TFromD<D>>
+void TestAllBinades(TestFunc &&test, D d, const ConfigTest config = {}) {
+  constexpr auto min_exp = IEEE754<T>::min_exponent_subnormal;
+  constexpr auto max_exp = IEEE754<T>::max_exponent;
+  for (int i = min_exp; i < max_exp; i++) {
+    TestBinade<arity>(test, d, config, i);
+  }
+}
+
 }; // namespace prism::tests::helper::generic::HWY_NAMESPACE
 
 namespace prism::tests::helper::distribution::HWY_NAMESPACE {
@@ -129,7 +209,7 @@ namespace generic = prism::tests::helper::generic::HWY_NAMESPACE;
 
 template <class M, class Op, class D, class V = hn::VFromD<D>,
           typename T = hn::TFromD<D>>
-void TestExactAdd(D d, ConfigTest &config) {
+void TestExactAdd(D d, const ConfigTest &config) {
 
   using args_t = typename TupleN<Op::arity, V>::type;
   generic::TestExactAdd(
@@ -138,7 +218,7 @@ void TestExactAdd(D d, ConfigTest &config) {
 
 template <class M, class Op, class D, class V = hn::VFromD<D>,
           typename T = hn::TFromD<D>>
-void TestSimpleCase(D d, ConfigTest &config) {
+void TestSimpleCase(D d, const ConfigTest &config) {
   using args_t = typename TupleN<Op::arity, V>::type;
   generic::TestSimpleCase<Op::arity>(
       helper::CheckDistributionResultsWrapper<args_t, M, Op, D>, d, config);
@@ -146,7 +226,7 @@ void TestSimpleCase(D d, ConfigTest &config) {
 
 template <class M, class Op, class D, class V = hn::VFromD<D>,
           typename T = hn::TFromD<D>>
-void TestRandom01(D d, ConfigTest &config) {
+void TestRandom01(D d, const ConfigTest &config) {
   const auto range = Range{0, 1};
   std::array<Range, Op::arity> ranges;
   ranges.fill(range);
@@ -159,7 +239,7 @@ void TestRandom01(D d, ConfigTest &config) {
 
 template <class M, class Op, class D, class V = hn::VFromD<D>,
           typename T = hn::TFromD<D>>
-void TestRandomNoOverlap(D d, ConfigTest &config) {
+void TestRandomNoOverlap(D d, const ConfigTest &config) {
 
   constexpr auto s2 = IEEE754<T>::precision - 1;
   const auto _start = [](int s) -> double { return std::ldexp(1.0, s + 1); };
@@ -180,7 +260,7 @@ void TestRandomNoOverlap(D d, ConfigTest &config) {
 
 template <class M, class Op, class D, class V = hn::VFromD<D>,
           typename T = hn::TFromD<D>>
-void TestRandomLastBitOverlap(D d, ConfigTest &config) {
+void TestRandomLastBitOverlap(D d, const ConfigTest &config) {
   constexpr auto s2 = IEEE754<T>::precision;
   const auto _start = [](int s) -> double { return std::ldexp(1.0, s + 1); };
   const auto _end = [](int s) -> double { return std::ldexp(1.0, s + 2); };
@@ -200,7 +280,7 @@ void TestRandomLastBitOverlap(D d, ConfigTest &config) {
 
 template <class M, class Op, class D, class V = hn::VFromD<D>,
           typename T = hn::TFromD<D>>
-void TestRandomMidOverlap(D d, ConfigTest &config) {
+void TestRandomMidOverlap(D d, const ConfigTest &config) {
   constexpr auto s2 = IEEE754<T>::precision / 2;
   const auto _start = [](int s) -> double { return std::ldexp(1.0, s + 1); };
   const auto _end = [](int s) -> double { return std::ldexp(1.0, s + 2); };

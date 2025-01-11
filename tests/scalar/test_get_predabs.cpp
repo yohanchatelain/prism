@@ -5,10 +5,9 @@
 #include <gtest/gtest.h>
 
 #include "src/utils.h"
-#include "tests/helper/random.h"
-#include "tests/helper/tests.h"
 
-namespace helper_hwy = prism::tests::helper::HWY_NAMESPACE;
+#include "tests/helper/tests-inl.h"
+
 namespace helper = prism::tests::helper;
 
 namespace reference {

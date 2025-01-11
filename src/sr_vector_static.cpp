@@ -15,12 +15,9 @@
 
 // Optional, can instead add HWY_ATTR to all functions.
 HWY_BEFORE_NAMESPACE();
-namespace prism::sr::vector::static_dispatch {
-
-namespace HWY_NAMESPACE {
+namespace prism::sr::vector::static_dispatch::HWY_NAMESPACE {
 
 namespace hn = hwy::HWY_NAMESPACE;
-namespace dbg = prism::vector::HWY_NAMESPACE;
 
 // print target
 #if defined PRISM_DEBUG_TARGET
@@ -195,8 +192,7 @@ define_fp_xN_ter_op(float, f32, 16, fma);
 #endif
 
 // NOLINTNEXTLINE(google-readability-namespace-comments)
-} // namespace HWY_NAMESPACE
-} // namespace prism::sr::vector::static_dispatch
+} // namespace prism::sr::vector::static_dispatch::HWY_NAMESPACE
 HWY_AFTER_NAMESPACE();
 
 #if HWY_ONCE

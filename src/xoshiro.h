@@ -49,8 +49,8 @@ void init_rng(std::uint64_t seed, std::uint64_t tid);
 auto uniform(float) -> float;
 auto uniform(double) -> double;
 auto random() -> std::uint64_t;
-auto randombit(std::uint64_t) -> std::uint64_t;
 auto randombit(std::uint32_t) -> std::uint32_t;
+auto randombit(std::uint64_t) -> std::uint64_t;
 
 } // namespace prism::scalar::xoshiro::HWY_NAMESPACE
 
@@ -66,8 +66,6 @@ using VF64 = hn::Vec<hn::ScalableTag<double>>;
 auto get_rng() -> RNG *;
 void init_rng(std::uint64_t seed, std::uint64_t tid);
 } // namespace internal
-
-namespace hn = hwy::HWY_NAMESPACE;
 
 auto uniform(float) -> internal::VF32;
 auto uniform(double) -> internal::VF64;

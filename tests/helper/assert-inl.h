@@ -11,8 +11,6 @@
 #include <tuple>
 #include <type_traits>
 
-#include "hwy/highway.h"
-
 #include "src/utils.h"
 #include "tests/helper/binomial_test.h"
 #include "tests/helper/common.h"
@@ -20,6 +18,8 @@
 #include "tests/helper/distance.h"
 #include "tests/helper/operator.h"
 #include "tests/helper/pprint.h"
+
+#include "hwy/highway.h"
 
 #include "tests/helper/operator-inl.h"
 
@@ -356,7 +356,7 @@ auto get_lane(D d, Args... args) -> std::array<T, sizeof...(Args)> {
 
 template <class M, class Op, class D, class V = hn::VFromD<D>,
           typename T = hn::TFromD<D>, typename... Args>
-void CheckDistributionResults(D d, ConfigTest &config, Args... args) {
+void CheckDistributionResults(D d, const ConfigTest &config, Args... args) {
   using H = typename IEEE754<T>::H;
 
   static_assert(sizeof...(Args) == Op::arity,
@@ -422,7 +422,6 @@ void CheckDistributionResults(D d, ConfigTest &config, Args... args) {
     assert_binomial_test<M, Op>(distance_error, counter, test, scalar_args,
                                 alpha_bon, lane, lanes);
 
-    config.distribution_tests_counter++;
     lane++;
     debug_reset();
   }
@@ -430,7 +429,8 @@ void CheckDistributionResults(D d, ConfigTest &config, Args... args) {
 
 template <typename Args, class M, class Op, class D, class V = hn::VFromD<D>,
           typename T = hn::TFromD<D>>
-void CheckDistributionResultsWrapper(D d, ConfigTest &config, Args &&args) {
+void CheckDistributionResultsWrapper(D d, const ConfigTest &config,
+                                     Args &&args) {
   std::apply(
       [&](auto &&...unpacked_args) {
         CheckDistributionResults<M, Op>(

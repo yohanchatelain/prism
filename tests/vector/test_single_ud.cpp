@@ -19,6 +19,7 @@ HWY_BEFORE_NAMESPACE(); // at file scope
 namespace prism::ud::vector::HWY_NAMESPACE {
 
 namespace hn = hwy::HWY_NAMESPACE;
+namespace ud = prism::ud::vector::PRISM_DISPATCH::HWY_NAMESPACE;
 
 namespace {
 
@@ -33,7 +34,7 @@ struct TestOp {
 
     std::map<T, int> results;
     for (size_t i = 0; i < N; i++) {
-      auto res = run<T>(d, debug);
+      auto res = run(d, debug);
       results[res[0]]++;
       results[res[1]]++;
     }
@@ -49,7 +50,7 @@ struct TestOp {
       }
   }
 
-  template <typename T> T get_user_input(int id) throw() {
+  template <typename T> auto get_user_input(int id) noexcept -> T {
 
     T value;
     bool initialized = false;
@@ -74,7 +75,7 @@ struct TestOp {
     return value;
   }
 
-  std::string get_user_operation() throw() {
+  static auto get_user_operation() noexcept -> std::string {
     static bool initialized = false;
     static std::string value = "add";
 
@@ -92,8 +93,8 @@ struct TestOp {
     return value;
   }
 
-  template <typename T, typename D>
-  std::vector<T> run(D d, const bool debug = false) {
+  template <class D, typename T = hn::TFromD<D>>
+  auto run(D d, const bool debug = false) -> std::vector<T> {
     constexpr T ulp = std::is_same_v<T, float> ? 0x1.0p-24 : 0x1.0p-53;
     constexpr const char *fmt = std::is_same_v<T, float> ? "%+.6a" : "%+.13a";
 
@@ -138,17 +139,17 @@ struct TestOp {
     hn::Vec<D> r;
 
     if (op == "add") {
-      r = add<D>(a, b);
+      r = ud::add(d, a, b);
     } else if (op == "sub") {
-      r = sub<D>(a, b);
+      r = ud::sub(d, a, b);
     } else if (op == "mul") {
-      r = mul<D>(a, b);
+      r = ud::mul(d, a, b);
     } else if (op == "div") {
-      r = div<D>(a, b);
+      r = ud::div(d, a, b);
     } else if (op == "sqrt") {
-      r = sqrt<D>(a);
+      r = ud::sqrt(d, a);
     } else if (op == "fma") {
-      r = fma<D>(a, b, c);
+      r = ud::fma(d, a, b, c);
     } else {
       std::cerr << "Unknown operation: " << op << std::endl;
       std::exit(1);
@@ -184,9 +185,11 @@ HWY_AFTER_NAMESPACE();
 #if HWY_ONCE
 
 namespace prism::ud::vector::HWY_NAMESPACE {
+// NOLINTBEGIN
 HWY_BEFORE_TEST(UDTest);
 HWY_EXPORT_AND_TEST_P(UDTest, TestAllOp);
 HWY_AFTER_TEST();
+// NOLINTEND
 } // namespace prism::ud::vector::HWY_NAMESPACE
 
 HWY_TEST_MAIN();

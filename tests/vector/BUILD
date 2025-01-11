@@ -1,11 +1,12 @@
-load("//:constants.bzl", "DYNAMIC_COPTS", "SANITIZE_COPTS")
+load("//:constants.bzl", "DYNAMIC_COPTS", "RANDOM_FULLBITS_COPTS", "STATIC_COPTS")
 load("//tests:macros.bzl", "cc_test_gen_vector", "cc_test_lib_gen")
 
 XOSHIRO_DEBUGS_COPTS = [
     "-DPRISM_DEBUG_XOSHIRO",
 ]
 
-# Tests
+# Single util function tests
+
 cc_test_gen_vector(
     name = "test_get_pow2",
     dbg = True,
@@ -41,6 +42,8 @@ cc_test_gen_vector(
     dbg = True,
 )
 
+# Random number generator tests
+
 cc_test_lib_gen(
     name = "xoshiro",
     size = "medium",
@@ -63,6 +66,8 @@ cc_test_lib_gen(
     dbg = True,
 )
 
+# Stochastic rounding library tests
+
 cc_test_lib_gen(
     name = "sr-accuracy",
     size = "large",
@@ -70,42 +75,6 @@ cc_test_lib_gen(
         "//tests/vector:test_sr_accuracy.cpp",
     ],
     mode = "dynamic",
-)
-
-cc_test_lib_gen(
-    name = "ud-accuracy",
-    size = "medium",
-    src = [
-        "//tests/vector:test_ud_accuracy.cpp",
-    ],
-    mode = "dynamic",
-)
-
-cc_test_lib_gen(
-    name = "ud-accuracy-fullbits",
-    size = "medium",
-    src = [
-        "//tests/vector:test_ud_accuracy.cpp",
-    ],
-    copts = [
-        "-DPRISM_FULL_BITS",
-    ],
-    mode = "",
-    deps = ["//src:prism-dynamic-fullbits-dbg"],
-)
-
-cc_test_lib_gen(
-    name = "ud-accuracy-fullbits-dbg",
-    size = "medium",
-    src = [
-        "//tests/vector:test_ud_accuracy.cpp",
-    ],
-    copts = [
-        "-DPRISM_FULL_BITS",
-    ],
-    dbg = True,
-    mode = "",
-    deps = ["//src:prism-dynamic-fullbits-dbg"],
 )
 
 cc_test_lib_gen(
@@ -118,145 +87,145 @@ cc_test_lib_gen(
     mode = "dynamic",
 )
 
+# Up/Down rounding library tests
+
 cc_test_lib_gen(
-    name = "ud-accuracy-dbg",
+    name = "ud-accuracy",
     size = "medium",
-    src = [
-        "//tests/vector:test_ud_accuracy.cpp",
-    ],
-    dbg = True,
+    src = [":test_ud_accuracy.cpp"],
     mode = "dynamic",
 )
 
 cc_test_lib_gen(
+    name = "ud-accuracy-dbg",
+    size = "medium",
+    src = [":test_ud_accuracy.cpp"],
+    dbg = True,
+    mode = "dynamic",
+)
+
+# Up/Down rounding library tests using random full bits
+
+cc_test_lib_gen(
+    name = "ud-accuracy-fullbits",
+    size = "medium",
+    src = [":test_ud_accuracy.cpp"],
+    copts = RANDOM_FULLBITS_COPTS,
+    mode = "",
+    deps = ["//src:prism-dynamic-fullbits-dbg"],
+)
+
+cc_test_lib_gen(
+    name = "ud-accuracy-fullbits-dbg",
+    size = "medium",
+    src = [":test_ud_accuracy.cpp"],
+    copts = RANDOM_FULLBITS_COPTS,
+    dbg = True,
+    mode = "",
+    deps = ["//src:prism-dynamic-fullbits-dbg"],
+)
+
+# Thread tests
+
+cc_test_lib_gen(
     name = "thread",
     size = "medium",
-    src = [
-        "//tests/vector:test_threads.cpp",
+    src = [":test_threads.cpp"],
+    copts = DYNAMIC_COPTS,
+    linkopts = [
+        "-fsanitize=address",
     ],
-    copts = DYNAMIC_COPTS + SANITIZE_COPTS,
-    linkopts = SANITIZE_COPTS,
     mode = "dynamic",
 )
 
 cc_test_lib_gen(
     name = "thread-static",
     size = "medium",
-    src = [
-        "//tests/vector:test_threads.cpp",
-    ],
-    copts = [
-        "-march=native",
-        "-fsanitize=thread",
-    ],
+    src = [":test_threads.cpp"],
+    copts = STATIC_COPTS,
+    dbg = True,
     linkopts = [
-        "-fsanitize=thread",
+        "-fsanitize=address",
     ],
     mode = "static",
-    deps = [
-        "@//src:prism-static-dbg",
-    ],
 )
 
 # Performance tests
+
+# Stochastic rounding performance tests
+
 cc_test_lib_gen(
     name = "sr-perf",
     size = "medium",
-    src = ["//tests/vector:test_sr_performance_dynamic.cpp"],
-    copts = [
-        "-Wno-psabi",
-        "-fno-omit-frame-pointer",
-        "-fsanitize=address",
-    ],
-    linkopts = [
-        "-fsanitize=address",
-    ],
-    deps = [
-        "@//src:prism-dynamic-dbg",
-        "@hwy//:nanobenchmark",
-    ],
+    src = [":test_sr_performance_dynamic.cpp"],
+    copts = DYNAMIC_COPTS,
+    mode = "dynamic",
 )
 
 cc_test_lib_gen(
     name = "sr-perf-static",
     size = "medium",
-    src = ["//tests/vector:test_sr_performance_static.cpp"],
-    copts = [
-        "-march=native",
-        "-Wno-psabi",
-    ],
-    deps = [
-        "@//src:prism-static",
-        "@hwy//:nanobenchmark",
-    ],
+    src = [":test_sr_performance_static.cpp"],
+    copts = STATIC_COPTS,
+    mode = "static",
 )
+
+# Up/Down rounding performance tests
 
 cc_test_lib_gen(
     name = "ud-perf",
     size = "medium",
-    src = ["//tests/vector:test_ud_performance_dynamic.cpp"],
-    copts = [
-        "-Wno-psabi",
-    ],
-    deps = [
-        "@//src:prism-dynamic",
-        "@hwy//:nanobenchmark",
-    ],
+    src = [":test_ud_performance_dynamic.cpp"],
+    copts = DYNAMIC_COPTS,
+    mode = "dynamic",
 )
 
 cc_test_lib_gen(
     name = "ud-perf-static",
     size = "medium",
-    src = ["//tests/vector:test_ud_performance_static.cpp"],
-    copts = [
-        "-march=native",
-        "-Wno-psabi",
-    ],
-    deps = [
-        "@//src:prism-native",
-        "@hwy//:nanobenchmark",
-    ],
+    src = [":test_ud_performance_static.cpp"],
+    copts = STATIC_COPTS,
+    mode = "static",
 )
 
 # Single test for debugging purposes
 # Not actual tests
+
 cc_test_lib_gen(
-    name = "sr-single-test",
-    src = [
-        "//tests/vector:test_single_sr.cpp",
-    ],
+    name = "sr-single",
+    src = [":test_single_sr.cpp"],
     dbg = True,
-    linkopts = [
-        "-fsanitize=address",
-    ],
-    deps = [
-        "@//src:prism-dynamic-dbg",
-    ],
+    linkopts = ["-fsanitize=address"],
+    mode = "dynamic",
 )
 
 cc_test_lib_gen(
-    name = "ud-single-test",
-    src = [
-        "//tests/vector:test_single_ud.cpp",
-    ],
+    name = "ud-single",
+    src = [":test_single_ud.cpp"],
     dbg = True,
-    linkopts = [
-        "-fsanitize=address",
-    ],
-    deps = [
-        "@//src:prism-dynamic-dbg",
-    ],
+    linkopts = ["-fsanitize=address"],
+    mode = "dynamic",
 )
+
+# Test suites
 
 test_suite(
     name = "all",
     tests = [
         ":sr-accuracy",
+        ":test_dekkerprod",
+        ":test_fma",
+        ":test_get_exponent",
         ":test_get_pow2",
+        ":test_split",
+        ":test_splitbit",
+        ":test_twosum",
         ":thread",
         ":thread-static",
         ":ud-accuracy",
+        ":ud-accuracy-fullbits",
         ":xoshiro",
+        ":xoshiro-api",
     ],
 )
 

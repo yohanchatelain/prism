@@ -13,9 +13,7 @@
 
 // Optional, can instead add HWY_ATTR to all functions.
 HWY_BEFORE_NAMESPACE();
-namespace prism::sr::vector::dynamic_dispatch {
-
-namespace HWY_NAMESPACE {
+namespace prism::sr::vector::dynamic_dispatch::HWY_NAMESPACE {
 
 namespace hn = hwy::HWY_NAMESPACE;
 namespace dbg = prism::vector::HWY_NAMESPACE;
@@ -210,8 +208,7 @@ void _fma_f64(const double *HWY_RESTRICT a, const double *HWY_RESTRICT b,
 }
 
 // NOLINTNEXTLINE(google-readability-namespace-comments)
-} // namespace HWY_NAMESPACE
-} // namespace prism::sr::vector::dynamic_dispatch
+} // namespace prism::sr::vector::dynamic_dispatch::HWY_NAMESPACE
 HWY_AFTER_NAMESPACE();
 
 #if HWY_ONCE

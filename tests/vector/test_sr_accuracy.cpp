@@ -6,8 +6,6 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "tests/helper/tests.h"
-
 // clang-format off
 #undef HWY_TARGET_INCLUDE
 #define HWY_TARGET_INCLUDE "tests/vector/test_sr_accuracy.cpp"
@@ -29,7 +27,6 @@ HWY_BEFORE_NAMESPACE(); // NOLINT
 namespace prism::HWY_NAMESPACE {
 
 namespace hn = hwy::HWY_NAMESPACE;
-namespace helper_hwy = prism::tests::helper::HWY_NAMESPACE;
 namespace test_distribution = prism::tests::helper::distribution::HWY_NAMESPACE;
 namespace helper = prism::tests::helper;
 
@@ -68,56 +65,56 @@ auto default_repetitions() -> int {
   return repetitions;
 }
 
-namespace ud = prism::sr::vector::PRISM_DISPATCH::HWY_NAMESPACE;
+namespace sr = prism::sr::vector::PRISM_DISPATCH::HWY_NAMESPACE;
 
 struct SRAdd : public helper::PrAdd {
   template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
   auto operator()(D d, V a, V b) const -> V {
-    return ud::add(d, a, b);
+    return sr::add(d, a, b);
   }
 };
 
 struct SRSub : public helper::PrSub {
   template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
   auto operator()(D d, V a, V b) const -> V {
-    return ud::sub(d, a, b);
+    return sr::sub(d, a, b);
   }
 };
 
 struct SRMul : public helper::PrMul {
   template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
   auto operator()(D d, V a, V b) const -> V {
-    return ud::mul(d, a, b);
+    return sr::mul(d, a, b);
   }
 };
 
 struct SRDiv : public helper::PrDiv {
   template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
   auto operator()(D d, V a, V b) const -> V {
-    return ud::div(d, a, b);
+    return sr::div(d, a, b);
   }
 };
 
 struct SRSqrt : public helper::PrSqrt {
   template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
   auto operator()(D d, V a) const -> V {
-    return ud::sqrt(d, a);
+    return sr::sqrt(d, a);
   }
 };
 
 struct SRFma : public helper::PrFma {
   template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
   auto operator()(D d, V a, V b, V c) const -> V {
-    return ud::fma(d, a, b, c);
+    return sr::fma(d, a, b, c);
   }
 };
 
 struct TestExactOperationsAdd {
-  helper::ConfigTest config = {.name = "TestExactOperationsAdd",
-                               .description =
-                                   "Test exact operations for addition",
-                               .repetitions = default_repetitions(),
-                               .alpha = get_alpha()};
+  const helper::ConfigTest config = {.name = "TestExactOperationsAdd",
+                                     .description =
+                                         "Test exact operations for addition",
+                                     .repetitions = default_repetitions(),
+                                     .alpha = get_alpha()};
 
   template <typename T, class D> void operator()(T /*unused*/, D d) {
     test_distribution::TestExactAdd<M, SRAdd>(d, config);
@@ -129,7 +126,7 @@ HWY_NOINLINE void TestAllExactOperationsAdd() {
 }
 
 template <class Op> struct TestBasicAssertions {
-  helper::ConfigTest config = {
+  const helper::ConfigTest config = {
       .name = "TestBasicAssertions",
       .description = "Test basic assertions for arithmetic operations",
       .repetitions = default_repetitions(),
@@ -172,7 +169,7 @@ HWY_NOINLINE void TestAllBasicAssertionsFma() {
 }
 
 template <class Op> struct TestRandom01Assertions {
-  helper::ConfigTest config = {
+  const helper::ConfigTest config = {
       .name = "TestRandom01Assertions",
       .description =
           "Test random numbers in (0,1) assertions for arithmetic operations",
@@ -216,7 +213,7 @@ HWY_NOINLINE void TestAllRandom01AssertionsFma() {
 }
 
 template <class Op> struct TestRandomNoOverlapAssertions {
-  helper::ConfigTest config = {
+  const helper::ConfigTest config = {
       .name = "TestRandomNoOverlapAssertions",
       .description = "Test random with no overlap assertions for arithmetic ",
       .repetitions = default_repetitions(),
@@ -265,7 +262,7 @@ HWY_NOINLINE void TestAllRandomNoOverlapAssertionsFma() {
 }
 
 template <class Op> struct TestRandomLastBitOverlap {
-  helper::ConfigTest config = {
+  const helper::ConfigTest config = {
       .name = "TestRandomLastBitOverlap",
       .description =
           "Test random with last bit overlapping assertions for arithmetic ",
@@ -309,7 +306,7 @@ HWY_NOINLINE void TestAllRandomLastBitOverlapFma() {
 }
 
 template <class Op> struct TestRandomMidOverlap {
-  helper::ConfigTest config = {
+  const helper::ConfigTest config = {
       .name = "TestRandomMidOverlap",
       .description =
           "Test random number with mid overlap assertions for arithmetic",
@@ -358,7 +355,6 @@ HWY_AFTER_NAMESPACE();
 
 #if HWY_ONCE
 namespace prism::HWY_NAMESPACE {
-
 // NOLINTBEGIN
 HWY_BEFORE_TEST(SRVectorAccuracyTest);
 HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllExactOperationsAdd);
@@ -400,7 +396,6 @@ HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllRandomMidOverlapSqrt);
 HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllRandomMidOverlapFma);
 HWY_AFTER_TEST();
 // NOLINTEND
-
 } // namespace prism::HWY_NAMESPACE
 
 HWY_TEST_MAIN();

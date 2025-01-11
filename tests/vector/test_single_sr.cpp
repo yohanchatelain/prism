@@ -34,7 +34,7 @@ struct TestOp {
 
     std::map<T, int> results;
     for (size_t i = 0; i < N; i++) {
-      auto res = run<T>(d, debug);
+      auto res = run(d, debug);
       results[res[0]]++;
       results[res[1]]++;
     }
@@ -46,12 +46,12 @@ struct TestOp {
         for (const auto &r : results) {
           std::cerr << r.first << " ";
         }
-        HWY_ASSERT_EQ(results.size(), 2);
+        HWY_ASSERT_EQ(results.size(), 2); // NOLINT
       }
     }
   }
 
-  template <typename T> T get_user_input(int id) throw() {
+  template <typename T> auto get_user_input(int id) noexcept -> T {
 
     T value;
     bool initialized = false;
@@ -94,7 +94,7 @@ struct TestOp {
     return value;
   }
 
-  template <typename T, typename D>
+  template <class D, typename T = hn::TFromD<D>>
   auto run(D d, const bool debug = false) -> std::vector<T> {
     constexpr T ulp = std::is_same_v<T, float> ? 0x1.0p-24 : 0x1.0p-53;
     constexpr const char *fmt = std::is_same_v<T, float> ? "%+.6a" : "%+.13a";
@@ -180,8 +180,7 @@ struct TestOp {
 } // namespace
 
 HWY_NOINLINE void TestAllOp() {
-  // hn::ForFloat3264Types(hn::ForPartialVectors<TestOp>());
-  hn::ForFloat3264Types(hn::ForPartialFixedOrFullScalableVectors<TestOp>());
+  hn::ForFloat3264Types(hn::ForPartialVectors<TestOp>());
 }
 
 // NOLINTNEXTLINE(google-readability-namespace-comments)
@@ -191,9 +190,11 @@ HWY_AFTER_NAMESPACE();
 #if HWY_ONCE
 
 namespace prism::sr::vector::HWY_NAMESPACE {
+// NOLINTBEGIN
 HWY_BEFORE_TEST(SRTest);
 HWY_EXPORT_AND_TEST_P(SRTest, TestAllOp);
 HWY_AFTER_TEST();
+// NOLINTEND
 } // namespace prism::sr::vector::HWY_NAMESPACE
 
 HWY_TEST_MAIN();

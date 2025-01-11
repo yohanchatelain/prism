@@ -30,3 +30,24 @@
 *.exe
 *.out
 *.app
+
+# Bazel
+bazel-*
+.bazelrc
+
+# VS Code
+.vscode/
+
+# autoconf
+config.log
+config.status
+autom4te.cache
+aclocal.m4
+m4/**
+autoconf
+libtool
+configure
+configure.scan
+config.*
+install.sh
+install/

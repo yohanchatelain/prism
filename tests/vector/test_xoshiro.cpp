@@ -463,6 +463,7 @@ HWY_AFTER_NAMESPACE(); // required if not using HWY_ATTR
 #if HWY_ONCE
 namespace hwy {
 namespace {
+// NOLINTBEGIN
 HWY_BEFORE_TEST(HwyRandomTest);
 HWY_EXPORT_AND_TEST_P(HwyRandomTest, TestSeeding);
 HWY_EXPORT_AND_TEST_P(HwyRandomTest, TestMultiThreadSeeding);
@@ -479,6 +480,7 @@ HWY_EXPORT_AND_TEST_P(HwyRandomTest, TestNextFixedNUniformDist);
 HWY_EXPORT_AND_TEST_P(HwyRandomTest, TestNextFixedNUniformVecDistF32);
 HWY_EXPORT_AND_TEST_P(HwyRandomTest, TestUniformCachedXorshiro);
 HWY_AFTER_TEST();
+// NOLINTEND
 } // namespace
 } // namespace hwy
 HWY_TEST_MAIN();

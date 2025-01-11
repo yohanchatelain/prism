@@ -2,13 +2,22 @@
 """
 
 # Compiler options
+
+RANDOM_FULLBITS_COPTS = [
+    "-DPRISM_RANDOM_FULLBITS",
+]
+
+RANDOM_PARTIALBITS_COPTS = [
+    "-UPRISM_RANDOM_FULLBITS",
+]
+
 COPTS = [
     "-std=c++17",
     "-Wfatal-errors",
     "-O2",
     "-Wall",
     "-Wno-psabi",
-]
+] + RANDOM_FULLBITS_COPTS
 
 NATIVE_COPTS = [
     "-march=native",

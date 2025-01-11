@@ -1,5 +1,4 @@
 #include "src/debug.h"
-#include "src/eft.h"
 #include "src/utils.h"
 
 #ifndef _GNU_SOURCE
@@ -14,6 +13,7 @@
 #define PRISM_UD_SCALAR_INL_H_
 #endif
 
+#include "src/utils.h"
 #include "src/xoshiro.h"
 
 HWY_BEFORE_NAMESPACE(); // at file scope
@@ -22,49 +22,67 @@ namespace prism::ud::scalar::HWY_NAMESPACE {
 
 namespace rng = prism::scalar::xoshiro::HWY_NAMESPACE;
 
-template <typename T> auto round(T a) -> T {
+template <typename T> HWY_FLATTEN auto round(T a) -> T {
   debug_start();
   if (a == 0) {
     debug_end();
     return a;
   }
   debug_print("a        = %.13a\n", a);
-  using I = typename prism::utils::IEEE754<T>::I;
-  I a_bits = *reinterpret_cast<I *>(&a);
-  std::uint64_t rand = rng::random();
-  debug_print("rand     = 0x%02x\n", rand);
+  prism::utils::binaryN<T> a_bits = {.f = a};
+  using U = decltype(a_bits.u);
+  constexpr U one = 1;
+#ifdef PRISM_RANDOM_FULLBITS
+  const auto rand = rng::randombit(U{});
+  // get 1 or -1
+  a_bits.i += 1 - (rand << one);
+#else
+  const auto rand = rng::random();
   // get the last bit of the random number to get -1 or 1
-  a_bits += 1 - ((rand & 1) << 1);
-  a = *reinterpret_cast<T *>(&a_bits);
+  a_bits.i += 1 - ((rand & one) << one);
+#endif
+  debug_print("rand     = 0x%02x\n", rand);
   debug_print("round(a) = %.13a\n", a);
   debug_end();
-  return a;
-} // namespace prism::scalar::xoroshiro256plus::static_dispatch
+  return a_bits.f;
+}
 
-template <typename T> T add(T a, T b) { return round(a + b); }
-template <typename T> T sub(T a, T b) { return round(a - b); }
-template <typename T> T mul(T a, T b) { return round(a * b); }
-template <typename T> T div(T a, T b) { return round(a / b); }
-template <typename T> T sqrt(T a) { return round(std::sqrt(a)); }
-template <typename T> T fma(T a, T b, T c) { return round(std::fma(a, b, c)); }
+template <typename T> HWY_FLATTEN auto add(T a, T b) -> T {
+  return round(a + b);
+}
+template <typename T> HWY_FLATTEN auto sub(T a, T b) -> T {
+  return round(a - b);
+}
+template <typename T> HWY_FLATTEN auto mul(T a, T b) -> T {
+  return round(a * b);
+}
+template <typename T> HWY_FLATTEN auto div(T a, T b) -> T {
+  return round(a / b);
+}
+template <typename T> HWY_FLATTEN auto sqrt(T a) -> T {
+  return round(std::sqrt(a));
+}
+template <typename T> HWY_FLATTEN auto fma(T a, T b, T c) -> T {
+  return round(std::fma(a, b, c));
+}
 
 /* binary32 */
-inline float addf32(float a, float b) { return round(a + b); }
-inline float subf32(float a, float b) { return round(a - b); }
-inline float mulf32(float a, float b) { return round(a * b); }
-inline float divf32(float a, float b) { return round(a / b); }
-inline float sqrtf32(float a) { return round(std::sqrt(a)); }
-inline float fmaf32(float a, float b, float c) {
+HWY_FLATTEN auto addf32(float a, float b) -> float { return round(a + b); }
+HWY_FLATTEN auto subf32(float a, float b) -> float { return round(a - b); }
+HWY_FLATTEN auto mulf32(float a, float b) -> float { return round(a * b); }
+HWY_FLATTEN auto divf32(float a, float b) -> float { return round(a / b); }
+HWY_FLATTEN auto sqrtf32(float a) -> float { return round(std::sqrt(a)); }
+HWY_FLATTEN auto fmaf32(float a, float b, float c) -> float {
   return round(std::fma(a, b, c));
 }
 
 /* binary64 */
-inline double addf64(double a, double b) { return round(a + b); }
-inline double subf64(double a, double b) { return round(a - b); }
-inline double mulf64(double a, double b) { return round(a * b); }
-inline double divf64(double a, double b) { return round(a / b); }
-inline double sqrtf64(double a) { return round(std::sqrt(a)); }
-inline double fmaf64(double a, double b, double c) {
+HWY_FLATTEN auto addf64(double a, double b) -> double { return round(a + b); }
+HWY_FLATTEN auto subf64(double a, double b) -> double { return round(a - b); }
+HWY_FLATTEN auto mulf64(double a, double b) -> double { return round(a * b); }
+HWY_FLATTEN auto divf64(double a, double b) -> double { return round(a / b); }
+HWY_FLATTEN auto sqrtf64(double a) -> double { return round(std::sqrt(a)); }
+HWY_FLATTEN auto fmaf64(double a, double b, double c) -> double {
   return round(std::fma(a, b, c));
 }
 

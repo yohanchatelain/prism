@@ -114,7 +114,8 @@ auto get_unbiased_exponent(T a) -> U {
   return exp;
 }
 
-template <typename T, typename I = typename IEEE754<T>::I> I get_exponent(T a) {
+template <typename T, typename I = typename IEEE754<T>::I>
+auto get_exponent(T a) -> I {
   debug_start();
   if (a == 0) {
     debug_end();

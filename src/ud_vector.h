@@ -51,6 +51,122 @@ void fmaf64(const double *HWY_RESTRICT a, const double *HWY_RESTRICT b,
             const double *HWY_RESTRICT c, double *HWY_RESTRICT result,
             const size_t count);
 
+/* Single vector functions with dynamic dispatch */
+
+/* 64-bits */
+
+/* IEEE-754 binary32 x2 */
+void addf32x2(const float *HWY_RESTRICT a, const float *HWY_RESTRICT b,
+              float *HWY_RESTRICT result);
+void subf32x2(const float *HWY_RESTRICT a, const float *HWY_RESTRICT b,
+              float *HWY_RESTRICT result);
+void mulf32x2(const float *HWY_RESTRICT a, const float *HWY_RESTRICT b,
+              float *HWY_RESTRICT result);
+void divf32x2(const float *HWY_RESTRICT a, const float *HWY_RESTRICT b,
+              float *HWY_RESTRICT result);
+void sqrtf32x2(const float *HWY_RESTRICT a, float *HWY_RESTRICT result);
+void fmaf32x2(const float *HWY_RESTRICT a, const float *HWY_RESTRICT b,
+              const float *HWY_RESTRICT c, float *HWY_RESTRICT result);
+
+/* 128-bits */
+
+/* IEEE-754 binary32 x4 */
+void addf32x4(const float *HWY_RESTRICT a, const float *HWY_RESTRICT b,
+              float *HWY_RESTRICT result);
+void subf32x4(const float *HWY_RESTRICT a, const float *HWY_RESTRICT b,
+              float *HWY_RESTRICT result);
+void mulf32x4(const float *HWY_RESTRICT a, const float *HWY_RESTRICT b,
+              float *HWY_RESTRICT result);
+void divf32x4(const float *HWY_RESTRICT a, const float *HWY_RESTRICT b,
+              float *HWY_RESTRICT result);
+void sqrtf32x4(const float *HWY_RESTRICT a, float *HWY_RESTRICT result);
+void fmaf32x4(const float *HWY_RESTRICT a, const float *HWY_RESTRICT b,
+              const float *HWY_RESTRICT c, float *HWY_RESTRICT result);
+
+/* IEEE-754 binary64 x2 */
+void addf64x2(const double *HWY_RESTRICT a, const double *HWY_RESTRICT b,
+              double *HWY_RESTRICT result);
+void subf64x2(const double *HWY_RESTRICT a, const double *HWY_RESTRICT b,
+              double *HWY_RESTRICT result);
+void mulf64x2(const double *HWY_RESTRICT a, const double *HWY_RESTRICT b,
+              double *HWY_RESTRICT result);
+void divf64x2(const double *HWY_RESTRICT a, const double *HWY_RESTRICT b,
+              double *HWY_RESTRICT result);
+void sqrtf64x2(const double *HWY_RESTRICT a, double *HWY_RESTRICT result);
+void fmaf64x2(const double *HWY_RESTRICT a, const double *HWY_RESTRICT b,
+              const double *HWY_RESTRICT c, double *HWY_RESTRICT result);
+
+/* 256-bits */
+
+/* IEEE-754 binary64 x4 */
+void addf64x4(const double *HWY_RESTRICT a, const double *HWY_RESTRICT b,
+              double *HWY_RESTRICT result);
+void subf64x4(const double *HWY_RESTRICT a, const double *HWY_RESTRICT b,
+              double *HWY_RESTRICT result);
+void mulf64x4(const double *HWY_RESTRICT a, const double *HWY_RESTRICT b,
+              double *HWY_RESTRICT result);
+void divf64x4(const double *HWY_RESTRICT a, const double *HWY_RESTRICT b,
+              double *HWY_RESTRICT result);
+void sqrtf64x4(const double *HWY_RESTRICT a, double *HWY_RESTRICT result);
+void fmaf64x4(const double *HWY_RESTRICT a, const double *HWY_RESTRICT b,
+              const double *HWY_RESTRICT c, double *HWY_RESTRICT result);
+
+/* IEEE-754 binary32 x8 */
+void addf32x8(const float *HWY_RESTRICT a, const float *HWY_RESTRICT b,
+              float *HWY_RESTRICT result);
+void subf32x8(const float *HWY_RESTRICT a, const float *HWY_RESTRICT b,
+              float *HWY_RESTRICT result);
+void mulf32x8(const float *HWY_RESTRICT a, const float *HWY_RESTRICT b,
+              float *HWY_RESTRICT result);
+void divf32x8(const float *HWY_RESTRICT a, const float *HWY_RESTRICT b,
+              float *HWY_RESTRICT result);
+void sqrtf32x8(const float *HWY_RESTRICT a, float *HWY_RESTRICT result);
+void fmaf32x8(const float *HWY_RESTRICT a, const float *HWY_RESTRICT b,
+              const float *HWY_RESTRICT c, float *HWY_RESTRICT result);
+
+/* 512-bits */
+
+/* IEEE-754 binary64 x8 */
+void addf64x8(const double *HWY_RESTRICT a, const double *HWY_RESTRICT b,
+              double *HWY_RESTRICT result);
+void subf64x8(const double *HWY_RESTRICT a, const double *HWY_RESTRICT b,
+              double *HWY_RESTRICT result);
+void mulf64x8(const double *HWY_RESTRICT a, const double *HWY_RESTRICT b,
+              double *HWY_RESTRICT result);
+void divf64x8(const double *HWY_RESTRICT a, const double *HWY_RESTRICT b,
+              double *HWY_RESTRICT result);
+void sqrtf64x8(const double *HWY_RESTRICT a, double *HWY_RESTRICT result);
+void fmaf64x8(const double *HWY_RESTRICT a, const double *HWY_RESTRICT b,
+              const double *HWY_RESTRICT c, double *HWY_RESTRICT result);
+
+/* IEEE-754 binary32 x16 */
+void addf32x16(const float *HWY_RESTRICT a, const float *HWY_RESTRICT b,
+               float *HWY_RESTRICT result);
+void subf32x16(const float *HWY_RESTRICT a, const float *HWY_RESTRICT b,
+               float *HWY_RESTRICT result);
+void mulf32x16(const float *HWY_RESTRICT a, const float *HWY_RESTRICT b,
+               float *HWY_RESTRICT result);
+void divf32x16(const float *HWY_RESTRICT a, const float *HWY_RESTRICT b,
+               float *HWY_RESTRICT result);
+void sqrtf32x16(const float *HWY_RESTRICT a, float *HWY_RESTRICT result);
+void fmaf32x16(const float *HWY_RESTRICT a, const float *HWY_RESTRICT b,
+               const float *HWY_RESTRICT c, float *HWY_RESTRICT result);
+
+/* 1024-bits */
+
+/* IEEE-754 binary64 x16 */
+void addf64x16(const double *HWY_RESTRICT a, const double *HWY_RESTRICT b,
+               double *HWY_RESTRICT result);
+void subf64x16(const double *HWY_RESTRICT a, const double *HWY_RESTRICT b,
+               double *HWY_RESTRICT result);
+void mulf64x16(const double *HWY_RESTRICT a, const double *HWY_RESTRICT b,
+               double *HWY_RESTRICT result);
+void divf64x16(const double *HWY_RESTRICT a, const double *HWY_RESTRICT b,
+               double *HWY_RESTRICT result);
+void sqrtf64x16(const double *HWY_RESTRICT a, double *HWY_RESTRICT result);
+void fmaf64x16(const double *HWY_RESTRICT a, const double *HWY_RESTRICT b,
+               const double *HWY_RESTRICT c, double *HWY_RESTRICT result);
+
 } // namespace dynamic_dispatch
 
 namespace static_dispatch {

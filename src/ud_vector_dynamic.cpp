@@ -4,7 +4,7 @@
 // Generates code for every target that this compiler can support.
 #undef HWY_TARGET_INCLUDE
 #define HWY_TARGET_INCLUDE "src/ud_vector_dynamic.cpp" // this file
-#include "hwy/foreach_target.h"                // must come before highway.h
+#include "hwy/foreach_target.h" // must come before highway.h
 
 // clang-format off
 #include "hwy/highway.h"
@@ -12,12 +12,9 @@
 #include "src/ud_vector.h"
 // clang-format on
 
-
 // Optional, can instead add HWY_ATTR to all functions.
 HWY_BEFORE_NAMESPACE();
-namespace prism::ud::vector::dynamic_dispatch {
-
-namespace HWY_NAMESPACE {
+namespace prism::ud::vector::dynamic_dispatch::HWY_NAMESPACE {
 
 namespace hn = hwy::HWY_NAMESPACE;
 namespace dbg = prism::vector::HWY_NAMESPACE;
@@ -175,11 +172,10 @@ void _sqrt_f32(const float *HWY_RESTRICT a, float *HWY_RESTRICT result,
   _sqrt(a, result, count);
 }
 
-void _round_f64(const double *HWY_RESTRICT a,  double *HWY_RESTRICT result,
+void _round_f64(const double *HWY_RESTRICT a, double *HWY_RESTRICT result,
                 const size_t count) {
   _round(a, result, count);
 }
-
 
 void _add_f64(const double *HWY_RESTRICT a, const double *HWY_RESTRICT b,
               double *HWY_RESTRICT result, const size_t count) {
@@ -213,11 +209,8 @@ void _fma_f64(const double *HWY_RESTRICT a, const double *HWY_RESTRICT b,
 }
 
 // NOLINTNEXTLINE(google-readability-namespace-comments)
-} // namespace HWY_NAMESPACE
-} // namespace prism::ud::vector::dynamic_dispatch
+} // namespace prism::ud::vector::dynamic_dispatch::HWY_NAMESPACE
 HWY_AFTER_NAMESPACE();
-
-
 
 #if HWY_ONCE
 
@@ -241,19 +234,19 @@ HWY_EXPORT(_div_f64);
 HWY_EXPORT(_sqrt_f64);
 HWY_EXPORT(_fma_f64);
 
-}  // namespace
+} // namespace
 
 /* Array functions */
 
 /* binary32 */
-void round(const float *HWY_RESTRICT a,
-           float *HWY_RESTRICT result, const size_t count) {
-    return HWY_DYNAMIC_DISPATCH(_round_f32)(a, result, count);
+void round(const float *HWY_RESTRICT a, float *HWY_RESTRICT result,
+           const size_t count) {
+  return HWY_DYNAMIC_DISPATCH(_round_f32)(a, result, count);
 }
 
 void addf32(const float *HWY_RESTRICT a, const float *HWY_RESTRICT b,
             float *HWY_RESTRICT result, const size_t count) {
- return HWY_DYNAMIC_DISPATCH(_add_f32)(a, b, result, count);
+  return HWY_DYNAMIC_DISPATCH(_add_f32)(a, b, result, count);
 }
 
 void subf32(const float *HWY_RESTRICT a, const float *HWY_RESTRICT b,
@@ -273,7 +266,7 @@ void divf32(const float *HWY_RESTRICT a, const float *HWY_RESTRICT b,
 
 void sqrtf32(const float *HWY_RESTRICT a, float *HWY_RESTRICT result,
              const size_t count) {
- return HWY_DYNAMIC_DISPATCH(_sqrt_f32)(a, result, count);
+  return HWY_DYNAMIC_DISPATCH(_sqrt_f32)(a, result, count);
 }
 
 void fmaf32(const float *HWY_RESTRICT a, const float *HWY_RESTRICT b,
@@ -283,9 +276,9 @@ void fmaf32(const float *HWY_RESTRICT a, const float *HWY_RESTRICT b,
 }
 
 /* binary64 */
-void round(const double *HWY_RESTRICT a,
-           double *HWY_RESTRICT result, const size_t count) {
-    return HWY_DYNAMIC_DISPATCH(_round_f64)(a, result, count);
+void round(const double *HWY_RESTRICT a, double *HWY_RESTRICT result,
+           const size_t count) {
+  return HWY_DYNAMIC_DISPATCH(_round_f64)(a, result, count);
 }
 
 void addf64(const double *HWY_RESTRICT a, const double *HWY_RESTRICT b,
@@ -295,12 +288,12 @@ void addf64(const double *HWY_RESTRICT a, const double *HWY_RESTRICT b,
 
 void subf64(const double *HWY_RESTRICT a, const double *HWY_RESTRICT b,
             double *HWY_RESTRICT result, const size_t count) {
-   return HWY_DYNAMIC_DISPATCH(_sub_f64)(a, b, result, count);
+  return HWY_DYNAMIC_DISPATCH(_sub_f64)(a, b, result, count);
 }
 
 void mulf64(const double *HWY_RESTRICT a, const double *HWY_RESTRICT b,
             double *HWY_RESTRICT result, const size_t count) {
-    return HWY_DYNAMIC_DISPATCH(_mul_f64)(a, b, result, count);
+  return HWY_DYNAMIC_DISPATCH(_mul_f64)(a, b, result, count);
 }
 
 void divf64(const double *HWY_RESTRICT a, const double *HWY_RESTRICT b,
@@ -322,37 +315,37 @@ void fmaf64(const double *HWY_RESTRICT a, const double *HWY_RESTRICT b,
 /* Single vector instructions with dynamic dispatch */
 
 #define define_array_unary_op_dynamic(name, count)                             \
-  void name##f32##x##count(const float *HWY_RESTRICT a,              \
-                                     float *HWY_RESTRICT result) {             \
-    return name##f32(a, result, count);                                      \
+  void name##f32##x##count(const float *HWY_RESTRICT a,                        \
+                           float *HWY_RESTRICT result) {                       \
+    return name##f32(a, result, count);                                        \
   }                                                                            \
-  void name##f64x##count(const double *HWY_RESTRICT a,               \
-                                   double *HWY_RESTRICT result) {              \
-    return name##f64(a, result, count);                                     \
+  void name##f64x##count(const double *HWY_RESTRICT a,                         \
+                         double *HWY_RESTRICT result) {                        \
+    return name##f64(a, result, count);                                        \
   }
 
 #define define_array_bin_op_dynamic(name, count)                               \
-  void name##f32##x##count(const float *HWY_RESTRICT a,              \
-                                     const float *HWY_RESTRICT b,              \
-                                     float *HWY_RESTRICT result) {             \
-    return name##f32(a, b, result, count);                                   \
+  void name##f32##x##count(const float *HWY_RESTRICT a,                        \
+                           const float *HWY_RESTRICT b,                        \
+                           float *HWY_RESTRICT result) {                       \
+    return name##f32(a, b, result, count);                                     \
   }                                                                            \
-  void name##f64x##count(const double *HWY_RESTRICT a,               \
-                                   const double *HWY_RESTRICT b,               \
-                                   double *HWY_RESTRICT result) {              \
-    return name##f64(a, b, result, count);                                  \
+  void name##f64x##count(const double *HWY_RESTRICT a,                         \
+                         const double *HWY_RESTRICT b,                         \
+                         double *HWY_RESTRICT result) {                        \
+    return name##f64(a, b, result, count);                                     \
   }
 
 #define define_array_ter_op_dynamic(name, count)                               \
-  void name##f32##x##count(                                          \
+  void name##f32##x##count(                                                    \
       const float *HWY_RESTRICT a, const float *HWY_RESTRICT b,                \
       const float *HWY_RESTRICT c, float *HWY_RESTRICT result) {               \
-    return name##f32(a, b, c, result, count);                                \
+    return name##f32(a, b, c, result, count);                                  \
   }                                                                            \
-  void name##f64x##count(                                            \
+  void name##f64x##count(                                                      \
       const double *HWY_RESTRICT a, const double *HWY_RESTRICT b,              \
       const double *HWY_RESTRICT c, double *HWY_RESTRICT result) {             \
-    return name##f64(a, b, c, result, count);                               \
+    return name##f64(a, b, c, result, count);                                  \
   }
 
 /* 64-bits */

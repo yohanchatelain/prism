@@ -1,3 +1,4 @@
+#include "tests/helper/common.h"
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -18,26 +19,28 @@
 #include "src/debug_vector-inl.h"
 #include "src/sr_vector-inl.h"
 
-#include "tests/helper/tests.h"
-
+#include "tests/helper/distance.h"
 #include "tests/helper/operator.h"
+
+#include "tests/helper/operator-inl.h"
+#include "tests/helper/tests-inl.h"
 
 HWY_BEFORE_NAMESPACE(); // at file scope
 
 namespace sr::vector::HWY_NAMESPACE {
 
 namespace hn = hwy::HWY_NAMESPACE;
-namespace dbg = prism::vector::HWY_NAMESPACE;
-namespace helper_hwy = prism::tests::helper::HWY_NAMESPACE;
+namespace helper_simd = prism::tests::helper::HWY_NAMESPACE;
 namespace helper = prism::tests::helper;
+namespace test = prism::tests::helper::generic::HWY_NAMESPACE;
 
 namespace reference {
 
 // DekkerProd reference
 // compute in double precision if the input type is float
 // compute in quad precision if the input type is double
-template <typename T, typename R = typename helper::IEEE754<T>::H>
-auto dekkerprod(T a, T b) -> R {
+template <typename T, typename H = typename helper::IEEE754<T>::H>
+auto dekkerprod(T a, T b) -> H {
   std::vector<T> args = {a, b};
   return helper::reference::mul(args);
 }
@@ -58,7 +61,7 @@ then the floating-point numbers r1 and r2 returned by Algorithm 4.10 satisfy:
 2. In any case, |xy − (r1 + r2)| ≤ 7/2 . β^(emin − p + 1).
 */
 template <typename T, typename H>
-bool is_correct(const H x, const H y, const H r1, const H r2) {
+auto is_correct(const H x, const H y, const H r1, const H r2) -> bool {
   constexpr auto emin_p_1 = helper::IEEE754<T>::min_exponent_subnormal;
   constexpr auto beta_emin_p_1 = helper::IEEE754<T>::min_subnormal;
   constexpr auto ulp = helper::IEEE754<T>::ulp;
@@ -74,7 +77,7 @@ bool is_correct(const H x, const H y, const H r1, const H r2) {
   return case1 ? (rel_error < ulp) or (abs_error < 2 * beta_emin_p_1) : case2;
 }
 
-template <typename T1, typename T2> bool is_not_finite(T1 a, T2 b) {
+template <typename T1, typename T2> auto is_not_finite(T1 a, T2 b) -> bool {
   if (helper::isnan(a) and helper::isnan(b)) {
     return true;
   }
@@ -99,10 +102,10 @@ void is_close(D d, T a, T b) {
 
   sr::DekkerProd(d, va, vb, vpi_hi, vpi_lo);
 
-  H ah = static_cast<H>(helper_hwy::extract_unique_lane(d, va));
-  H bh = static_cast<H>(helper_hwy::extract_unique_lane(d, vb));
-  H pi_hi = static_cast<H>(helper_hwy::extract_unique_lane(d, vpi_hi));
-  H pi_lo = static_cast<H>(helper_hwy::extract_unique_lane(d, vpi_lo));
+  H ah = static_cast<H>(helper_simd::extract_unique_lane(d, va));
+  H bh = static_cast<H>(helper_simd::extract_unique_lane(d, vb));
+  H pi_hi = static_cast<H>(helper_simd::extract_unique_lane(d, vpi_hi));
+  H pi_lo = static_cast<H>(helper_simd::extract_unique_lane(d, vpi_lo));
   H target = pi_hi + pi_lo;
 
   if (is_not_finite(target, ref_cast)) {
@@ -124,98 +127,59 @@ void is_close(D d, T a, T b) {
               << "abs_diff : " << helper::hexfloat(abs_diff) << "\n"
               << "rel_diff : " << helper::hexfloat(abs_rel) << std::endl;
   }
-  HWY_ASSERT(correct);
+  HWY_ASSERT(correct); // NOLINT
 }
 
-template <class D, typename T = hn::TFromD<D>> void do_test(D d, T a, T b) {
+template <class D, typename V = hn::VFromD<D>, typename T = hn::TFromD<D>>
+void do_test(D d, const helper::ConfigTest & /*unused*/,
+             std::tuple<V, V> &&args) {
+  const auto [va, vb] = args;
+  const auto a = helper_simd::extract_unique_lane(d, va);
+  const auto b = helper_simd::extract_unique_lane(d, vb);
   is_close(d, a, b);
-  is_close(d, a, -b);
-  is_close(d, -a, b);
-  is_close(d, -a, -b);
 }
 
-template <class D, typename T = hn::TFromD<D>>
-void do_test_rng(D d, const helper::Range &range1, const helper::Range &range2,
-                 const int repetitions = 100) {
-  helper::RNG rng{range1.start, range1.end};
-  helper::RNG rng2{range2.start, range2.end};
-  for (int i = 0; i < repetitions; i++) {
-    T a = rng();
-    T b = rng2();
-    do_test(d, a, b);
-  }
-}
-
-template <class D, typename T = hn::TFromD<D>>
-void do_test_binade(D d, const int n, const int repetitions = 10) {
-  auto start = std::ldexp(1.0, n);
-  auto end = std::ldexp(1.0, n + 1);
-  const auto range = helper::Range{start, end};
-  do_test_rng(d, range, range, repetitions);
-}
+constexpr auto arity = 2;
 
 struct TestDekkerProdBasicAssertions {
   template <typename T, typename D>
   HWY_NOINLINE void operator()(T /* unused */, D d) {
-    auto simple_case = helper::SimpleCase<T>();
-    for (const auto &a : simple_case) {
-      for (const auto &b : simple_case) {
-        do_test(d, a, b);
-      }
-    }
+    test::TestSimpleCase<arity>(do_test<D>, d);
   }
 };
 
 struct TestDekkerProdRandom01Assertions {
   template <typename T, typename D>
   HWY_NOINLINE void operator()(T /* unused */, D d) {
-    constexpr auto range1 = helper::Range{0.0, 1.0};
-    constexpr auto range2 = helper::Range{0.0, 1.0};
-    do_test_rng(d, range1, range2);
+    test::TestRandom01<arity>(do_test<D>, d);
   }
 };
 
 struct TestDekkerProdRandomNoOverlapAssertions {
   template <typename T, typename D>
   HWY_NOINLINE void operator()(T /* unused */, D d) {
-    constexpr auto start = std::is_same_v<T, float> ? 0x1p-24 : 0x1p-53;
-    constexpr auto end = std::is_same_v<T, float> ? 0x1p-25 : 0x1p-54;
-    constexpr auto range1 = helper::Range{0.0, 1.0};
-    constexpr auto range2 = helper::Range{start, end};
-    do_test_rng(d, range1, range2);
+    test::TestRandomNoOverlap<arity>(do_test<D>, d);
   }
 };
 
 struct TestDekkerProdRandomLastBitOverlapAssertions {
   template <typename T, typename D>
   HWY_NOINLINE void operator()(T /* unused */, D d) {
-    constexpr auto start = std::is_same_v<T, float> ? 0x1p-23 : 0x1p-52;
-    constexpr auto end = std::is_same_v<T, float> ? 0x1p-24 : 0x1p-53;
-    constexpr auto range1 = helper::Range{1.0, 2.0};
-    constexpr auto range2 = helper::Range{start, end};
-    do_test_rng(d, range1, range2);
+    test::TestRandomLastBitOverlap<arity>(do_test<D>, d);
   }
 };
 
 struct TestDekkerProdRandomMidOverlapAssertions {
   template <typename T, typename D>
   HWY_NOINLINE void operator()(T /* unused */, D d) {
-    constexpr auto start = std::is_same_v<T, float> ? 0x1p-12 : 0x1p-26;
-    constexpr auto end = std::is_same_v<T, float> ? 0x1p-13 : 0x1p-27;
-    constexpr auto range1 = helper::Range{0.0, 1.0};
-    constexpr auto range2 = helper::Range{start, end};
-    do_test_rng(d, range1, range2);
+    test::TestRandomMidOverlap<arity>(do_test<D>, d);
   }
 };
 
 struct TestDekkerProdBinadeAssertions {
   template <typename T, typename D>
   HWY_NOINLINE void operator()(T /* unused */, D d) {
-    constexpr auto start = std::is_same_v<T, float> ? -149 : -1074;
-    constexpr auto end = std::is_same_v<T, float> ? 127 : 1023;
-    for (int i = start; i < end; i++) {
-      do_test_binade(d, i);
-    }
+    test::TestAllBinades<arity>(do_test<D>, d);
   }
 };
 

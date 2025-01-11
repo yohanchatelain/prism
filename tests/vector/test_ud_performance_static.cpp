@@ -8,9 +8,9 @@
 #include "hwy/tests/hwy_gtest.h"
 #include "hwy/tests/test_util-inl.h"
 
-#include "src/sr_vector.h"
+#include "src/ud_vector.h"
 
-namespace prism::sr::vector {
+namespace prism::ud::vector {
 
 constexpr size_t repetitions = 10000;
 
@@ -281,466 +281,466 @@ namespace static_dispatch {
 /* IEEE-754 binary32 x2 */
 const auto kVerbose = false;
 
-TEST(SRVectorBenchmark, SRAddF32x2Static) {
+TEST(UDVectorBenchmark, UDAddF32x2Static) {
 #if HWY_MAX_BYTES >= 8
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::addf32x2_v with " << N << " repetitions\n";
+  std::cout << "Measure function ud::addf32x2_v with " << N << " repetitions\n";
   MeasureFunctionX<2, float, f32x2_v>(&test_addf32x2_v, 2, kVerbose);
 #else
-  GTEST_SKIP() << "SRAddF32x2Static is not available";
+  GTEST_SKIP() << "UDAddF32x2Static is not available";
 #endif
 }
 
-TEST(SRVectorBenchmark, SRSubF32x2Static) {
+TEST(UDVectorBenchmark, UDSubF32x2Static) {
 #if HWY_MAX_BYTES >= 8
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::subf32x2_v with " << N << " repetitions\n";
+  std::cout << "Measure function ud::subf32x2_v with " << N << " repetitions\n";
   MeasureFunctionX<2, float, f32x2_v>(&test_subf32x2_v, 2, kVerbose);
 #else
-  GTEST_SKIP() << "SRSubF32x2Static is not available";
+  GTEST_SKIP() << "UDSubF32x2Static is not available";
 #endif
 }
 
-TEST(SRVectorBenchmark, SRMulF32x2Static) {
+TEST(UDVectorBenchmark, UDMulF32x2Static) {
 #if HWY_MAX_BYTES >= 8
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::mulf32x2_v with " << N << " repetitions\n";
+  std::cout << "Measure function ud::mulf32x2_v with " << N << " repetitions\n";
   MeasureFunctionX<2, float, f32x2_v>(&test_mulf32x2_v, 2, kVerbose);
 #else
-  GTEST_SKIP() << "SRMulF32x2Static is not available";
+  GTEST_SKIP() << "UDMulF32x2Static is not available";
 #endif
 }
 
-TEST(SRVectorBenchmark, SRDivF32x2Static) {
+TEST(UDVectorBenchmark, UDDivF32x2Static) {
 #if HWY_MAX_BYTES >= 8
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::divf32x2_v with " << N << " repetitions\n";
+  std::cout << "Measure function ud::divf32x2_v with " << N << " repetitions\n";
   MeasureFunctionX<2, float, f32x2_v>(&test_divf32x2_v, 2, kVerbose);
 #else
-  GTEST_SKIP() << "SRDivF32x2Static is not available";
+  GTEST_SKIP() << "UDDivF32x2Static is not available";
 #endif
 }
 
-TEST(SRVectorBenchmark, SRSqrtF32x2Static) {
+TEST(UDVectorBenchmark, UDSqrtF32x2Static) {
 #if HWY_MAX_BYTES >= 8
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::sqrtf32x2_v with " << N
+  std::cout << "Measure function ud::sqrtf32x2_v with " << N
             << " repetitions\n";
   using Op = decltype(&test_sqrtf32x2_v);
   MeasureFunctionX<2, float, f32x2_v, Op, 1>(&test_sqrtf32x2_v, 2, kVerbose);
 #else
-  GTEST_SKIP() << "SRSqrtF32x2Static is not available";
+  GTEST_SKIP() << "UDSqrtF32x2Static is not available";
 #endif
 }
 
-TEST(SRVectorBenchmark, SRFmaF32x2Static) {
+TEST(UDVectorBenchmark, UDFmaF32x2Static) {
 #if HWY_MAX_BYTES >= 8
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::fmaf32x2_v with " << N << " repetitions\n";
+  std::cout << "Measure function ud::fmaf32x2_v with " << N << " repetitions\n";
   using Op = decltype(&test_fmaf32x2_v);
   MeasureFunctionX<2, float, f32x2_v, Op, 3>(&test_fmaf32x2_v, 2, kVerbose);
 #else
-  GTEST_SKIP() << "SRFmaF32x2Static is not available";
+  GTEST_SKIP() << "UDFmaF32x2Static is not available";
 #endif
 }
 
 /* IEEE-754 binary64 x2 */
-TEST(SRVectorBenchmark, SRAddF64x2Static) {
+TEST(UDVectorBenchmark, UDAddF64x2Static) {
 #if HWY_MAX_BYTES >= 16
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::addf64x2_v with " << N << " repetitions\n";
+  std::cout << "Measure function ud::addf64x2_v with " << N << " repetitions\n";
   MeasureFunctionX<2, double, f64x2_v>(&test_addf64x2_v, 2, kVerbose);
 #else
-  GTEST_SKIP() << "SRAddF64x2Static is not available";
+  GTEST_SKIP() << "UDAddF64x2Static is not available";
 #endif
 }
 
-TEST(SRVectorBenchmark, SRSubF64x2Static) {
+TEST(UDVectorBenchmark, UDSubF64x2Static) {
 #if HWY_MAX_BYTES >= 16
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::subf64x2_v with " << N << " repetitions\n";
+  std::cout << "Measure function ud::subf64x2_v with " << N << " repetitions\n";
   MeasureFunctionX<2, double, f64x2_v>(&test_subf64x2_v, 2, kVerbose);
 #else
-  GTEST_SKIP() << "SRSubF64x2Static is not available";
+  GTEST_SKIP() << "UDSubF64x2Static is not available";
 #endif
 }
 
-TEST(SRVectorBenchmark, SRMulF64x2Static) {
+TEST(UDVectorBenchmark, UDMulF64x2Static) {
 #if HWY_MAX_BYTES >= 16
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::mulf64x2_v with " << N << " repetitions\n";
+  std::cout << "Measure function ud::mulf64x2_v with " << N << " repetitions\n";
   MeasureFunctionX<2, double, f64x2_v>(&test_mulf64x2_v, 2, kVerbose);
 #else
-  GTEST_SKIP() << "SRMulF64x2Static is not available";
+  GTEST_SKIP() << "UDMulF64x2Static is not available";
 #endif
 }
 
-TEST(SRVectorBenchmark, SRDivF64x2Static) {
+TEST(UDVectorBenchmark, UDDivF64x2Static) {
 #if HWY_MAX_BYTES >= 16
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::divf64x2_v with " << N << " repetitions\n";
+  std::cout << "Measure function ud::divf64x2_v with " << N << " repetitions\n";
   MeasureFunctionX<2, double, f64x2_v>(&test_divf64x2_v, 2, kVerbose);
 #else
-  GTEST_SKIP() << "SRDivF64x2Static is not available";
+  GTEST_SKIP() << "UDDivF64x2Static is not available";
 #endif
 }
 
-TEST(SRVectorBenchmark, SRSqrtF64x2Static) {
+TEST(UDVectorBenchmark, UDSqrtF64x2Static) {
 #if HWY_MAX_BYTES >= 16
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::sqrtf64x2_v with " << N
+  std::cout << "Measure function ud::sqrtf64x2_v with " << N
             << " repetitions\n";
   using Op = decltype(&test_sqrtf64x2_v);
   MeasureFunctionX<2, double, f64x2_v, Op, 1>(&test_sqrtf64x2_v, 2, kVerbose);
 #else
-  GTEST_SKIP() << "SRSqrtF64x2Static is not available";
+  GTEST_SKIP() << "UDSqrtF64x2Static is not available";
 #endif
 }
 
-TEST(SRVectorBenchmark, SRFmaF64x2Static) {
+TEST(UDVectorBenchmark, UDFmaF64x2Static) {
 #if HWY_MAX_BYTES >= 16
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::fmaf64x2_v with " << N << " repetitions\n";
+  std::cout << "Measure function ud::fmaf64x2_v with " << N << " repetitions\n";
   using Op = decltype(&test_fmaf64x2_v);
   MeasureFunctionX<2, double, f64x2_v, Op, 3>(&test_fmaf64x2_v, 2, kVerbose);
 #else
-  GTEST_SKIP() << "SRFmaF64x2Static is not available";
+  GTEST_SKIP() << "UDFmaF64x2Static is not available";
 #endif
 }
 
 /* IEEE-754 binary32 x4 */
 
-TEST(SRVectorBenchmark, SRAddF32x4Static) {
+TEST(UDVectorBenchmark, UDAddF32x4Static) {
 #if HWY_MAX_BYTES >= 16
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::addf32x4_v with " << N << " repetitions\n";
+  std::cout << "Measure function ud::addf32x4_v with " << N << " repetitions\n";
   MeasureFunctionX<4, float, f32x4_v>(&test_addf32x4_v, 4, kVerbose);
 #else
-  GTEST_SKIP() << "SRAddF32x4Static is not available";
+  GTEST_SKIP() << "UDAddF32x4Static is not available";
 #endif
 }
 
-TEST(SRVectorBenchmark, SRSubF32x4Static) {
+TEST(UDVectorBenchmark, UDSubF32x4Static) {
 #if HWY_MAX_BYTES >= 16
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::subf32x4_v with " << N << " repetitions\n";
+  std::cout << "Measure function ud::subf32x4_v with " << N << " repetitions\n";
   MeasureFunctionX<4, float, f32x4_v>(&test_subf32x4_v, 4, kVerbose);
 #else
-  GTEST_SKIP() << "SRSubF32x4Static is not available";
+  GTEST_SKIP() << "UDSubF32x4Static is not available";
 #endif
 }
 
-TEST(SRVectorBenchmark, SRMulF32x4Static) {
+TEST(UDVectorBenchmark, UDMulF32x4Static) {
 #if HWY_MAX_BYTES >= 16
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::mulf32x4_v with " << N << " repetitions\n";
+  std::cout << "Measure function ud::mulf32x4_v with " << N << " repetitions\n";
   MeasureFunctionX<4, float, f32x4_v>(&test_mulf32x4_v, 4, kVerbose);
 #else
-  GTEST_SKIP() << "SRMulF32x4Static is not available";
+  GTEST_SKIP() << "UDMulF32x4Static is not available";
 #endif
 }
 
-TEST(SRVectorBenchmark, SRDivF32x4Static) {
+TEST(UDVectorBenchmark, UDDivF32x4Static) {
 #if HWY_MAX_BYTES >= 16
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::divf32x4_v with " << N << " repetitions\n";
+  std::cout << "Measure function ud::divf32x4_v with " << N << " repetitions\n";
   MeasureFunctionX<4, float, f32x4_v>(&test_divf32x4_v, 4, kVerbose);
 #else
-  GTEST_SKIP() << "SRDivF32x4Static is not available";
+  GTEST_SKIP() << "UDDivF32x4Static is not available";
 #endif
 }
 
-TEST(SRVectorBenchmark, SRSqrtF32x4Static) {
+TEST(UDVectorBenchmark, UDSqrtF32x4Static) {
 #if HWY_MAX_BYTES >= 16
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::sqrtf32x4_v with " << N
+  std::cout << "Measure function ud::sqrtf32x4_v with " << N
             << " repetitions\n";
   using Op = decltype(&test_sqrtf32x4_v);
   MeasureFunctionX<4, float, f32x4_v, Op, 1>(&test_sqrtf32x4_v, 4, kVerbose);
 #else
-  GTEST_SKIP() << "SRSqrtF32x4Static is not available";
+  GTEST_SKIP() << "UDSqrtF32x4Static is not available";
 #endif
 }
 
-TEST(SRVectorBenchmark, SRFmaF32x4Static) {
+TEST(UDVectorBenchmark, UDFmaF32x4Static) {
 #if HWY_MAX_BYTES >= 16
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::fmaf32x4_v with " << N << " repetitions\n";
+  std::cout << "Measure function ud::fmaf32x4_v with " << N << " repetitions\n";
   using Op = decltype(&test_fmaf32x4_v);
   MeasureFunctionX<4, float, f32x4_v, Op, 3>(&test_fmaf32x4_v, 4, kVerbose);
 #else
-  GTEST_SKIP() << "SRFmaF32x4Static is not available";
+  GTEST_SKIP() << "UDFmaF32x4Static is not available";
 #endif
 }
 
 /* IEEE-754 binary32 x8 */
 
-TEST(SRVectorBenchmark, SRAddF32x8Static) {
+TEST(UDVectorBenchmark, UDAddF32x8Static) {
 #if HWY_MAX_BYTES >= 32
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::addf32x8_v with " << N << " repetitions\n";
+  std::cout << "Measure function ud::addf32x8_v with " << N << " repetitions\n";
   MeasureFunctionX<8, float, f32x8_v>(&test_addf32x8_v, 8, kVerbose);
 #else
-  GTEST_SKIP() << "SRAddF32x8Static is not available";
+  GTEST_SKIP() << "UDAddF32x8Static is not available";
 #endif
 }
 
-TEST(SRVectorBenchmark, SRSubF32x8Static) {
+TEST(UDVectorBenchmark, UDSubF32x8Static) {
 #if HWY_MAX_BYTES >= 32
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::subf32x8_v with " << N << " repetitions\n";
+  std::cout << "Measure function ud::subf32x8_v with " << N << " repetitions\n";
   MeasureFunctionX<8, float, f32x8_v>(&test_subf32x8_v, 8, kVerbose);
 #else
-  GTEST_SKIP() << "SRSubF32x8Static is not available";
+  GTEST_SKIP() << "UDSubF32x8Static is not available";
 #endif
 }
 
-TEST(SRVectorBenchmark, SRMulF32x8Static) {
+TEST(UDVectorBenchmark, UDMulF32x8Static) {
 #if HWY_MAX_BYTES >= 32
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::mulf32x8_v with " << N << " repetitions\n";
+  std::cout << "Measure function ud::mulf32x8_v with " << N << " repetitions\n";
   MeasureFunctionX<8, float, f32x8_v>(&test_mulf32x8_v, 8, kVerbose);
 #else
-  GTEST_SKIP() << "SRMulF32x8Static is not available";
+  GTEST_SKIP() << "UDMulF32x8Static is not available";
 #endif
 }
 
-TEST(SRVectorBenchmark, SRDivF32x8Static) {
+TEST(UDVectorBenchmark, UDDivF32x8Static) {
 #if HWY_MAX_BYTES >= 32
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::divf32x8_v with " << N << " repetitions\n";
+  std::cout << "Measure function ud::divf32x8_v with " << N << " repetitions\n";
   MeasureFunctionX<8, float, f32x8_v>(&test_divf32x8_v, 8, kVerbose);
 #else
-  GTEST_SKIP() << "SRDivF32x8Static is not available";
+  GTEST_SKIP() << "UDDivF32x8Static is not available";
 #endif
 }
 
-TEST(SRVectorBenchmark, SRSqrtF32x8Static) {
+TEST(UDVectorBenchmark, UDSqrtF32x8Static) {
 #if HWY_MAX_BYTES >= 32
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::sqrtf32x8_v with " << N
+  std::cout << "Measure function ud::sqrtf32x8_v with " << N
             << " repetitions\n";
   using Op = decltype(&test_sqrtf32x8_v);
   MeasureFunctionX<8, float, f32x8_v, Op, 1>(&test_sqrtf32x8_v, 8, kVerbose);
 #else
-  GTEST_SKIP() << "SRSqrtF32x8Static is not available";
+  GTEST_SKIP() << "UDSqrtF32x8Static is not available";
 #endif
 }
 
-TEST(SRVectorBenchmark, SRFmaF32x8Static) {
+TEST(UDVectorBenchmark, UDFmaF32x8Static) {
 #if HWY_MAX_BYTES >= 32
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::fmaf32x8_v with " << N << " repetitions\n";
+  std::cout << "Measure function ud::fmaf32x8_v with " << N << " repetitions\n";
   using Op = decltype(&test_fmaf32x8_v);
   MeasureFunctionX<8, float, f32x8_v, Op, 3>(&test_fmaf32x8_v, 8, kVerbose);
 #else
-  GTEST_SKIP() << "SRFmaF32x8Static is not available";
+  GTEST_SKIP() << "UDFmaF32x8Static is not available";
 #endif
 }
 
 /* IEEE-754 binary64 x4 */
 
-TEST(SRVectorBenchmark, SRAddF64x4Static) {
+TEST(UDVectorBenchmark, UDAddF64x4Static) {
 #if HWY_MAX_BYTES >= 32
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::addf64x4_v with " << N << " repetitions\n";
+  std::cout << "Measure function ud::addf64x4_v with " << N << " repetitions\n";
   MeasureFunctionX<4, double, f64x4_v>(&test_addf64x4_v, 4, kVerbose);
 #else
-  GTEST_SKIP() << "SRAddF64x4Static is not available";
+  GTEST_SKIP() << "UDAddF64x4Static is not available";
 #endif
 }
 
-TEST(SRVectorBenchmark, SRSubF64x4Static) {
+TEST(UDVectorBenchmark, UDSubF64x4Static) {
 #if HWY_MAX_BYTES >= 32
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::subf64x4_v with " << N << " repetitions\n";
+  std::cout << "Measure function ud::subf64x4_v with " << N << " repetitions\n";
   MeasureFunctionX<4, double, f64x4_v>(&test_subf64x4_v, 4, kVerbose);
 #else
-  GTEST_SKIP() << "SRSubF64x4Static is not available";
+  GTEST_SKIP() << "UDSubF64x4Static is not available";
 #endif
 }
 
-TEST(SRVectorBenchmark, SRMulF64x4Static) {
+TEST(UDVectorBenchmark, UDMulF64x4Static) {
 #if HWY_MAX_BYTES >= 32
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::mulf64x4_v with " << N << " repetitions\n";
+  std::cout << "Measure function ud::mulf64x4_v with " << N << " repetitions\n";
   MeasureFunctionX<4, double, f64x4_v>(&test_mulf64x4_v, 4, kVerbose);
 #else
-  GTEST_SKIP() << "SRMulF64x4Static is not available";
+  GTEST_SKIP() << "UDMulF64x4Static is not available";
 #endif
 }
 
-TEST(SRVectorBenchmark, SRDivF64x4Static) {
+TEST(UDVectorBenchmark, UDDivF64x4Static) {
 #if HWY_MAX_BYTES >= 32
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::divf64x4_v with " << N << " repetitions\n";
+  std::cout << "Measure function ud::divf64x4_v with " << N << " repetitions\n";
   MeasureFunctionX<4, double, f64x4_v>(&test_divf64x4_v, 4, kVerbose);
 #else
-  GTEST_SKIP() << "SRDivF64x4Static is not available";
+  GTEST_SKIP() << "UDDivF64x4Static is not available";
 #endif
 }
 
-TEST(SRVectorBenchmark, SRSqrtF64x4Static) {
+TEST(UDVectorBenchmark, UDSqrtF64x4Static) {
 #if HWY_MAX_BYTES >= 32
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::sqrtf64x4_v with " << N
+  std::cout << "Measure function ud::sqrtf64x4_v with " << N
             << " repetitions\n";
   using Op = decltype(&test_sqrtf64x4_v);
   MeasureFunctionX<4, double, f64x4_v, Op, 1>(&test_sqrtf64x4_v, 4, kVerbose);
 #else
-  GTEST_SKIP() << "SRSqrtF64x4Static is not available";
+  GTEST_SKIP() << "UDSqrtF64x4Static is not available";
 #endif
 }
 
-TEST(SRVectorBenchmark, SRFmaF64x4Static) {
+TEST(UDVectorBenchmark, UDFmaF64x4Static) {
 #if HWY_MAX_BYTES >= 32
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::fmaf64x4_v with " << N << " repetitions\n";
+  std::cout << "Measure function ud::fmaf64x4_v with " << N << " repetitions\n";
   using Op = decltype(&test_fmaf64x4_v);
   MeasureFunctionX<4, double, f64x4_v, Op, 3>(&test_fmaf64x4_v, 4, kVerbose);
 #else
-  GTEST_SKIP() << "SRFmaF64x4Static is not available";
+  GTEST_SKIP() << "UDFmaF64x4Static is not available";
 #endif
 }
 
 /* IEEE-754 binary64 x8 */
 
-TEST(SRVectorBenchmark, SRAddF64x8Static) {
+TEST(UDVectorBenchmark, UDAddF64x8Static) {
 #if HWY_MAX_BYTES >= 64
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::addf64x8_v with " << N << " repetitions\n";
+  std::cout << "Measure function ud::addf64x8_v with " << N << " repetitions\n";
   MeasureFunctionX<8, double, f64x8_v>(&test_addf64x8_v, 8, kVerbose);
 #else
-  GTEST_SKIP() << "SRAddF64x8Static is not available";
+  GTEST_SKIP() << "UDAddF64x8Static is not available";
 #endif
 }
 
-TEST(SRVectorBenchmark, SRSubF64x8Static) {
+TEST(UDVectorBenchmark, UDSubF64x8Static) {
 #if HWY_MAX_BYTES >= 64
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::subf64x8_v with " << N << " repetitions\n";
+  std::cout << "Measure function ud::subf64x8_v with " << N << " repetitions\n";
   MeasureFunctionX<8, double, f64x8_v>(&test_subf64x8_v, 8, kVerbose);
 
 #else
-  GTEST_SKIP() << "SRSubF64x8Static is not available";
+  GTEST_SKIP() << "UDSubF64x8Static is not available";
 #endif
 }
 
-TEST(SRVectorBenchmark, SRMulF64x8Static) {
+TEST(UDVectorBenchmark, UDMulF64x8Static) {
 #if HWY_MAX_BYTES >= 64
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::mulf64x8_v with " << N << " repetitions\n";
+  std::cout << "Measure function ud::mulf64x8_v with " << N << " repetitions\n";
   MeasureFunctionX<8, double, f64x8_v>(&test_mulf64x8_v, 8, kVerbose);
 #else
-  GTEST_SKIP() << "SRMulF64x8Static is not available";
+  GTEST_SKIP() << "UDMulF64x8Static is not available";
 #endif
 }
 
-TEST(SRVectorBenchmark, SRDivF64x8Static) {
+TEST(UDVectorBenchmark, UDDivF64x8Static) {
 #if HWY_MAX_BYTES >= 64
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::divf64x8_v with " << N << " repetitions\n";
+  std::cout << "Measure function ud::divf64x8_v with " << N << " repetitions\n";
   MeasureFunctionX<8, double, f64x8_v>(&test_divf64x8_v, 8, kVerbose);
 #else
-  GTEST_SKIP() << "SRDivF64x8Static is not available";
+  GTEST_SKIP() << "UDDivF64x8Static is not available";
 #endif
 }
 
-TEST(SRVectorBenchmark, SRSqrtF64x8Static) {
+TEST(UDVectorBenchmark, UDSqrtF64x8Static) {
 #if HWY_MAX_BYTES >= 64
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::sqrtf64x8_v with " << N
+  std::cout << "Measure function ud::sqrtf64x8_v with " << N
             << " repetitions\n";
   using Op = decltype(&test_sqrtf64x8_v);
   MeasureFunctionX<8, double, f64x8_v, Op, 1>(&test_sqrtf64x8_v, 8, kVerbose);
 #else
-  GTEST_SKIP() << "SRSqrtF64x8Static is not available";
+  GTEST_SKIP() << "UDSqrtF64x8Static is not available";
 #endif
 }
 
-TEST(SRVectorBenchmark, SRFmaF64x8Static) {
+TEST(UDVectorBenchmark, UDFmaF64x8Static) {
 #if HWY_MAX_BYTES >= 64
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::fmaf64x8_v with " << N << " repetitions\n";
+  std::cout << "Measure function ud::fmaf64x8_v with " << N << " repetitions\n";
   using Op = decltype(&test_fmaf64x8_v);
   MeasureFunctionX<8, double, f64x8_v, Op, 3>(&test_fmaf64x8_v, 8, kVerbose);
 #else
-  GTEST_SKIP() << "SRFmaF64x8Static is not available";
+  GTEST_SKIP() << "UDFmaF64x8Static is not available";
 #endif
 }
 
 /* IEEE-754 binary32 x16 */
 
-TEST(SRVectorBenchmark, SRAddF32x16Static) {
+TEST(UDVectorBenchmark, UDAddF32x16Static) {
 #if HWY_MAX_BYTES >= 64
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::addf32x16_v with " << N
+  std::cout << "Measure function ud::addf32x16_v with " << N
             << " repetitions\n";
   MeasureFunctionX<16, float, f32x16_v>(&test_addf32x16_v, 16, kVerbose);
 #else
-  GTEST_SKIP() << "SRAddF32x16Static is not available";
+  GTEST_SKIP() << "UDAddF32x16Static is not available";
 #endif
 }
 
-TEST(SRVectorBenchmark, SRSubF32x16Static) {
+TEST(UDVectorBenchmark, UDSubF32x16Static) {
 #if HWY_MAX_BYTES >= 64
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::subf32x16_v with " << N
+  std::cout << "Measure function ud::subf32x16_v with " << N
             << " repetitions\n";
   MeasureFunctionX<16, float, f32x16_v>(&test_subf32x16_v, 16, kVerbose);
 #else
-  GTEST_SKIP() << "SRSubF32x16Static is not available";
+  GTEST_SKIP() << "UDSubF32x16Static is not available";
 #endif
 }
 
-TEST(SRVectorBenchmark, SRMulF32x16Static) {
+TEST(UDVectorBenchmark, UDMulF32x16Static) {
 #if HWY_MAX_BYTES >= 64
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::mulf32x16_v with " << N
+  std::cout << "Measure function ud::mulf32x16_v with " << N
             << " repetitions\n";
   MeasureFunctionX<16, float, f32x16_v>(&test_mulf32x16_v, 16, kVerbose);
 #else
-  GTEST_SKIP() << "SRMulF32x16Static is not available";
+  GTEST_SKIP() << "UDMulF32x16Static is not available";
 #endif
 }
 
-TEST(SRVectorBenchmark, SRDivF32x16Static) {
+TEST(UDVectorBenchmark, UDDivF32x16Static) {
 #if HWY_MAX_BYTES >= 64
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::divf32x16_v with " << N
+  std::cout << "Measure function ud::divf32x16_v with " << N
             << " repetitions\n";
   MeasureFunctionX<16, float, f32x16_v>(&test_divf32x16_v, 16, kVerbose);
 #else
-  GTEST_SKIP() << "SRDivF32x16Static is not available";
+  GTEST_SKIP() << "UDDivF32x16Static is not available";
 #endif
 }
 
-TEST(SRVectorBenchmark, SRSqrtF32x16Static) {
+TEST(UDVectorBenchmark, UDSqrtF32x16Static) {
 #if HWY_MAX_BYTES >= 64
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::sqrtf32x16_v with " << N
+  std::cout << "Measure function ud::sqrtf32x16_v with " << N
             << " repetitions\n";
   using Op = decltype(&test_sqrtf32x16_v);
   MeasureFunctionX<16, float, f32x16_v, Op, 1>(&test_sqrtf32x16_v, 16,
                                                kVerbose);
 #else
-  GTEST_SKIP() << "SRSqrtF32x16Static is not available";
+  GTEST_SKIP() << "UDSqrtF32x16Static is not available";
 #endif
 }
 
-TEST(SRVectorBenchmark, SRFmaF32x16Static) {
+TEST(UDVectorBenchmark, UDFmaF32x16Static) {
 #if HWY_MAX_BYTES >= 64
   constexpr size_t N = repetitions;
-  std::cout << "Measure function sr::fmaf32x16_v with " << N
+  std::cout << "Measure function ud::fmaf32x16_v with " << N
             << " repetitions\n";
   using Op = decltype(&test_fmaf32x16_v);
   MeasureFunctionX<16, float, f32x16_v, Op, 3>(&test_fmaf32x16_v, 16, kVerbose);
 #else
-  GTEST_SKIP() << "SRFmaF32x16Static is not available";
+  GTEST_SKIP() << "UDFmaF32x16Static is not available";
 #endif
 }
 }; // namespace static_dispatch
 
-} // namespace prism::sr::vector
+} // namespace prism::ud::vector
 
 // HYW_TEST_MAIN();1

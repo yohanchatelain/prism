@@ -1,4 +1,4 @@
-load("//:constants.bzl", "COPTS", "DEBUG_COPTS", "DYNAMIC_COPTS", "NATIVE_COPTS", "STATIC_COPTS")
+load("//:constants.bzl", "COPTS", "DEBUG_COPTS", "DYNAMIC_COPTS", "RANDOM_FULLBITS_COPTS", "RANDOM_PARTIALBITS_COPTS", "STATIC_COPTS")
 
 exports_files([
     "debug.h",
@@ -25,6 +25,10 @@ exports_files([
     "xoshiro_vector.cpp",
 ])
 
+# File groups
+
+# Xoshiro random number generator
+
 filegroup(
     name = "srcs-xoshiro",
     srcs = [
@@ -37,6 +41,8 @@ filegroup(
     visibility = ["//visibility:public"],
 )
 
+# PRISM API headers
+
 filegroup(
     name = "headers-prism",
     srcs = [
@@ -46,6 +52,8 @@ filegroup(
         "ud_vector.h",
     ],
 )
+
+# PRISM dynamic implementation
 
 filegroup(
     name = "srcs-prism-dynamic",
@@ -61,6 +69,8 @@ filegroup(
     visibility = ["//visibility:public"],
 )
 
+# PRISM static implementation
+
 filegroup(
     name = "srcs-prism-static",
     srcs = glob(
@@ -75,17 +85,20 @@ filegroup(
     visibility = ["//visibility:public"],
 )
 
+# Libraries
+
+# Xoshiro random number generator
+
 cc_library(
     name = "prism-rng",
     srcs = [":srcs-xoshiro"],
     hdrs = ["xoshiro.h"],
-    copts = COPTS + [
-        "-DHWY_COMPILE_ALL_ATTAINABLE",
-        "-g",
-    ],
+    copts = COPTS + DYNAMIC_COPTS + DEBUG_COPTS,
     visibility = ["//visibility:public"],
     deps = ["@hwy"],
 )
+
+# PRISM dynamic dispatch library
 
 cc_library(
     name = "prism-dynamic",
@@ -93,9 +106,7 @@ cc_library(
     hdrs = [":headers-prism"],
     copts = COPTS + DYNAMIC_COPTS,
     visibility = ["//visibility:public"],
-    deps = [
-        "@hwy",
-    ],
+    deps = ["@hwy"],
 )
 
 cc_library(
@@ -105,48 +116,58 @@ cc_library(
     copts = COPTS + DYNAMIC_COPTS + DEBUG_COPTS,
     linkopts = ["-fsanitize=address"],
     visibility = ["//visibility:public"],
-    deps = [
-        "@hwy",
-    ],
+    deps = ["@hwy"],
 )
 
-# Version of the dynamic library that uses full bits for random numbers.
+# PRISM dynamic library using full bits for random numbers.
+
 cc_library(
     name = "prism-dynamic-fullbits",
     srcs = [":srcs-prism-dynamic"],
     hdrs = [":headers-prism"],
-    copts = COPTS + DYNAMIC_COPTS + [
-        "-DPRISM_UD_RANDOM_FULLBITS",
-    ],
+    copts = COPTS + DYNAMIC_COPTS + RANDOM_FULLBITS_COPTS,
     visibility = ["//visibility:public"],
-    deps = [
-        "@hwy",
-    ],
+    deps = ["@hwy"],
 )
 
 cc_library(
     name = "prism-dynamic-fullbits-dbg",
     srcs = [":srcs-prism-dynamic"],
     hdrs = [":headers-prism"],
-    copts = COPTS + DYNAMIC_COPTS + DEBUG_COPTS + [
-        "-DPRISM_UD_RANDOM_FULLBITS",
-    ],
+    copts = COPTS + DYNAMIC_COPTS + DEBUG_COPTS + RANDOM_FULLBITS_COPTS,
     linkopts = ["-fsanitize=address"],
     visibility = ["//visibility:public"],
-    deps = [
-        "@hwy",
-    ],
+    deps = ["@hwy"],
 )
+
+cc_library(
+    name = "prism-dynamic-partialbits",
+    srcs = [":srcs-prism-dynamic"],
+    hdrs = [":headers-prism"],
+    copts = COPTS + DYNAMIC_COPTS + RANDOM_PARTIALBITS_COPTS,
+    visibility = ["//visibility:public"],
+    deps = ["@hwy"],
+)
+
+cc_library(
+    name = "prism-dynamic-partialbits-dbg",
+    srcs = [":srcs-prism-dynamic"],
+    hdrs = [":headers-prism"],
+    copts = COPTS + DYNAMIC_COPTS + DEBUG_COPTS + RANDOM_PARTIALBITS_COPTS,
+    linkopts = ["-fsanitize=address"],
+    visibility = ["//visibility:public"],
+    deps = ["@hwy"],
+)
+
+# PRISM static dispatch library
 
 cc_library(
     name = "prism-static",
     srcs = [":srcs-prism-static"],
     hdrs = [":headers-prism"],
-    copts = COPTS + NATIVE_COPTS,
+    copts = COPTS + STATIC_COPTS,
     visibility = ["//visibility:public"],
-    deps = [
-        "@hwy",
-    ],
+    deps = ["@hwy"],
 )
 
 cc_library(
@@ -156,9 +177,28 @@ cc_library(
     copts = COPTS + STATIC_COPTS + DEBUG_COPTS,
     linkopts = ["-fsanitize=address"],
     visibility = ["//visibility:public"],
-    deps = [
-        "@hwy",
-    ],
+    deps = ["@hwy"],
+)
+
+# PRISM static library using full bits for random numbers.
+
+cc_library(
+    name = "prism-static-partialbits",
+    srcs = [":srcs-prism-static"],
+    hdrs = [":headers-prism"],
+    copts = COPTS + STATIC_COPTS + RANDOM_PARTIALBITS_COPTS,
+    visibility = ["//visibility:public"],
+    deps = ["@hwy"],
+)
+
+cc_library(
+    name = "prism-static-partialbits-dbg",
+    srcs = [":srcs-prism-static"],
+    hdrs = [":headers-prism"],
+    copts = COPTS + STATIC_COPTS + DEBUG_COPTS + RANDOM_PARTIALBITS_COPTS,
+    linkopts = ["-fsanitize=address"],
+    visibility = ["//visibility:public"],
+    deps = ["@hwy"],
 )
 
 filegroup(

@@ -41,7 +41,6 @@ struct ConfigTest {
   std::string name;
   std::string description;
   int repetitions;
-  int distribution_tests_counter;
   double alpha;
 };
 

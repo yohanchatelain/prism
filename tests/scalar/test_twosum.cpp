@@ -4,18 +4,13 @@
 #include <iostream>
 
 #include <gtest/gtest.h>
-#include <type_traits>
 
 #include "src/eft.h"
 
-#include "tests/helper/common.h"
-#include "tests/helper/tests.h"
-
 #include "tests/helper/distance.h"
 #include "tests/helper/operator.h"
-#include "tests/helper/random.h"
+#include "tests/helper/tests.h"
 
-namespace helper_hwy = prism::tests::helper::HWY_NAMESPACE;
 namespace helper = prism::tests::helper;
 
 namespace reference {
@@ -52,8 +47,8 @@ void is_close(T a, T b) {
     return;
   }
 
-  auto diff = helper_hwy::absolute_distance(ref - target);
-  auto rel = helper_hwy::relative_distance(ref, target);
+  auto diff = helper::absolute_distance(ref - target);
+  auto rel = helper::relative_distance(ref, target);
   constexpr auto half_ulp = .5 * helper::IEEE754<T>::ulp;
 
   auto correct = rel <= half_ulp;
