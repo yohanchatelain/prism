@@ -1,7 +1,3 @@
-
-#include "src/debug.h"
-// #include "src/ud_scalar.h"
-
 // Generates code for every target that this compiler can support.
 #undef HWY_TARGET_INCLUDE
 #define HWY_TARGET_INCLUDE "src/ud_scalar_dynamic.cpp" // this file

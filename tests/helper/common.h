@@ -56,17 +56,17 @@ struct Operator {
 
   explicit Operator(const std::string &name) {
     const auto &name_lower = to_lower(name);
-    if (name == "add") {
+    if (name_lower == "add") {
       _type = Type::Add;
-    } else if (name == "sub") {
+    } else if (name_lower == "sub") {
       _type = Type::Sub;
-    } else if (name == "mul") {
+    } else if (name_lower == "mul") {
       _type = Type::Mul;
-    } else if (name == "div") {
+    } else if (name_lower == "div") {
       _type = Type::Div;
-    } else if (name == "sqrt") {
+    } else if (name_lower == "sqrt") {
       _type = Type::Sqrt;
-    } else if (name == "fma") {
+    } else if (name_lower == "fma") {
       _type = Type::Fma;
     } else {
       _type = Type::Unknown;

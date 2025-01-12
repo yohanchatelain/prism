@@ -132,9 +132,6 @@ cc_test_lib_gen(
     size = "medium",
     src = [":test_threads.cpp"],
     copts = DYNAMIC_COPTS,
-    linkopts = [
-        "-fsanitize=address",
-    ],
     mode = "dynamic",
 )
 
@@ -144,9 +141,6 @@ cc_test_lib_gen(
     src = [":test_threads.cpp"],
     copts = STATIC_COPTS,
     dbg = True,
-    linkopts = [
-        "-fsanitize=address",
-    ],
     mode = "static",
 )
 
@@ -165,7 +159,7 @@ cc_test_lib_gen(
 cc_test_lib_gen(
     name = "sr-perf-static",
     size = "medium",
-    src = [":test_sr_performance_static.cpp"],
+    src = [":test_sr_performance.cpp"],
     copts = STATIC_COPTS,
     mode = "static",
 )
@@ -175,7 +169,7 @@ cc_test_lib_gen(
 cc_test_lib_gen(
     name = "ud-perf-dynamic",
     size = "medium",
-    src = [":test_ud_performance_dynamic.cpp"],
+    src = [":test_ud_performance.cpp"],
     copts = DYNAMIC_COPTS,
     mode = "dynamic",
 )
@@ -183,7 +177,7 @@ cc_test_lib_gen(
 cc_test_lib_gen(
     name = "ud-perf-static",
     size = "medium",
-    src = [":test_ud_performance_static.cpp"],
+    src = [":test_ud_performance.cpp"],
     copts = STATIC_COPTS,
     mode = "static",
 )
@@ -213,6 +207,8 @@ test_suite(
     name = "all",
     tests = [
         ":sr-accuracy",
+        ":sr-perf-dynamic",
+        ":sr-perf-static",
         ":test_dekkerprod",
         ":test_fma",
         ":test_get_exponent",
@@ -224,6 +220,8 @@ test_suite(
         ":thread-static",
         ":ud-accuracy",
         ":ud-accuracy-fullbits",
+        ":ud-perf-dynamic",
+        ":ud-perf-static",
         ":xoshiro",
         ":xoshiro-api",
     ],

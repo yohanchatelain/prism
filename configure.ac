@@ -41,6 +41,17 @@ fi
 AC_DEFINE_UNQUOTED([CLANGXX_PATH], ["$CLANGXX"], [CLANGXX path])
 AC_SUBST(CLANGXX_PATH, $CLANGXX)
 
+AC_PATH_PROG([LLVMLINK], [llvm-link], "", $LLVM_BINDIR/ $PATH)
+if test -z "$LLVMLINK"; then
+   AC_PATH_PROGS([LLVMLINK], [llvm-link-"$LLVM_VERSION_MAJOR"."$LLVM_VERSION_MINOR" llvm-link], "")
+fi
+if test -z "$LLVMLINK"; then
+  AC_MSG_ERROR([Could not find llvm-link])
+fi
+AC_DEFINE_UNQUOTED([LLVMLINK_PATH], ["$LLVMLINK"], [LLVMLINK path])
+AC_SUBST(LLVMLINK_PATH, $LLVMLINK)
+
+
 # Check for parallel (required for the test infrastructure)
 AC_PATH_PROG(PARALLEL, [parallel], [])
 if test -z "$PARALLEL"; then

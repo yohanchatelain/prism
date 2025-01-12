@@ -2,6 +2,7 @@
 
 CC=@CLANG_PATH@
 CXX=@CLANGXX_PATH@
+LINK=@LLVMLINK_PATH@
 
 BAZEL=@BAZEL@
 
@@ -38,25 +39,25 @@ INCLUDE="-I. -I$HWY_INCLUDE_PATH"
 CXXFLAGS="-S -emit-llvm -O2 -UPRISM_DEBUG -std=c++17"
 
 # Baseline target
-$CXX $CXXFLAGS $INCLUDE src/ud_scalar.cpp -o ud_scalar.ll &
-$CXX $CXXFLAGS $INCLUDE src/sr_scalar.cpp -o sr_scalar.ll &
+$CXX $CXXFLAGS $INCLUDE -DPRISM_DISPATCH=dynamic_dispatch src/ud_scalar_dynamic.cpp -o ud_scalar_dynamic.ll &
+$CXX $CXXFLAGS $INCLUDE -DPRISM_DISPATCH=dynamic_dispatch src/sr_scalar_dynamic.cpp -o sr_scalar_dynamic.ll &
 
-$CXX $CXXFLAGS $INCLUDE src/ud_vector.cpp -o ud_vector.ll &
-$CXX $CXXFLAGS $INCLUDE src/sr_vector.cpp -o sr_vector.ll &
+$CXX $CXXFLAGS $INCLUDE -DPRISM_DISPATCH=dynamic_dispatch src/ud_vector_dynamic.cpp -o ud_vector_dynamic.ll &
+$CXX $CXXFLAGS $INCLUDE -DPRISM_DISPATCH=dynamic_dispatch src/sr_vector_dynamic.cpp -o sr_vector_dynamic.ll &
 
 # Native target
 CXXFLAGS+=" -march=native -DHWY_COMPILE_ONLY_STATIC "
 
-$CXX $CXXFLAGS $INCLUDE src/ud_scalar.cpp -o ud_scalar-native.ll &
-$CXX $CXXFLAGS $INCLUDE src/sr_scalar.cpp -o sr_scalar-native.ll &
+$CXX $CXXFLAGS $INCLUDE -DPRISM_DISPATCH=static_dispatch src/ud_scalar_static.cpp -o ud_scalar_static.ll &
+$CXX $CXXFLAGS $INCLUDE -DPRISM_DISPATCH=static_dispatch src/sr_scalar_static.cpp -o sr_scalar_static.ll &
 
-$CXX $CXXFLAGS $INCLUDE src/ud_vector.cpp -o ud_vector-native.ll &
-$CXX $CXXFLAGS $INCLUDE src/sr_vector.cpp -o sr_vector-native.ll &
-
-$LINK -S ud_scalar.ll sr_scalar.ll ud_vector.ll sr_vector.ll -o prism.ll
-$LINK -S ud_scalar-native.ll sr_scalar-native.ll ud_vector-native.ll sr_vector-native.ll -o prism-native.ll
+$CXX $CXXFLAGS $INCLUDE -DPRISM_DISPATCH=static_dispatch src/ud_vector_static.cpp -o ud_vector_static.ll &
+$CXX $CXXFLAGS $INCLUDE -DPRISM_DISPATCH=static_dispatch src/sr_vector_static.cpp -o sr_vector_static.ll &
 
 wait
 
+$LINK -S {ud,sr}_{scalar,vector}_dynamic.ll -o prism-dynamic.ll
+$LINK -S {ud,sr}_{scalar,vector}_static.ll -o prism-static.ll
+
 echo "Copying headers to $INSTALL_INCLUDE_PREFIX"
-cp *_vector.ll *_vector-native.ll $INSTALL_INCLUDE_PREFIX
+cp prism-dynamic.ll prism-static.ll $INSTALL_INCLUDE_PREFIX

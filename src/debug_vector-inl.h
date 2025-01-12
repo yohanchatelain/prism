@@ -5,6 +5,8 @@
 #define PRISM_DEBUG_VECTOR_INL_H_
 #endif
 
+#include <cstdint>
+
 #include "hwy/highway.h"
 #include "hwy/print-inl.h"
 

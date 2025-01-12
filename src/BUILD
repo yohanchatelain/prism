@@ -115,7 +115,6 @@ cc_library(
     srcs = [":srcs-prism-dynamic"],
     hdrs = [":headers-prism"],
     copts = COPTS + DYNAMIC_COPTS + DEBUG_COPTS,
-    linkopts = ["-fsanitize=address"],
     visibility = ["//visibility:public"],
     deps = ["@hwy"],
 )
@@ -136,7 +135,6 @@ cc_library(
     srcs = [":srcs-prism-dynamic"],
     hdrs = [":headers-prism"],
     copts = COPTS + DYNAMIC_COPTS + DEBUG_COPTS + RANDOM_FULLBITS_COPTS,
-    linkopts = ["-fsanitize=address"],
     visibility = ["//visibility:public"],
     deps = ["@hwy"],
 )
@@ -155,7 +153,6 @@ cc_library(
     srcs = [":srcs-prism-dynamic"],
     hdrs = [":headers-prism"],
     copts = COPTS + DYNAMIC_COPTS + DEBUG_COPTS + RANDOM_PARTIALBITS_COPTS,
-    linkopts = ["-fsanitize=address"],
     visibility = ["//visibility:public"],
     deps = ["@hwy"],
 )
@@ -176,7 +173,6 @@ cc_library(
     srcs = [":srcs-prism-static"],
     hdrs = [":headers-prism"],
     copts = COPTS + STATIC_COPTS + DEBUG_COPTS,
-    linkopts = ["-fsanitize=address"],
     visibility = ["//visibility:public"],
     deps = ["@hwy"],
 )
@@ -197,7 +193,6 @@ cc_library(
     srcs = [":srcs-prism-static"],
     hdrs = [":headers-prism"],
     copts = COPTS + STATIC_COPTS + DEBUG_COPTS + RANDOM_PARTIALBITS_COPTS,
-    linkopts = ["-fsanitize=address"],
     visibility = ["//visibility:public"],
     deps = ["@hwy"],
 )
