@@ -34,11 +34,6 @@
 
 HWY_BEFORE_NAMESPACE(); // required if not using HWY_ATTR
 
-#define PRISM_DEBUG_STATE PRISM_DEBUG
-#ifndef PRISM_DEBUG_XOSHIRO
-#undef PRISM_DEBUG
-#endif
-
 namespace hwy {
 
 namespace HWY_NAMESPACE { // required: unique per target
@@ -607,9 +602,5 @@ private:
 } // namespace hwy
 
 HWY_AFTER_NAMESPACE();
-
-#ifndef PRISM_DEBUG_XOSHIRO
-#define PRISM_DEBUG PRISM_DEBUG_STATE
-#endif
 
 #endif // HIGHWAY_HWY_CONTRIB_MATH_MATH_INL_H_

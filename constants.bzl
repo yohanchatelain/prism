@@ -3,10 +3,12 @@
 
 # Compiler options
 
+# Slow, but full-precision random number generation.
 RANDOM_FULLBITS_COPTS = [
     "-DPRISM_RANDOM_FULLBITS",
 ]
 
+# Fast, but partial-precision random number generation.
 RANDOM_PARTIALBITS_COPTS = [
     "-UPRISM_RANDOM_FULLBITS",
 ]
@@ -17,7 +19,7 @@ COPTS = [
     "-O2",
     "-Wall",
     "-Wno-psabi",
-] + RANDOM_FULLBITS_COPTS
+] + RANDOM_PARTIALBITS_COPTS
 
 NATIVE_COPTS = [
     "-march=native",
