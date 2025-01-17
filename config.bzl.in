@@ -1,0 +1,6 @@
+"""Configuration for the PRISM backend."""
+
+CC = "@CLANG_PATH@"
+CXX = "@CLANGXX_PATH@"
+LINK = "@LLVMLINK_PATH@"
+BAZEL = "@BAZEL@"

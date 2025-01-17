@@ -82,7 +82,6 @@ fi
 
 # Generate config files 
 AC_CONFIG_FILES([Makefile])
-AC_CONFIG_FILES([.bazelrc install.sh],
-                [chmod +x install.sh])
+AC_CONFIG_FILES([.bazelrc config.bzl])
 
 AC_OUTPUT
