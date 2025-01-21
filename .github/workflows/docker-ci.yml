@@ -12,7 +12,7 @@ on:
 
 jobs:
   llvm_latest:
-    runs-on: ubuntu:latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Install LLVM
@@ -26,9 +26,9 @@ jobs:
       - name: configure
         run: ./configure
       - name: make
-        uses: make
+        run: make
       - name: Run tests
-        uses: bazel test tests:all
+        run: bazel test tests:all
 
 
   llvm_all:
@@ -37,32 +37,32 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu:20.04
+          - os: ubuntu-20.04
             llvm: 7
-          - os: ubuntu:20.04
+          - os: ubuntu-20.04
             llvm: 8
-          - os: ubuntu:20.04
+          - os: ubuntu-20.04
             llvm: 9
-          - os: ubuntu:20.04
+          - os: ubuntu-20.04
             llvm: 10
-          - os: ubuntu:22.04
+          - os: ubuntu-22.04
             llvm: 11
-          - os: ubuntu:22.04
+          - os: ubuntu-22.04
             llvm: 12
-          - os: ubuntu:22.04
+          - os: ubuntu-22.04
             llvm: 13
-          - os: ubuntu:22.04
+          - os: ubuntu-22.04
             llvm: 14
-          - os: ubuntu:22.04
+          - os: ubuntu-22.04
             llvm: 15
-          - os: ubuntu:24.04
+          - os: ubuntu-24.04
             llvm: 16
-          - os: ubuntu:24.04
+          - os: ubuntu-24.04
             llvm: 17
-          - os: ubuntu:24.04
+          - os: ubuntu-24.04
             llvm: 18
     
-    runs-on: {{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - name: Install LLVM
@@ -76,6 +76,6 @@ jobs:
       - name: configure
         run: ./configure
       - name: make
-        uses: make
+        run: make
       - name: Run tests
-        uses: bazel test tests:all
+        run: bazel test tests:all
