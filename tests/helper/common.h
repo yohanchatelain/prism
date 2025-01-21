@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cctype>
 #include <string>
+#include <tuple>
 #include <type_traits>
 
 namespace prism::tests::helper {
