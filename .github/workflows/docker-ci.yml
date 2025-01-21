@@ -38,7 +38,7 @@ jobs:
 
 
   llvm_all:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.event_name == 'release'
     strategy:
       fail-fast: false
       matrix:
@@ -87,7 +87,5 @@ jobs:
         run: ./autogen.sh
       - name: configure
         run: ./configure
-      - name: make
-        run: make
       - name: Run tests
         run: bazel test tests:all
