@@ -20,7 +20,11 @@ jobs:
         with:
           version: "18"
       - name: Install Bazelisk
-        uses: bazelbuild/setup-bazelisk@v3        
+        uses: bazelbuild/setup-bazelisk@v3
+      - name: Set up environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libtinfo5
       - name: autogenerate
         run: ./autogen.sh
       - name: configure
@@ -71,6 +75,10 @@ jobs:
           version: ${{ matrix.llvm }}
       - name: Install Bazelisk
         uses: bazelbuild/setup-bazelisk@v3        
+      - name: Set up environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libtinfo5
       - name: autogenerate
         run: ./autogen.sh
       - name: configure
