@@ -1,0 +1,61 @@
+name: docker
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ '*' ]
+  pull_request:
+    branches: [ '*' ]
+  release:
+    types: [ published ]
+
+
+jobs:
+  docker:
+    if: github.event_name == 'pull_request'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu:20.04
+            llvm: 7
+          - os: ubuntu:20.04
+            llvm: 8
+          - os: ubuntu:20.04
+            llvm: 9
+          - os: ubuntu:20.04
+            llvm: 10
+          - os: ubuntu:22.04
+            llvm: 11
+          - os: ubuntu:22.04
+            llvm: 12
+          - os: ubuntu:22.04
+            llvm: 13
+          - os: ubuntu:22.04
+            llvm: 14
+          - os: ubuntu:22.04
+            llvm: 15
+          - os: ubuntu:24.04
+            llvm: 16
+          - os: ubuntu:24.04
+            llvm: 17
+          - os: ubuntu:24.04
+            llvm: 18
+    
+    runs-on: {{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install LLVM
+        uses: KyleMayes/install-llvm-action@v2.0.5
+        with:
+          version: ${{ matrix.llvm }}
+      - name: Install Bazelisk
+        uses: bazelbuild/setup-bazelisk@v3        
+      - name: autogenerate
+        run: ./autogen.sh
+      - name: configure
+        run: ./configure
+      - name: make
+        uses: make
+      - name: Run tests
+        uses: bazel test tests:all

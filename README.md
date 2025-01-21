@@ -36,7 +36,8 @@ This combination of features makes the library versatile for scientific computin
 ```bash
     ./autogen.sh
     ./configure
-    ./install.sh
+    make
+    make install
 ```
 
 ## Tests
