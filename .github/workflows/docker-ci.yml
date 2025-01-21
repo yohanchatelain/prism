@@ -22,9 +22,11 @@ jobs:
       - name: Install Bazelisk
         uses: bazelbuild/setup-bazelisk@v3
       - name: Set up environment
-        run: |
+        run: |          
           sudo apt-get update
-          sudo apt-get install -y libtinfo6
+          sudo apt-get install -y wget
+          wget http://ftp.us.debian.org/debian/pool/main/n/ncurses/libtinfo5_6.4-4_amd64.deb
+          sudo dpkg -i libtinfo5_6.4-4_amd64.deb
       - name: autogenerate
         run: ./autogen.sh
       - name: configure
@@ -78,7 +80,9 @@ jobs:
       - name: Set up environment
         run: |
           sudo apt-get update
-          sudo apt-get install -y libtinfo6
+          sudo apt-get install -y wget
+          wget http://ftp.us.debian.org/debian/pool/main/n/ncurses/libtinfo5_6.4-4_amd64.deb
+          sudo dpkg -i libtinfo5_6.4-4_amd64.deb
       - name: autogenerate
         run: ./autogen.sh
       - name: configure
