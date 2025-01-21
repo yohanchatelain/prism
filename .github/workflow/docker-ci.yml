@@ -11,7 +11,27 @@ on:
 
 
 jobs:
-  docker:
+  llvm_latest:
+    runs-on: ubuntu:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install LLVM
+        uses: KyleMayes/install-llvm-action@v2.0.5
+        with:
+          version: "18"
+      - name: Install Bazelisk
+        uses: bazelbuild/setup-bazelisk@v3        
+      - name: autogenerate
+        run: ./autogen.sh
+      - name: configure
+        run: ./configure
+      - name: make
+        uses: make
+      - name: Run tests
+        uses: bazel test tests:all
+
+
+  llvm_all:
     if: github.event_name == 'pull_request'
     strategy:
       fail-fast: false
