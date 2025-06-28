@@ -7,6 +7,7 @@
 
 #include <cstdlib>
 #include <execinfo.h>
+#include <memory>
 
 // First undef to prevent error when re-included.
 #undef HWY_TARGET_INCLUDE
@@ -27,7 +28,7 @@ HWY_BEFORE_NAMESPACE(); // at file scope
 namespace prism::scalar::xoshiro::HWY_NAMESPACE {
 
 namespace internal {
-thread_local RNG *rng = nullptr;
+thread_local std::unique_ptr<RNG> rng = nullptr;
 
 void debug(const char *fmt, ...) {
 #if PRISM_RNG_DEBUG
@@ -48,9 +49,9 @@ void init_rng(const std::uint64_t seed = get_user_seed(),
   debug("Target chosen: %s\n", hwy::TargetName(HWY_TARGET));
   assert(rng == nullptr);
 #endif
-  rng = new RNG(seed, tid);
+  rng = std::make_unique<RNG>(seed, tid);
 #if PRISM_RNG_DEBUG
-  debug("rng allocated at %p\n", (void *)rng);
+  debug("rng allocated at %p\n", (void *)rng.get());
 #endif
 }
 
@@ -58,7 +59,7 @@ auto get_rng() -> RNG * {
   if (rng == nullptr) {
     init_rng();
   }
-  return rng;
+  return rng.get();
 }
 }; // namespace internal
 
@@ -77,8 +78,8 @@ HWY_FLATTEN auto random() -> std::uint64_t {
 }
 
 HWY_FLATTEN auto randombit(std::uint64_t /* unused */) -> std::uint64_t {
-  static std::size_t idx = 0;
-  static std::uint64_t u = random();
+  thread_local std::size_t idx = 0;
+  thread_local std::uint64_t u = random();
   if (idx == UINT64_WIDTH) {
     u = random();
     idx = 0;
@@ -87,8 +88,8 @@ HWY_FLATTEN auto randombit(std::uint64_t /* unused */) -> std::uint64_t {
 }
 
 HWY_FLATTEN auto randombit(std::uint32_t /* unused */) -> std::uint32_t {
-  static std::size_t idx = 0;
-  static std::uint64_t u = random();
+  thread_local std::size_t idx = 0;
+  thread_local std::uint64_t u = random();
   if (idx == UINT64_WIDTH) {
     u = random();
     idx = 0;
@@ -103,7 +104,7 @@ namespace prism::vector::xoshiro::HWY_NAMESPACE {
 namespace hn = hwy::HWY_NAMESPACE;
 namespace dbg = prism::vector::HWY_NAMESPACE;
 namespace internal {
-thread_local RNG *rng = nullptr;
+thread_local std::unique_ptr<RNG> rng = nullptr;
 
 void debug(const char *fmt, ...) {
 #if PRISM_RNG_DEBUG
@@ -124,10 +125,10 @@ void init_rng(const std::uint64_t seed = get_user_seed(),
   debug("Target chosen: %s\n", hwy::TargetName(HWY_TARGET));
   assert(rng == nullptr);
 #endif
-  rng = new RNG(seed, tid);
+  rng = std::make_unique<RNG>(seed, tid);
   assert(rng != nullptr);
 #if PRISM_RNG_DEBUG
-  debug("rng allocated at %p\n", (void *)rng);
+  debug("rng allocated at %p\n", (void *)rng.get());
 #endif
 }
 
@@ -136,7 +137,7 @@ auto get_rng() -> internal::RNG * {
     init_rng();
   }
   assert(rng != nullptr);
-  return rng;
+  return rng.get();
 }
 
 }; // namespace internal
@@ -162,8 +163,8 @@ HWY_FLATTEN auto random(std::uint64_t u) -> internal::VU64 {
 HWY_FLATTEN auto randombit(std::uint32_t u) -> internal::VU32 {
   constexpr auto u32_tag = hn::DFromV<internal::VU32>();
   const auto last_bit = hn::Set(u32_tag, UINT32_C(1));
-  static std::size_t idx = 0;
-  static auto u32 = random(u);
+  thread_local std::size_t idx = 0;
+  thread_local auto u32 = random(u);
   if (idx == UINT32_WIDTH) {
     u32 = random(u);
     idx = 0;
@@ -176,8 +177,8 @@ HWY_FLATTEN auto randombit(std::uint32_t u) -> internal::VU32 {
 HWY_FLATTEN auto randombit(std::uint64_t u) -> internal::VU64 {
   constexpr auto u64_tag = hn::DFromV<internal::VU64>();
   const auto last_bit = hn::Set(u64_tag, UINT64_C(1));
-  static std::size_t idx = 0;
-  static auto u64 = random(u);
+  thread_local std::size_t idx = 0;
+  thread_local auto u64 = random(u);
   if (idx == UINT64_WIDTH) {
     u64 = random(u);
     idx = 0;

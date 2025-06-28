@@ -129,9 +129,10 @@ auto get_exponent(T a) -> I {
   debug_print("bias = %d\n", bias);
   debug_print("mantissa = %d\n", mantissa);
   debug_print("exponent_mask = %d\n", exponent_mask);
-  I *a_bits = reinterpret_cast<I *>(&a);
+  I a_bits;
+  std::memcpy(&a_bits, &a, sizeof(T));
   debug_print("a = 0x%016x\n", a_bits);
-  const auto raw_exp = ((*a_bits) & exponent_mask) >> mantissa;
+  const auto raw_exp = (a_bits & exponent_mask) >> mantissa;
   debug_print("raw exponent = %d\n", raw_exp);
   const I exp = raw_exp - bias;
   debug_print("get_exponent(%.13a) = %d\n", a, exp);

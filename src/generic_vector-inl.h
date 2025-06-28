@@ -41,11 +41,13 @@ HWY_FLATTEN void _round(const T *HWY_RESTRICT sigma, const T *HWY_RESTRICT tau,
   const D d{};
   const size_t N = hn::Lanes(d);
 
-  for (size_t i = 0; i <= count; i += N) {
-    auto sigma_vec = hn::LoadN(d, sigma + i, count - i);
-    auto tau_vec = hn::LoadN(d, tau + i, count - i);
+  for (size_t i = 0; i < count; i += N) {
+    const size_t remaining = count - i;
+    const size_t lanes = remaining < N ? remaining : N;
+    auto sigma_vec = hn::LoadN(d, sigma + i, lanes);
+    auto tau_vec = hn::LoadN(d, tau + i, lanes);
     auto res = pr::round(d, sigma_vec, tau_vec);
-    hn::StoreN(res, d, result + i, count - i);
+    hn::StoreN(res, d, result + i, lanes);
   }
 }
 #elif PRISM_PR_MODE == PRISM_UD_MODE
@@ -56,10 +58,12 @@ HWY_INLINE void _round(const T *HWY_RESTRICT a, T *HWY_RESTRICT result,
   const D d{};
   const size_t N = hn::Lanes(d);
 
-  for (size_t i = 0; i <= count; i += N) {
-    auto a_vec = hn::LoadN(d, a + i, count - i);
+  for (size_t i = 0; i < count; i += N) {
+    const size_t remaining = count - i;
+    const size_t lanes = remaining < N ? remaining : N;
+    auto a_vec = hn::LoadN(d, a + i, lanes);
     auto res = pr::round(d, a_vec);
-    hn::StoreN(res, d, result + i, count - i);
+    hn::StoreN(res, d, result + i, lanes);
   }
 }
 #else
@@ -73,11 +77,13 @@ HWY_FLATTEN void _add(const T *HWY_RESTRICT a, const T *HWY_RESTRICT b,
   const D d{};
   const size_t N = hn::Lanes(d);
 
-  for (size_t i = 0; i <= count; i += N) {
-    auto a_vec = hn::LoadN(d, a + i, count - i);
-    auto b_vec = hn::LoadN(d, b + i, count - i);
+  for (size_t i = 0; i < count; i += N) {
+    const size_t remaining = count - i;
+    const size_t lanes = remaining < N ? remaining : N;
+    auto a_vec = hn::LoadN(d, a + i, lanes);
+    auto b_vec = hn::LoadN(d, b + i, lanes);
     auto res = pr::add(d, a_vec, b_vec);
-    hn::StoreN(res, d, result + i, count - i);
+    hn::StoreN(res, d, result + i, lanes);
   }
 }
 
@@ -87,11 +93,13 @@ HWY_FLATTEN void _sub(const T *HWY_RESTRICT a, const T *HWY_RESTRICT b,
   using D = hn::ScalableTag<T>;
   const D d{};
   const size_t N = hn::Lanes(d);
-  for (size_t i = 0; i <= count; i += N) {
-    auto a_vec = hn::LoadN(d, a + i, count - i);
-    auto b_vec = hn::LoadN(d, b + i, count - i);
+  for (size_t i = 0; i < count; i += N) {
+    const size_t remaining = count - i;
+    const size_t lanes = remaining < N ? remaining : N;
+    auto a_vec = hn::LoadN(d, a + i, lanes);
+    auto b_vec = hn::LoadN(d, b + i, lanes);
     auto res = pr::sub(d, a_vec, b_vec);
-    hn::StoreN(res, d, result + i, count - i);
+    hn::StoreN(res, d, result + i, lanes);
   }
 }
 
@@ -101,11 +109,13 @@ HWY_FLATTEN void _mul(const T *HWY_RESTRICT a, const T *HWY_RESTRICT b,
   using D = hn::ScalableTag<T>;
   const D d{};
   const size_t N = hn::Lanes(d);
-  for (size_t i = 0; i <= count; i += N) {
-    auto a_vec = hn::LoadN(d, a + i, count - i);
-    auto b_vec = hn::LoadN(d, b + i, count - i);
+  for (size_t i = 0; i < count; i += N) {
+    const size_t remaining = count - i;
+    const size_t lanes = remaining < N ? remaining : N;
+    auto a_vec = hn::LoadN(d, a + i, lanes);
+    auto b_vec = hn::LoadN(d, b + i, lanes);
     auto res = pr::mul(d, a_vec, b_vec);
-    hn::StoreN(res, d, result + i, count - i);
+    hn::StoreN(res, d, result + i, lanes);
   }
 }
 
@@ -116,11 +126,13 @@ HWY_FLATTEN void _div(const T *HWY_RESTRICT a, const T *HWY_RESTRICT b,
   const D d{};
   const size_t N = hn::Lanes(d);
 
-  for (size_t i = 0; i <= count; i += N) {
-    auto a_vec = hn::LoadN(d, a + i, count - i);
-    auto b_vec = hn::LoadN(d, b + i, count - i);
+  for (size_t i = 0; i < count; i += N) {
+    const size_t remaining = count - i;
+    const size_t lanes = remaining < N ? remaining : N;
+    auto a_vec = hn::LoadN(d, a + i, lanes);
+    auto b_vec = hn::LoadN(d, b + i, lanes);
     auto res = pr::div(d, a_vec, b_vec);
-    hn::StoreN(res, d, result + i, count - i);
+    hn::StoreN(res, d, result + i, lanes);
   }
 }
 
@@ -131,10 +143,12 @@ HWY_FLATTEN void _sqrt(const T *HWY_RESTRICT a, T *HWY_RESTRICT result,
   const D d{};
   const size_t N = hn::Lanes(d);
 
-  for (size_t i = 0; i <= count; i += N) {
-    auto a_vec = hn::LoadN(d, a + i, count - i);
+  for (size_t i = 0; i < count; i += N) {
+    const size_t remaining = count - i;
+    const size_t lanes = remaining < N ? remaining : N;
+    auto a_vec = hn::LoadN(d, a + i, lanes);
     auto res = pr::sqrt(d, a_vec);
-    hn::StoreN(res, d, result + i, count - i);
+    hn::StoreN(res, d, result + i, lanes);
   }
 }
 
@@ -146,12 +160,14 @@ HWY_FLATTEN void _fma(const T *HWY_RESTRICT a, const T *HWY_RESTRICT b,
   const D d{};
   const size_t N = hn::Lanes(d);
 
-  for (size_t i = 0; i <= count; i += N) {
-    auto a_vec = hn::LoadN(d, a + i, count - i);
-    auto b_vec = hn::LoadN(d, b + i, count - i);
-    auto c_vec = hn::LoadN(d, b + i, count - i);
+  for (size_t i = 0; i < count; i += N) {
+    const size_t remaining = count - i;
+    const size_t lanes = remaining < N ? remaining : N;
+    auto a_vec = hn::LoadN(d, a + i, lanes);
+    auto b_vec = hn::LoadN(d, b + i, lanes);
+    auto c_vec = hn::LoadN(d, c + i, lanes);
     auto res = pr::fma(d, a_vec, b_vec, c_vec);
-    hn::StoreN(res, d, result + i, count - i);
+    hn::StoreN(res, d, result + i, lanes);
   }
 }
 

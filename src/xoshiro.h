@@ -20,6 +20,7 @@ __attribute__((unused)) static auto get_user_seed() -> uint64_t {
       std::random_device rd;
       seed = rd();
     }
+    initialized = true;
   }
   return seed;
 }
