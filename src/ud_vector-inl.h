@@ -44,7 +44,7 @@ HWY_FLATTEN auto round(const D d, const V a) -> V {
   
   // Finite check is more expensive, so check non-zero first
   // Most values are non-zero and finite, so this optimizes the common path
-  const auto is_finite = hn::IfThenElse(is_not_zero, hn::IsFinite(a), hn::Set(hn::RebindToMask<D>{}, false));
+  const auto is_finite = hn::And(is_not_zero, hn::IsFinite(a));
   const auto must_be_rounded = is_finite;
 
   // rand = 1 - 2 * (z & 1)

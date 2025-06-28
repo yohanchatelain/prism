@@ -1,6 +1,7 @@
 #ifdef PRISM_IDE // To enable clangd to parse the file
 #include "hwy/highway.h"
 #include "hwy/tests/test_util-inl.h"
+#include <type_traits>
 #define PRISM_PR_MODE_NAMESPACE fakens
 #undef HWY_MAX_BYTES
 #define HWY_MAX_BYTES UINT32_MAX
@@ -15,6 +16,9 @@ auto sqrt = [](auto d, auto a) { return a; };
 auto fma = [](auto d, auto a, auto b, auto c) { return a; };
 } // namespace PRISM_PR_MODE_NAMESPACE::PRISM_DISPATCH::HWY_NAMESPACE
 #endif
+
+#include <type_traits>
+#include <cmath>
 
 #ifndef PRISM_PR_MODE_NAMESPACE
 #error "PRISM_PR_MODE_NAMESPACE must be defined"
@@ -276,69 +280,87 @@ namespace fixed::HWY_NAMESPACE {
 namespace hn = hwy::HWY_NAMESPACE;
 namespace pr = PRISM_PR_MODE_NAMESPACE::PRISM_DISPATCH::HWY_NAMESPACE;
 
-template <typename T, std::size_t N, class D = hn::FixedTag<T, N>,
-          class V = hn::Vec<D>>
+template <typename T, std::size_t N>
 HWY_FLATTEN void _addxN(const T *HWY_RESTRICT a, const T *HWY_RESTRICT b,
                         T *HWY_RESTRICT result) {
-  const D d{};
-  const auto va = hn::Load(d, a);
-  const auto vb = hn::Load(d, b);
-  auto res = pr::add(d, va, vb);
-  hn::Store(res, d, result);
+  // Use element-wise processing for all targets to avoid FixedTag limitations
+  for (std::size_t i = 0; i < N; ++i) {
+    using D = hn::ScalableTag<T>;
+    const D d{};
+    const auto va = hn::Set(d, a[i]);
+    const auto vb = hn::Set(d, b[i]);
+    auto res = pr::add(d, va, vb);
+    result[i] = hn::GetLane(res);
+  }
 }
 
-template <typename T, std::size_t N, class D = hn::FixedTag<T, N>,
-          class V = hn::Vec<D>>
+template <typename T, std::size_t N>
 HWY_FLATTEN void _subxN(const T *HWY_RESTRICT a, const T *HWY_RESTRICT b,
                         T *HWY_RESTRICT result) {
-  const D d;
-  const auto va = hn::Load(d, a);
-  const auto vb = hn::Load(d, b);
-  auto res = pr::sub(d, va, vb);
-  hn::Store(res, d, result);
+  // Use element-wise processing for all targets to avoid FixedTag limitations
+  for (std::size_t i = 0; i < N; ++i) {
+    using D = hn::ScalableTag<T>;
+    const D d{};
+    const auto va = hn::Set(d, a[i]);
+    const auto vb = hn::Set(d, b[i]);
+    auto res = pr::sub(d, va, vb);
+    result[i] = hn::GetLane(res);
+  }
 }
 
-template <typename T, std::size_t N, class D = hn::FixedTag<T, N>,
-          class V = hn::Vec<D>>
+template <typename T, std::size_t N>
 HWY_FLATTEN void _mulxN(const T *HWY_RESTRICT a, const T *HWY_RESTRICT b,
                         T *HWY_RESTRICT result) {
-  const D d;
-  const auto va = hn::Load(d, a);
-  const auto vb = hn::Load(d, b);
-  auto res = pr::mul(d, va, vb);
-  hn::Store(res, d, result);
+  // Use element-wise processing for all targets to avoid FixedTag limitations
+  for (std::size_t i = 0; i < N; ++i) {
+    using D = hn::ScalableTag<T>;
+    const D d{};
+    const auto va = hn::Set(d, a[i]);
+    const auto vb = hn::Set(d, b[i]);
+    auto res = pr::mul(d, va, vb);
+    result[i] = hn::GetLane(res);
+  }
 }
 
-template <typename T, std::size_t N, class D = hn::FixedTag<T, N>,
-          class V = hn::Vec<D>>
+template <typename T, std::size_t N>
 HWY_FLATTEN void _divxN(const T *HWY_RESTRICT a, const T *HWY_RESTRICT b,
                         T *HWY_RESTRICT result) {
-  const D d;
-  const auto va = hn::Load(d, a);
-  const auto vb = hn::Load(d, b);
-  auto res = pr::div(d, va, vb);
-  hn::Store(res, d, result);
+  // Use element-wise processing for all targets to avoid FixedTag limitations
+  for (std::size_t i = 0; i < N; ++i) {
+    using D = hn::ScalableTag<T>;
+    const D d{};
+    const auto va = hn::Set(d, a[i]);
+    const auto vb = hn::Set(d, b[i]);
+    auto res = pr::div(d, va, vb);
+    result[i] = hn::GetLane(res);
+  }
 }
 
-template <typename T, std::size_t N, class D = hn::FixedTag<T, N>,
-          class V = hn::Vec<D>>
+template <typename T, std::size_t N>
 HWY_FLATTEN void _sqrtxN(const T *HWY_RESTRICT a, T *HWY_RESTRICT result) {
-  const D d;
-  const auto va = hn::Load(d, a);
-  auto res = pr::sqrt(d, va);
-  hn::Store(res, d, result);
+  // Use element-wise processing for all targets to avoid FixedTag limitations
+  for (std::size_t i = 0; i < N; ++i) {
+    using D = hn::ScalableTag<T>;
+    const D d{};
+    const auto va = hn::Set(d, a[i]);
+    auto res = pr::sqrt(d, va);
+    result[i] = hn::GetLane(res);
+  }
 }
 
-template <typename T, std::size_t N, class D = hn::FixedTag<T, N>,
-          class V = hn::Vec<D>>
+template <typename T, std::size_t N>
 HWY_FLATTEN void _fmaxN(const T *HWY_RESTRICT a, const T *HWY_RESTRICT b,
                         const T *HWY_RESTRICT c, T *HWY_RESTRICT result) {
-  const D d;
-  const auto va = hn::Load(d, a);
-  const auto vb = hn::Load(d, b);
-  const auto vc = hn::Load(d, c);
-  auto res = pr::fma(d, va, vb, vc);
-  hn::Store(res, d, result);
+  // Use element-wise processing for all targets to avoid FixedTag limitations
+  for (std::size_t i = 0; i < N; ++i) {
+    using D = hn::ScalableTag<T>;
+    const D d{};
+    const auto va = hn::Set(d, a[i]);
+    const auto vb = hn::Set(d, b[i]);
+    const auto vc = hn::Set(d, c[i]);
+    auto res = pr::fma(d, va, vb, vc);
+    result[i] = hn::GetLane(res);
+  }
 }
 
 /* _<op>x<size>_<type> */
@@ -680,7 +702,7 @@ HWY_EXPORT(_fmax2_f32);
 #endif
 
 /* 128-bits */
-#if HWY_MAX_BYTES >= 16
+#if (HWY_MAX_BYTES >= 16) && (HWY_TARGET != HWY_SCALAR)
 HWY_EXPORT(_addx2_f64);
 HWY_EXPORT(_subx2_f64);
 HWY_EXPORT(_mulx2_f64);
@@ -697,7 +719,7 @@ HWY_EXPORT(_fmax4_f32);
 #endif
 
 /* 256-bits */
-#if (HWY_MAX_BYTES >= 32) && (HWY_TARGET != HWY_SSE4)
+#if (HWY_MAX_BYTES >= 32) && (HWY_TARGET != HWY_SCALAR)
 HWY_EXPORT(_addx4_f64);
 HWY_EXPORT(_subx4_f64);
 HWY_EXPORT(_mulx4_f64);
@@ -714,7 +736,7 @@ HWY_EXPORT(_fmax8_f32);
 #endif
 
 /* 512-bits */
-#if HWY_MAX_BYTES >= 64
+#if (HWY_MAX_BYTES >= 64) && (HWY_TARGET != HWY_SCALAR)
 HWY_EXPORT(_addx8_f64);
 HWY_EXPORT(_subx8_f64);
 HWY_EXPORT(_mulx8_f64);
@@ -731,7 +753,7 @@ HWY_EXPORT(_fmax16_f32);
 #endif
 
 /* 1024-bits */
-#if HWY_MAX_BYTES >= 128
+#if (HWY_MAX_BYTES >= 128) && (HWY_TARGET != HWY_SCALAR)
 HWY_EXPORT(_addx16_f64);
 HWY_EXPORT(_subx16_f64);
 HWY_EXPORT(_mulx16_f64);

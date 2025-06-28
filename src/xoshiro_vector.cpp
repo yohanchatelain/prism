@@ -162,7 +162,6 @@ HWY_FLATTEN auto random(std::uint64_t u) -> internal::VU64 {
 
 HWY_FLATTEN auto randombit(std::uint32_t u) -> internal::VU32 {
   constexpr auto u32_tag = hn::DFromV<internal::VU32>();
-  const auto lanes = hn::Lanes(u32_tag);
   
   // Use a more efficient bit extraction by getting multiple random values
   static thread_local size_t call_count = 0;
@@ -179,7 +178,6 @@ HWY_FLATTEN auto randombit(std::uint32_t u) -> internal::VU32 {
 
 HWY_FLATTEN auto randombit(std::uint64_t u) -> internal::VU64 {
   constexpr auto u64_tag = hn::DFromV<internal::VU64>();
-  const auto lanes = hn::Lanes(u64_tag);
   
   // Use a more efficient bit extraction by getting multiple random values
   static thread_local size_t call_count = 0;
