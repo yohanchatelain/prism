@@ -94,7 +94,7 @@ template <> union binaryN<double> {
 // 𝑧 ← RN𝑒 (𝜓𝑎) (= pred(|a|))
 // 𝛿 ← RN𝑒 (𝑎 − 𝑧)
 // return (z,𝛿)
-template <typename T> auto get_predecessor_abs(T a) -> T {
+template <typename T> HWY_INLINE auto get_predecessor_abs(T a) -> T {
   constexpr auto half_ulp = IEEE754<T>::ulp / 2;
   const T phi = 1.0 - half_ulp;
   const T z = a * phi;
@@ -102,7 +102,7 @@ template <typename T> auto get_predecessor_abs(T a) -> T {
 }
 
 template <typename T, typename U = typename IEEE754<T>::U>
-auto get_unbiased_exponent(T a) -> U {
+HWY_INLINE auto get_unbiased_exponent(T a) -> U {
   if (a == 0) {
     return 0;
   }
@@ -115,7 +115,7 @@ auto get_unbiased_exponent(T a) -> U {
 }
 
 template <typename T, typename I = typename IEEE754<T>::I>
-auto get_exponent(T a) -> I {
+HWY_INLINE auto get_exponent(T a) -> I {
   debug_start();
   if (a == 0) {
     debug_end();
@@ -140,7 +140,7 @@ auto get_exponent(T a) -> I {
   return exp;
 }
 
-template <typename T> auto pow2(int n) -> T {
+template <typename T> HWY_INLINE auto pow2(int n) -> T {
   // if n <= min_exponent, take into account precision loss due to subnormal
   // numbers
   using U = typename IEEE754<T>::I;

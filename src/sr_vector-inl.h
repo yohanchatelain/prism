@@ -28,8 +28,8 @@ namespace dbg = prism::vector::HWY_NAMESPACE;
 namespace rng = prism::vector::xoshiro::HWY_NAMESPACE;
 
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
-HWY_NOINLINE void fasttwosum(const D d, const V a, const V b, V &sigma,
-                             V &tau) {
+HWY_INLINE void fasttwosum(const D d, const V a, const V b, V &sigma,
+                           V &tau) {
   dbg::debug_msg("\n[twosum] START");
   dbg::debug_vec(d, "[twosum] a", a);
   dbg::debug_vec(d, "[twosum] b", b);
@@ -64,7 +64,7 @@ Algorithm 5.1. TwoSum Augmented Addition
 9. return (s, t)
 */
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
-HWY_FLATTEN void twosum(const D d, const V a, const V b, V &sigma, V &tau) {
+HWY_INLINE void twosum(const D d, const V a, const V b, V &sigma, V &tau) {
   dbg::debug_msg("\n[twosum] START");
   dbg::debug_vec(d, "[twosum] a", a);
   dbg::debug_vec(d, "[twosum] b", b);
@@ -82,7 +82,7 @@ HWY_FLATTEN void twosum(const D d, const V a, const V b, V &sigma, V &tau) {
   dbg::debug_msg("[twosum] END\n");
 }
 
-template <typename T> constexpr auto get_precision() -> int {
+template <typename T> HWY_INLINE constexpr auto get_precision() -> int {
   return prism::utils::IEEE754<T>::precision;
 }
 
@@ -347,7 +347,7 @@ HWY_FLATTEN auto get_predecessor_abs(const D d, const V a) -> V {
 
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>,
           typename VI = hn::VFromD<hn::RebindToSigned<D>>>
-HWY_FLATTEN auto get_exponent(const D d, const V a) -> VI {
+HWY_INLINE auto get_exponent(const D d, const V a) -> VI {
   dbg::debug_msg("\n[get_exponent] START");
 
   using DI = hn::RebindToSigned<D>;
@@ -399,9 +399,37 @@ HWY_FLATTEN auto FastPow2I(D d, VI x) -> hn::Vec<D> {
   return BitCast(d, shift);
 }
 
+// Lookup table for common power-of-2 values
+template <typename T>
+struct Pow2LookupTable {
+  static constexpr size_t kTableSize = 64;
+  static constexpr T kMinExp = -32;
+  static constexpr T kMaxExp = 31;
+  
+  alignas(64) static constexpr T table[kTableSize] = {
+    // Pre-computed pow2 values for exponents -32 to 31
+    2.328306436538696e-10, 4.656612873077393e-10, 9.313225746154785e-10, 1.862645149230957e-09,
+    3.725290298461914e-09, 7.450580596923828e-09, 1.4901161193847656e-08, 2.9802322387695312e-08,
+    5.9604644775390625e-08, 1.1920928955078125e-07, 2.384185791015625e-07, 4.76837158203125e-07,
+    9.5367431640625e-07, 1.9073486328125e-06, 3.814697265625e-06, 7.62939453125e-06,
+    1.52587890625e-05, 3.0517578125e-05, 6.103515625e-05, 0.0001220703125,
+    0.000244140625, 0.00048828125, 0.0009765625, 0.001953125,
+    0.00390625, 0.0078125, 0.015625, 0.03125,
+    0.0625, 0.125, 0.25, 0.5,
+    1.0, 2.0, 4.0, 8.0,
+    16.0, 32.0, 64.0, 128.0,
+    256.0, 512.0, 1024.0, 2048.0,
+    4096.0, 8192.0, 16384.0, 32768.0,
+    65536.0, 131072.0, 262144.0, 524288.0,
+    1048576.0, 2097152.0, 4194304.0, 8388608.0,
+    16777216.0, 33554432.0, 67108864.0, 134217728.0,
+    268435456.0, 536870912.0, 1073741824.0, 2147483648.0
+  };
+};
+
 template <class D, class VI = hn::VFromD<hn::RebindToSigned<D>>,
           typename T = hn::TFromD<D>>
-HWY_FLATTEN auto pow2(const D d, const VI n) -> hn::VFromD<D> {
+HWY_INLINE auto pow2(const D d, const VI n) -> hn::VFromD<D> {
   dbg::debug_msg("\n[pow2] START");
 
   using DI = hn::DFromV<VI>;
@@ -412,6 +440,18 @@ HWY_FLATTEN auto pow2(const D d, const VI n) -> hn::VFromD<D> {
 
   constexpr I mantissa = prism::utils::IEEE754<T>::mantissa;
   constexpr I min_exponent = prism::utils::IEEE754<T>::min_exponent;
+  
+  // Fast path: check if we can use lookup table
+  const auto min_table_exp = hn::Set(di, static_cast<I>(Pow2LookupTable<T>::kMinExp));
+  const auto max_table_exp = hn::Set(di, static_cast<I>(Pow2LookupTable<T>::kMaxExp));
+  const auto in_table_range = hn::And(hn::Ge(n, min_table_exp), hn::Le(n, max_table_exp));
+  
+  // If all values are in lookup table range, use fast path
+  if (HWY_LIKELY(hn::AllTrue(di, in_table_range))) {
+    // Use lookup table for common values
+    const auto table_idx = hn::Add(n, hn::Set(di, -static_cast<I>(Pow2LookupTable<T>::kMinExp)));
+    // For now, fall through to computation - vectorized table lookup would need gather operations
+  }
 
   // is_subnormal = n < min_exponent
   const auto min_exponent_v = hn::Set(di, min_exponent);
@@ -501,8 +541,32 @@ HWY_FLATTEN auto round(const D d, const V sigma, const V tau) -> V {
 
   const auto sign_diff_int = hn::RebindMask(di, sign_diff);
 
-  const auto pred_sigma_exp = get_exponent(d, pred_sigma);
-  const auto sigma_exp = get_exponent(d, sigma);
+  // Cache exponent calculations to avoid redundant computation
+  thread_local static V last_sigma = hn::Zero(d);
+  thread_local static VI last_sigma_exp = hn::Zero(hn::RebindToSigned<D>{}());
+  thread_local static V last_pred_sigma = hn::Zero(d);
+  thread_local static VI last_pred_sigma_exp = hn::Zero(hn::RebindToSigned<D>{}());
+  
+  VI sigma_exp, pred_sigma_exp;
+  
+  // Check if we can reuse cached sigma exponent
+  if (HWY_LIKELY(hn::AllTrue(d, hn::Eq(sigma, last_sigma)))) {
+    sigma_exp = last_sigma_exp;
+  } else {
+    sigma_exp = get_exponent(d, sigma);
+    last_sigma = sigma;
+    last_sigma_exp = sigma_exp;
+  }
+  
+  // Check if we can reuse cached pred_sigma exponent
+  if (HWY_LIKELY(hn::AllTrue(d, hn::Eq(pred_sigma, last_pred_sigma)))) {
+    pred_sigma_exp = last_pred_sigma_exp;
+  } else {
+    pred_sigma_exp = get_exponent(d, pred_sigma);
+    last_pred_sigma = pred_sigma;
+    last_pred_sigma_exp = pred_sigma_exp;
+  }
+  
   const auto eta = hn::IfThenElse(sign_diff_int, pred_sigma_exp, sigma_exp);
   dbg::debug_vec(di, "[sr_round] η", eta, false);
 

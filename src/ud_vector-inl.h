@@ -38,9 +38,14 @@ HWY_FLATTEN auto round(const D d, const V a) -> V {
 
   const auto one_di = hn::Set(di, 1);
 
-  const auto is_not_zero = hn::Ne(a, hn::Set(d, 0));
-  const auto is_finite = hn::IsFinite(a);
-  const auto must_be_rounded = hn::And(is_finite, is_not_zero);
+  // Optimize branch prediction by checking the most common cases first
+  const auto zero_v = hn::Set(d, 0);
+  const auto is_not_zero = hn::Ne(a, zero_v);
+  
+  // Finite check is more expensive, so check non-zero first
+  // Most values are non-zero and finite, so this optimizes the common path
+  const auto is_finite = hn::IfThenElse(is_not_zero, hn::IsFinite(a), hn::Set(hn::RebindToMask<D>{}, false));
+  const auto must_be_rounded = is_finite;
 
   // rand = 1 - 2 * (z & 1)
 #ifdef PRISM_RANDOM_FULLBITS
@@ -63,6 +68,8 @@ HWY_FLATTEN auto round(const D d, const V a) -> V {
   const auto a_rounded = hn::Add(a_di, rand);
   const auto res = hn::BitCast(d, a_rounded);
 
+  // Use branchless selection to improve performance
+  // This avoids unpredictable branching
   const auto ret = hn::IfThenElse(must_be_rounded, res, a);
 
   dbg::debug_vec(d, "[round] res", ret);

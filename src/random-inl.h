@@ -529,6 +529,8 @@ private:
 
   HWY_INLINE auto Next() noexcept -> VU64 {
     const ScalableTag<std::uint64_t> tag{};
+    // Prefetch state for better cache performance
+    HWY_PREFETCH(state_[{0}].data());
     auto s0 = Load(tag, state_[{0}].data());
     auto s1 = Load(tag, state_[{1}].data());
     auto s2 = Load(tag, state_[{2}].data());
@@ -571,7 +573,8 @@ public:
 
   auto operator()() noexcept -> result_type {
     if (HWY_UNLIKELY(index_ == size)) {
-      // cache_ = std::move(generator_.operator()<size>(result_type{}));
+      // Prefetch cache for better performance
+      HWY_PREFETCH(cache_.data());
       generator_.fill<size>(cache_.data());
       index_ = 0;
 #if PRISM_RNG_DEBUG
@@ -581,6 +584,10 @@ public:
               "generating new cache at %p\n",
               ++call_count, cache_.data());
 #endif
+    }
+    // Prefetch next cache line for better sequential access
+    if (HWY_LIKELY((index_ & 7) == 0)) {
+      HWY_PREFETCH(&cache_[index_ + 8]);
     }
     return cache_[index_++];
   }
