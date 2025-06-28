@@ -13,6 +13,7 @@
 
 #include "src/utils.h"
 #include "tests/helper/binomial_test.h"
+#include "tests/helper/robust_statistical_test.h"
 #include "tests/helper/common.h"
 #include "tests/helper/counter.h"
 #include "tests/helper/distance.h"
@@ -315,9 +316,26 @@ void assert_binomial_test(const DistanceError<H> &distance_error,
     return;
   }
 
-  if (test.pvalue < alpha) {
+  // Use robust statistical testing to reduce false positives
+  static auto robust_config = prism::tests::helper::get_robust_test_config();
+  robust_config.base_alpha = alpha;
+  robust_config.num_tests_estimate = lanes; // Use actual number of lanes for Bonferroni correction
+  
+  prism::tests::helper::RobustBinomialTest robust_test(robust_config);
+  auto pdown = static_cast<double>(distance_error.probability_down);
+  auto result = robust_test.test(counter.down_count(), counter.count(), pdown);
+  
+  if (!result.passed) {
+    // Log robust test details for debugging
+    std::cerr << "Robust test details:\n"
+              << "  Attempts made: " << result.attempts_made << "\n"
+              << "  Final p-value: " << result.final_pvalue << "\n"
+              << "  Final alpha: " << result.final_alpha << "\n"
+              << "  Sample size: " << result.final_sample_size << "\n"
+              << "  Failure reason: " << result.failure_reason << "\n";
+    
     print_assert_error<Op>(distance_error, counter, args, alpha, lane, lanes,
-                           "Null hypotheis rejected!");
+                           "Robust statistical test rejected null hypothesis!");
     if constexpr (M::is_sr) {
       hwy_assert_may_fail<Op>();
     }

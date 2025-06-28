@@ -8,6 +8,7 @@ filegroup(
         "//tests/helper:operator.h",
         "//tests/helper:pprint.h",
         "//tests/helper:random.h",
+        "//tests/helper:robust_statistical_test.h",
         "//tests/helper:tests.h",
     ] + [
         "//tests/helper:assert-inl.h",
