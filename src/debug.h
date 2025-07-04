@@ -26,19 +26,15 @@ static char prism_debug_buffer_str[sr_buffer_size_str] = {prism_end};
 static int prism_debug_str_pos = 0;
 #endif // PRISM_DEBUG_FUNCTIONS_DECLARED
 
-inline auto is_debug() -> bool {
-  static int is_debug = -1;
-  if (is_debug == -1) {
-    const char *debug = getenv("PRISM_DEBUG");
-    is_debug = (debug != nullptr) and (debug[0] == '1');
-  }
-  return static_cast<bool>(is_debug);
-}
+
+
+#ifdef PRISM_DEBUG
+constexpr auto is_debug() -> bool { return true; }
+#else
+constexpr auto is_debug() -> bool { return false; }
+#endif
 
 inline void prism_debug_printf(const char *fmt, ...) {
-  if (!is_debug()) {
-    return;
-  }
   assert(prism_debug_level >= 0);
   assert(prism_debug_level < sr_buffer_size);
   prism_debug_buffer[prism_debug_level] = prism_end;
@@ -51,9 +47,6 @@ inline void prism_debug_printf(const char *fmt, ...) {
 }
 
 inline void prism_debug_header_start(const char *func) {
-  if (!is_debug()) {
-    return;
-  }
   assert(prism_debug_level >= 0);
   assert(prism_debug_level < sr_buffer_size);
   prism_debug_buffer[prism_debug_level] = prism_end;
@@ -63,9 +56,6 @@ inline void prism_debug_header_start(const char *func) {
 }
 
 inline void prism_debug_header_end(const char *func) {
-  if (!is_debug()) {
-    return;
-  }
   prism_debug_level--;
   assert(prism_debug_level >= 0);
   assert(prism_debug_level < sr_buffer_size);
@@ -75,17 +65,11 @@ inline void prism_debug_header_end(const char *func) {
 }
 
 inline void prism_debug_reset() {
-  if (!is_debug()) {
-    return;
-  }
   prism_debug_str_pos = 0;
   prism_debug_buffer_str[prism_debug_str_pos] = prism_end;
 }
 
 inline void prism_debug_flush() {
-  if (!is_debug()) {
-    return;
-  }
   fprintf(stderr, "%s", prism_debug_buffer_str);
   prism_debug_reset();
 }

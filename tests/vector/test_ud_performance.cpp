@@ -294,38 +294,38 @@ define_vector_test_ter(fma, f32, 16);
 
 TEST(UDArrayBenchmark, SRAddF32) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::addf32 with " << N << " repetitions\n";
+  fprintf(stderr, "Measure function ud::addf32 with %%zu repetitions\n", N);
   callMeasureFunctions<2, size_max_test_array, float, 2,
                        decltype(&test_addf32)>(&test_addf32);
 }
 
 TEST(UDArrayBenchmark, SRSubF32) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::subf32 with " << N << " repetitions\n";
+  fprintf(stderr, "Measure function ud::subf32 with %%zu repetitions\n", N);
   callMeasureFunctions<2, size_max_test_array, float, 2>(&test_subf32);
 }
 
 TEST(UDArrayBenchmark, SRMulF32) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::mulf32 with " << N << " repetitions\n";
+  fprintf(stderr, "Measure function ud::mulf32 with %%zu repetitions\n", N);
   callMeasureFunctions<2, size_max_test_array, float, 2>(&test_mulf32);
 }
 
 TEST(UDArrayBenchmark, SRDivF32) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::divf32 with " << N << " repetitions\n";
+  fprintf(stderr, "Measure function ud::divf32 with %%zu repetitions\n", N);
   callMeasureFunctions<2, size_max_test_array, float, 2>(&test_divf32);
 }
 
 TEST(UDArrayBenchmark, SRSqrtF32) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::sqrtf32 with " << N << " repetitions\n";
+  fprintf(stderr, "Measure function ud::sqrtf32 with %zu repetitions\n", N);
   callMeasureFunctions<2, size_max_test_array, float, 1>(&test_sqrtf32);
 }
 
 TEST(UDArrayBenchmark, SRFmaF32) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::fmaf32 with " << N << " repetitions\n";
+  fprintf(stderr, "Measure function ud::fmaf32 with %zu repetitions\n", N);
   callMeasureFunctions<2, size_max_test_array, float, 3>(&test_fmaf32);
 }
 
@@ -333,37 +333,37 @@ TEST(UDArrayBenchmark, SRFmaF32) {
 
 TEST(UDArrayBenchmark, SRAddF64) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::addf64 with " << N << " repetitions\n";
+  fprintf(stderr, "Measure function ud::addf64 with %%zu repetitions\n", N);
   callMeasureFunctions<2, size_max_test_array, double, 2>(&test_addf64);
 }
 
 TEST(UDArrayBenchmark, SRSubF64) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::subf64 with " << N << " repetitions\n";
+  fprintf(stderr, "Measure function ud::subf64 with %%zu repetitions\n", N);
   callMeasureFunctions<2, size_max_test_array, double, 2>(&test_subf64);
 }
 
 TEST(UDArrayBenchmark, SRMulF64) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::mulf64 with " << N << " repetitions\n";
+  fprintf(stderr, "Measure function ud::mulf64 with %%zu repetitions\n", N);
   callMeasureFunctions<2, size_max_test_array, double, 2>(&test_mulf64);
 }
 
 TEST(UDArrayBenchmark, SRDivF64) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::divf64 with " << N << " repetitions\n";
+  fprintf(stderr, "Measure function ud::divf64 with %%zu repetitions\n", N);
   callMeasureFunctions<2, size_max_test_array, double, 2>(&test_divf64);
 }
 
 TEST(UDArrayBenchmark, SRSqrtF64) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::sqrtf64 with " << N << " repetitions\n";
+  fprintf(stderr, "Measure function ud::sqrtf64 with %zu repetitions\n", N);
   callMeasureFunctions<2, size_max_test_array, double, 1>(&test_sqrtf64);
 }
 
 TEST(UDArrayBenchmark, SRFmaF64) {
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::fmaf64 with " << N << " repetitions\n";
+  fprintf(stderr, "Measure function ud::fmaf64 with %%zu repetitions\n", N);
   callMeasureFunctions<2, size_max_test_array, double, 3>(&test_fmaf64);
 }
 
@@ -376,7 +376,7 @@ constexpr auto kVerbose = false;
 TEST(UDVectorBenchmark, SRAddF32x2Static) {
 #if HWY_MAX_BYTES >= 8
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::addf32x2_v with " << N << " repetitions\n";
+  fprintf(stderr,
   MeasureFunctionX<2, float, fixed::f32x2_v>(&test_addf32x2_v, 2, kVerbose);
 #else
   GTEST_SKIP() << "SRAddF32x2Static is not available";
@@ -386,7 +386,7 @@ TEST(UDVectorBenchmark, SRAddF32x2Static) {
 TEST(UDVectorBenchmark, SRSubF32x2Static) {
 #if HWY_MAX_BYTES >= 8
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::subf32x2_v with " << N << " repetitions\n";
+  fprintf(stderr, "Measure function ud::subf32x2_v with %%zu repetitions\n", N);
   MeasureFunctionX<2, float, fixed::f32x2_v>(&test_subf32x2_v, 2, kVerbose);
 #else
   GTEST_SKIP() << "SRSubF32x2Static is not available";
@@ -396,7 +396,7 @@ TEST(UDVectorBenchmark, SRSubF32x2Static) {
 TEST(UDVectorBenchmark, SRMulF32x2Static) {
 #if HWY_MAX_BYTES >= 8
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::mulf32x2_v with " << N << " repetitions\n";
+  fprintf(stderr, "Measure function ud::mulf32x2_v with %zu repetitions\n", N);
   MeasureFunctionX<2, float, fixed::f32x2_v>(&test_mulf32x2_v, 2, kVerbose);
 #else
   GTEST_SKIP() << "SRMulF32x2Static is not available";
@@ -406,7 +406,7 @@ TEST(UDVectorBenchmark, SRMulF32x2Static) {
 TEST(UDVectorBenchmark, SRDivF32x2Static) {
 #if HWY_MAX_BYTES >= 8
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::divf32x2_v with " << N << " repetitions\n";
+  fprintf(stderr, "Measure function ud::divf32x2_v with %zu repetitions\n", N);
   MeasureFunctionX<2, float, fixed::f32x2_v>(&test_divf32x2_v, 2, kVerbose);
 #else
   GTEST_SKIP() << "SRDivF32x2Static is not available";
@@ -416,8 +416,7 @@ TEST(UDVectorBenchmark, SRDivF32x2Static) {
 TEST(UDVectorBenchmark, SRSqrtF32x2Static) {
 #if HWY_MAX_BYTES >= 8
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::sqrtf32x2_v with " << N
-            << " repetitions\n";
+  fprintf(stderr, "Measure function ud::sqrtf32x2_v with %zu repetitions\n", N);
   using Op = decltype(&test_sqrtf32x2_v);
   MeasureFunctionX<2, float, fixed::f32x2_v, Op, 1>(&test_sqrtf32x2_v, 2,
                                                     kVerbose);
@@ -429,7 +428,7 @@ TEST(UDVectorBenchmark, SRSqrtF32x2Static) {
 TEST(UDVectorBenchmark, SRFmaF32x2Static) {
 #if HWY_MAX_BYTES >= 8
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::fmaf32x2_v with " << N << " repetitions\n";
+  fprintf(stderr, "Measure function ud::fmaf32x2_v with %%zu repetitions\n", N);
   using Op = decltype(&test_fmaf32x2_v);
   MeasureFunctionX<2, float, fixed::f32x2_v, Op, 3>(&test_fmaf32x2_v, 2,
                                                     kVerbose);
@@ -442,7 +441,7 @@ TEST(UDVectorBenchmark, SRFmaF32x2Static) {
 TEST(UDVectorBenchmark, SRAddF64x2Static) {
 #if HWY_MAX_BYTES >= 16
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::addf64x2_v with " << N << " repetitions\n";
+  fprintf(stderr, "Measure function ud::addf64x2_v with %%zu repetitions\n", N);
   MeasureFunctionX<2, double, fixed::f64x2_v>(&test_addf64x2_v, 2, kVerbose);
 #else
   GTEST_SKIP() << "SRAddF64x2Static is not available";
@@ -452,7 +451,7 @@ TEST(UDVectorBenchmark, SRAddF64x2Static) {
 TEST(UDVectorBenchmark, SRSubF64x2Static) {
 #if HWY_MAX_BYTES >= 16
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::subf64x2_v with " << N << " repetitions\n";
+  fprintf(stderr, "Measure function ud::subf64x2_v with %zu repetitions\n", N);
   MeasureFunctionX<2, double, fixed::f64x2_v>(&test_subf64x2_v, 2, kVerbose);
 #else
   GTEST_SKIP() << "SRSubF64x2Static is not available";
@@ -462,7 +461,7 @@ TEST(UDVectorBenchmark, SRSubF64x2Static) {
 TEST(UDVectorBenchmark, SRMulF64x2Static) {
 #if HWY_MAX_BYTES >= 16
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::mulf64x2_v with " << N << " repetitions\n";
+  fprintf(stderr, "Measure function ud::mulf64x2_v with %%zu repetitions\n", N);
   MeasureFunctionX<2, double, fixed::f64x2_v>(&test_mulf64x2_v, 2, kVerbose);
 #else
   GTEST_SKIP() << "SRMulF64x2Static is not available";
@@ -472,7 +471,7 @@ TEST(UDVectorBenchmark, SRMulF64x2Static) {
 TEST(UDVectorBenchmark, SRDivF64x2Static) {
 #if HWY_MAX_BYTES >= 16
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::divf64x2_v with " << N << " repetitions\n";
+  fprintf(stderr, "Measure function ud::divf64x2_v with %%zu repetitions\n", N);
   MeasureFunctionX<2, double, fixed::f64x2_v>(&test_divf64x2_v, 2, kVerbose);
 #else
   GTEST_SKIP() << "SRDivF64x2Static is not available";
@@ -482,8 +481,7 @@ TEST(UDVectorBenchmark, SRDivF64x2Static) {
 TEST(UDVectorBenchmark, SRSqrtF64x2Static) {
 #if HWY_MAX_BYTES >= 16
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::sqrtf64x2_v with " << N
-            << " repetitions\n";
+  fprintf(stderr, "Measure function ud::sqrtf64x2_v with %%zu repetitions\n", N);
   using Op = decltype(&test_sqrtf64x2_v);
   MeasureFunctionX<2, double, fixed::f64x2_v, Op, 1>(&test_sqrtf64x2_v, 2,
                                                      kVerbose);
@@ -495,7 +493,7 @@ TEST(UDVectorBenchmark, SRSqrtF64x2Static) {
 TEST(UDVectorBenchmark, SRFmaF64x2Static) {
 #if HWY_MAX_BYTES >= 16
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::fmaf64x2_v with " << N << " repetitions\n";
+  fprintf(stderr, "Measure function ud::fmaf64x2_v with %%zu repetitions\n", N);
   using Op = decltype(&test_fmaf64x2_v);
   MeasureFunctionX<2, double, fixed::f64x2_v, Op, 3>(&test_fmaf64x2_v, 2,
                                                      kVerbose);
@@ -509,7 +507,7 @@ TEST(UDVectorBenchmark, SRFmaF64x2Static) {
 TEST(UDVectorBenchmark, SRAddF32x4Static) {
 #if HWY_MAX_BYTES >= 16
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::addf32x4_v with " << N << " repetitions\n";
+  fprintf(stderr, "Measure function ud::addf32x4_v with %%zu repetitions\n", N);
   MeasureFunctionX<4, float, fixed::f32x4_v>(&test_addf32x4_v, 4, kVerbose);
 #else
   GTEST_SKIP() << "SRAddF32x4Static is not available";
@@ -519,7 +517,7 @@ TEST(UDVectorBenchmark, SRAddF32x4Static) {
 TEST(UDVectorBenchmark, SRSubF32x4Static) {
 #if HWY_MAX_BYTES >= 16
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::subf32x4_v with " << N << " repetitions\n";
+  fprintf(stderr, "Measure function ud::subf32x4_v with %zu repetitions\n", N);
   MeasureFunctionX<4, float, fixed::f32x4_v>(&test_subf32x4_v, 4, kVerbose);
 #else
   GTEST_SKIP() << "SRSubF32x4Static is not available";
@@ -529,7 +527,7 @@ TEST(UDVectorBenchmark, SRSubF32x4Static) {
 TEST(UDVectorBenchmark, SRMulF32x4Static) {
 #if HWY_MAX_BYTES >= 16
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::mulf32x4_v with " << N << " repetitions\n";
+  fprintf(stderr, "Measure function ud::mulf32x4_v with %%zu repetitions\n", N);
   MeasureFunctionX<4, float, fixed::f32x4_v>(&test_mulf32x4_v, 4, kVerbose);
 #else
   GTEST_SKIP() << "SRMulF32x4Static is not available";
@@ -539,7 +537,7 @@ TEST(UDVectorBenchmark, SRMulF32x4Static) {
 TEST(UDVectorBenchmark, SRDivF32x4Static) {
 #if HWY_MAX_BYTES >= 16
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::divf32x4_v with " << N << " repetitions\n";
+  fprintf(stderr, "Measure function ud::divf32x4_v with %zu repetitions\n", N);
   MeasureFunctionX<4, float, fixed::f32x4_v>(&test_divf32x4_v, 4, kVerbose);
 #else
   GTEST_SKIP() << "SRDivF32x4Static is not available";
@@ -549,8 +547,7 @@ TEST(UDVectorBenchmark, SRDivF32x4Static) {
 TEST(UDVectorBenchmark, SRSqrtF32x4Static) {
 #if HWY_MAX_BYTES >= 16
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::sqrtf32x4_v with " << N
-            << " repetitions\n";
+  fprintf(stderr, "Measure function ud::sqrtf32x4_v with %zu repetitions\n", N);
   using Op = decltype(&test_sqrtf32x4_v);
   MeasureFunctionX<4, float, fixed::f32x4_v, Op, 1>(&test_sqrtf32x4_v, 4,
                                                     kVerbose);
@@ -562,7 +559,7 @@ TEST(UDVectorBenchmark, SRSqrtF32x4Static) {
 TEST(UDVectorBenchmark, SRFmaF32x4Static) {
 #if HWY_MAX_BYTES >= 16
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::fmaf32x4_v with " << N << " repetitions\n";
+  fprintf(stderr, "Measure function ud::fmaf32x4_v with %zu repetitions\n", N);
   using Op = decltype(&test_fmaf32x4_v);
   MeasureFunctionX<4, float, fixed::f32x4_v, Op, 3>(&test_fmaf32x4_v, 4,
                                                     kVerbose);
@@ -576,7 +573,7 @@ TEST(UDVectorBenchmark, SRFmaF32x4Static) {
 TEST(UDVectorBenchmark, SRAddF32x8Static) {
 #if HWY_MAX_BYTES >= 32
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::addf32x8_v with " << N << " repetitions\n";
+  fprintf(stderr, "Measure function ud::addf32x8_v with %zu repetitions\n", N);
   MeasureFunctionX<8, float, fixed::f32x8_v>(&test_addf32x8_v, 8, kVerbose);
 #else
   GTEST_SKIP() << "SRAddF32x8Static is not available";
@@ -586,7 +583,7 @@ TEST(UDVectorBenchmark, SRAddF32x8Static) {
 TEST(UDVectorBenchmark, SRSubF32x8Static) {
 #if HWY_MAX_BYTES >= 32
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::subf32x8_v with " << N << " repetitions\n";
+  fprintf(stderr, "Measure function ud::subf32x8_v with %%zu repetitions\n", N);
   MeasureFunctionX<8, float, fixed::f32x8_v>(&test_subf32x8_v, 8, kVerbose);
 #else
   GTEST_SKIP() << "SRSubF32x8Static is not available";
@@ -596,7 +593,7 @@ TEST(UDVectorBenchmark, SRSubF32x8Static) {
 TEST(UDVectorBenchmark, SRMulF32x8Static) {
 #if HWY_MAX_BYTES >= 32
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::mulf32x8_v with " << N << " repetitions\n";
+  fprintf(stderr, "Measure function ud::mulf32x8_v with %%zu repetitions\n", N);
   MeasureFunctionX<8, float, fixed::f32x8_v>(&test_mulf32x8_v, 8, kVerbose);
 #else
   GTEST_SKIP() << "SRMulF32x8Static is not available";
@@ -606,7 +603,7 @@ TEST(UDVectorBenchmark, SRMulF32x8Static) {
 TEST(UDVectorBenchmark, SRDivF32x8Static) {
 #if HWY_MAX_BYTES >= 32
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::divf32x8_v with " << N << " repetitions\n";
+  fprintf(stderr, "Measure function ud::divf32x8_v with %zu repetitions\n", N);
   MeasureFunctionX<8, float, fixed::f32x8_v>(&test_divf32x8_v, 8, kVerbose);
 #else
   GTEST_SKIP() << "SRDivF32x8Static is not available";
@@ -616,8 +613,7 @@ TEST(UDVectorBenchmark, SRDivF32x8Static) {
 TEST(UDVectorBenchmark, SRSqrtF32x8Static) {
 #if HWY_MAX_BYTES >= 32
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::sqrtf32x8_v with " << N
-            << " repetitions\n";
+  fprintf(stderr, "Measure function ud::sqrtf32x8_v with %%zu repetitions\n", N);
   using Op = decltype(&test_sqrtf32x8_v);
   MeasureFunctionX<8, float, fixed::f32x8_v, Op, 1>(&test_sqrtf32x8_v, 8,
                                                     kVerbose);
@@ -629,7 +625,7 @@ TEST(UDVectorBenchmark, SRSqrtF32x8Static) {
 TEST(UDVectorBenchmark, SRFmaF32x8Static) {
 #if HWY_MAX_BYTES >= 32
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::fmaf32x8_v with " << N << " repetitions\n";
+  fprintf(stderr, "Measure function ud::fmaf32x8_v with %zu repetitions\n", N);
   using Op = decltype(&test_fmaf32x8_v);
   MeasureFunctionX<8, float, fixed::f32x8_v, Op, 3>(&test_fmaf32x8_v, 8,
                                                     kVerbose);
@@ -643,7 +639,7 @@ TEST(UDVectorBenchmark, SRFmaF32x8Static) {
 TEST(UDVectorBenchmark, SRAddF64x4Static) {
 #if HWY_MAX_BYTES >= 32
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::addf64x4_v with " << N << " repetitions\n";
+  fprintf(stderr, "Measure function ud::addf64x4_v with %zu repetitions\n", N);
   MeasureFunctionX<4, double, fixed::f64x4_v>(&test_addf64x4_v, 4, kVerbose);
 #else
   GTEST_SKIP() << "SRAddF64x4Static is not available";
@@ -653,7 +649,7 @@ TEST(UDVectorBenchmark, SRAddF64x4Static) {
 TEST(UDVectorBenchmark, SRSubF64x4Static) {
 #if HWY_MAX_BYTES >= 32
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::subf64x4_v with " << N << " repetitions\n";
+  fprintf(stderr, "Measure function ud::subf64x4_v with %zu repetitions\n", N);
   MeasureFunctionX<4, double, fixed::f64x4_v>(&test_subf64x4_v, 4, kVerbose);
 #else
   GTEST_SKIP() << "SRSubF64x4Static is not available";
@@ -663,7 +659,7 @@ TEST(UDVectorBenchmark, SRSubF64x4Static) {
 TEST(UDVectorBenchmark, SRMulF64x4Static) {
 #if HWY_MAX_BYTES >= 32
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::mulf64x4_v with " << N << " repetitions\n";
+  fprintf(stderr, "Measure function ud::mulf64x4_v with %zu repetitions\n", N);
   MeasureFunctionX<4, double, fixed::f64x4_v>(&test_mulf64x4_v, 4, kVerbose);
 #else
   GTEST_SKIP() << "SRMulF64x4Static is not available";
@@ -673,7 +669,7 @@ TEST(UDVectorBenchmark, SRMulF64x4Static) {
 TEST(UDVectorBenchmark, SRDivF64x4Static) {
 #if HWY_MAX_BYTES >= 32
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::divf64x4_v with " << N << " repetitions\n";
+  fprintf(stderr, "Measure function ud::divf64x4_v with %%zu repetitions\n", N);
   MeasureFunctionX<4, double, fixed::f64x4_v>(&test_divf64x4_v, 4, kVerbose);
 #else
   GTEST_SKIP() << "SRDivF64x4Static is not available";
@@ -683,8 +679,7 @@ TEST(UDVectorBenchmark, SRDivF64x4Static) {
 TEST(UDVectorBenchmark, SRSqrtF64x4Static) {
 #if HWY_MAX_BYTES >= 32
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::sqrtf64x4_v with " << N
-            << " repetitions\n";
+  fprintf(stderr, "Measure function ud::sqrtf64x4_v with %%zu repetitions\n", N);
   using Op = decltype(&test_sqrtf64x4_v);
   MeasureFunctionX<4, double, fixed::f64x4_v, Op, 1>(&test_sqrtf64x4_v, 4,
                                                      kVerbose);
@@ -696,7 +691,7 @@ TEST(UDVectorBenchmark, SRSqrtF64x4Static) {
 TEST(UDVectorBenchmark, SRFmaF64x4Static) {
 #if HWY_MAX_BYTES >= 32
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::fmaf64x4_v with " << N << " repetitions\n";
+  fprintf(stderr, "Measure function ud::fmaf64x4_v with %%zu repetitions\n", N);
   using Op = decltype(&test_fmaf64x4_v);
   MeasureFunctionX<4, double, fixed::f64x4_v, Op, 3>(&test_fmaf64x4_v, 4,
                                                      kVerbose);
@@ -710,7 +705,7 @@ TEST(UDVectorBenchmark, SRFmaF64x4Static) {
 TEST(UDVectorBenchmark, SRAddF64x8Static) {
 #if HWY_MAX_BYTES >= 64
   constexpr size_t N = repetitions;
-  std::cout << "Measure function ud::addf64x8_v with " << N << " repetitions\n";
+  fprintf(stderr, "Measure function ud::addf64x8_v with %%zu repetitions\n", N);
   MeasureFunctionX<8, double, fixed::f64x8_v>(&test_addf64x8_v, 8, kVerbose);
 #else
   GTEST_SKIP() << "SRAddF64x8Static is not available";
@@ -846,4 +841,4 @@ TEST(UDVectorBenchmark, SRFmaF32x16Static) {
 }
 
 }; // namespace prism::ud::vector::PRISM_DISPATCH
-// HYW_TEST_MAIN();1
+HWY_TEST_MAIN();

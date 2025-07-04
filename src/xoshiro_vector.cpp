@@ -78,8 +78,8 @@ HWY_FLATTEN auto random() -> std::uint64_t {
 }
 
 HWY_FLATTEN auto randombit(std::uint64_t /* unused */) -> std::uint64_t {
-  thread_local std::size_t idx = 0;
-  thread_local std::uint64_t u = random();
+  thread_local std::uint64_t u = 0;
+  thread_local std::size_t idx = UINT64_WIDTH;
   if (idx == UINT64_WIDTH) {
     u = random();
     idx = 0;
@@ -88,8 +88,8 @@ HWY_FLATTEN auto randombit(std::uint64_t /* unused */) -> std::uint64_t {
 }
 
 HWY_FLATTEN auto randombit(std::uint32_t /* unused */) -> std::uint32_t {
-  thread_local std::size_t idx = 0;
-  thread_local std::uint64_t u = random();
+  thread_local std::uint64_t u = 0;
+  thread_local std::size_t idx = UINT64_WIDTH;
   if (idx == UINT64_WIDTH) {
     u = random();
     idx = 0;
@@ -162,34 +162,26 @@ HWY_FLATTEN auto random(std::uint64_t u) -> internal::VU64 {
 
 HWY_FLATTEN auto randombit(std::uint32_t u) -> internal::VU32 {
   constexpr auto u32_tag = hn::DFromV<internal::VU32>();
-  
-  // Use a more efficient bit extraction by getting multiple random values
+  static thread_local hn::Vec<decltype(u32_tag)> rand_vec;
   static thread_local size_t call_count = 0;
-  const auto rand_vec = random(u);
-  
-  // Extract different bits from the random vector for each lane
-  const auto shift_amounts = hn::Iota(u32_tag, call_count % 32);
-  const auto shifted = hn::Shr(rand_vec, shift_amounts);
-  const auto result = hn::And(shifted, hn::Set(u32_tag, UINT32_C(1)));
-  
-  call_count++;
-  return result;
+
+  if (call_count == hn::Lanes(u32_tag)) {
+    rand_vec = random(u);
+    call_count = 0;
+  }
+  return hn::Set(u32_tag, hn::ExtractLane(rand_vec, call_count++) & 1);
 }
 
 HWY_FLATTEN auto randombit(std::uint64_t u) -> internal::VU64 {
   constexpr auto u64_tag = hn::DFromV<internal::VU64>();
-  
-  // Use a more efficient bit extraction by getting multiple random values
+  static thread_local hn::Vec<decltype(u64_tag)> rand_vec;
   static thread_local size_t call_count = 0;
-  const auto rand_vec = random(u);
-  
-  // Extract different bits from the random vector for each lane
-  const auto shift_amounts = hn::Iota(u64_tag, call_count % 64);
-  const auto shifted = hn::Shr(rand_vec, shift_amounts);
-  const auto result = hn::And(shifted, hn::Set(u64_tag, UINT64_C(1)));
-  
-  call_count++;
-  return result;
+
+  if (call_count == hn::Lanes(u64_tag)) {
+    rand_vec = random(u);
+    call_count = 0;
+  }
+  return hn::Set(u64_tag, hn::ExtractLane(rand_vec, call_count++) & 1);
 }
 
 } // namespace prism::vector::xoshiro::HWY_NAMESPACE

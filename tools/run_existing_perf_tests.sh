@@ -89,125 +89,57 @@ run_existing_perf_tests() {
     # Get current commit info
     local commit_hash=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
     local timestamp=$(date +"%Y-%m-%d_%H-%M-%S")
-    
+    local output_file="$BENCHMARK_DIR/benchmark_data_${timestamp}.json"
+    local raw_benchmark_output_file="$BENCHMARK_DIR/raw_benchmark_output_${timestamp}.txt"
+
+    log_info "Running Bazel performance tests..."
+    echo "---START_BENCHMARK_OUTPUT---" >> "$raw_benchmark_output_file"
+    echo "test_name: sr-perf-dynamic" >> "$raw_benchmark_output_file"
+    echo "precision: float" >> "$raw_benchmark_output_file"
+    bazel test //tests/vector:sr-perf-dynamic --test_output=all 2>&1 | grep -E '^\[[0-9]+\s*\]|Measure function' >> "$raw_benchmark_output_file" || true
+    echo "---END_BENCHMARK_OUTPUT---" >> "$raw_benchmark_output_file"
+
+    echo "---START_BENCHMARK_OUTPUT---" >> "$raw_benchmark_output_file"
+    echo "test_name: ud-perf-dynamic" >> "$raw_benchmark_output_file"
+    echo "precision: float" >> "$raw_benchmark_output_file"
+    bazel test //tests/vector:ud-perf-dynamic --test_output=all 2>&1 | grep -E '^[0-9]+\s*\]|Measure function' >> "$raw_benchmark_output_file" || true
+    echo "---END_BENCHMARK_OUTPUT---" >> "$raw_benchmark_output_file"
+
+    echo "---START_BENCHMARK_OUTPUT---" >> "$raw_benchmark_output_file"
+    echo "test_name: sr-perf-static" >> "$raw_benchmark_output_file"
+    echo "precision: float" >> "$raw_benchmark_output_file"
+    bazel test //tests/vector:sr-perf-static --test_output=all 2>&1 | grep -E '^\[[0-9]+\s*\]|Measure function' >> "$raw_benchmark_output_file" || true
+    echo "---END_BENCHMARK_OUTPUT---" >> "$raw_benchmark_output_file"
+
+    echo "---START_BENCHMARK_OUTPUT---" >> "$raw_benchmark_output_file"
+    echo "test_name: ud-perf-static" >> "$raw_benchmark_output_file"
+    echo "precision: float" >> "$raw_benchmark_output_file"
+    bazel test //tests/vector:ud-perf-static --test_output=all 2>&1 | grep -E '^\[[0-9]+\s*\]|Measure function' >> "$raw_benchmark_output_file" || true
+    echo "---END_BENCHMARK_OUTPUT---" >> "$raw_benchmark_output_file"
+
+    log_success "Bazel performance tests completed. Raw output saved to $raw_benchmark_output_file"
+
     # Create benchmark data file
-    local output_file="$BENCHMARK_DIR/benchmark_${timestamp}.json"
-    
-    cat > "$output_file" << EOF
-{
-  "commit_hash": "${commit_hash:0:8}",
-  "timestamp": "$timestamp",
-  "build_config": "Release",
-  "cpu_info": "$(lscpu | grep 'Model name' | cut -d':' -f2 | xargs || echo 'Unknown CPU')",
-  "benchmarks": {
-EOF
+    # Pass the raw output file to the Python script for processing
+    python3 "$SCRIPT_DIR/performance_dashboard.py" \
+        --benchmark-dir "$BENCHMARK_DIR" \
+        --output "$output_file" \
+        --raw-output-file "$raw_benchmark_output_file" \
+        --commit-hash "${commit_hash:0:8}" \
+        --timestamp "$timestamp" \
+        --cpu-info "$(lscpu | grep 'Model name' | cut -d':' -f2 | xargs || echo 'Unknown CPU')"
 
-    local first_entry=true
-    
-    # Run SR performance tests for different precisions
-    log_info "Running Stochastic Rounding (SR) performance tests..."
-    
-    for test_name in "sr-perf-dynamic" "sr-perf-static"; do
-        for precision in "f32" "f64"; do
-            log_info "Testing $test_name with $precision precision..."
-            
-            # Run the test and capture output
-            local test_output
-            if test_output=$(timeout 300 bazel test //tests/vector:$test_name --test_output=all 2>&1); then
-                log_success "Completed $test_name"
-                
-                # Extract performance data (this is simplified - real implementation would parse actual output)
-                # For now, we'll generate sample data based on the test name
-                if [ "$first_entry" = false ]; then
-                    echo "," >> "$output_file"
-                fi
-                first_entry=false
-                
-                # Generate sample performance data for demonstration
-                local base_time
-                case "$test_name" in
-                    "sr-perf-dynamic")
-                        case "$precision" in
-                            "f32") base_time=120 ;;
-                            "f64") base_time=150 ;;
-                        esac
-                        ;;
-                    "sr-perf-static")
-                        case "$precision" in
-                            "f32") base_time=100 ;;
-                            "f64") base_time=130 ;;
-                        esac
-                        ;;
-                esac
-                
-                # Generate data for multiple sizes
-                for size in 1024 4096 16384 65536; do
-                    if [ "$first_entry" = false ]; then
-                        echo "," >> "$output_file"
-                    fi
-                    first_entry=false
-                    
-                    local adjusted_time=$(python3 -c "import random; print($base_time * (1 + $size/1000000.0) * random.uniform(0.9, 1.1))")
-                    local throughput=$(python3 -c "print($size / ($adjusted_time / 1e9) / 1e6)")
-                    
-                    cat >> "$output_file" << EOF
-    "SR_${precision}_${size}": {
-      "operation_name": "SR_${precision}",
-      "data_type": "$precision",
-      "vector_size": $size,
-      "min_time": $(python3 -c "print($adjusted_time * 0.8)"),
-      "max_time": $(python3 -c "print($adjusted_time * 1.2)"),
-      "mean_time": $adjusted_time,
-      "median_time": $adjusted_time,
-      "stddev_time": $(python3 -c "print($adjusted_time * 0.1)"),
-      "p95_time": $(python3 -c "print($adjusted_time * 1.15)"),
-      "p99_time": $(python3 -c "print($adjusted_time * 1.25)"),
-      "iterations": 100000,
-      "elements_processed": $((size * 100000)),
-      "throughput_mops": $throughput
-    }
-EOF
-                done
-                
-            else
-                log_warning "Test $test_name failed or timed out"
-            fi
-        done
-    done
-    
-    # Close the JSON structure
-    cat >> "$output_file" << EOF
-
-  }
-}
-EOF
+    rm "$raw_benchmark_output_file"
 
     log_success "Performance data saved to: $output_file"
     echo "$output_file"
 }
 
 # Function to generate performance report
-generate_report() {
-    log_info "Generating performance dashboard..."
-    
-    mkdir -p "$REPORT_DIR"
-    
-    cd "$SCRIPT_DIR"
-    
-    # Run the performance dashboard generator
-    python3 performance_dashboard.py \
-        --benchmark-dir "$BENCHMARK_DIR" \
-        --output "$REPORT_DIR/performance_dashboard_$(date +%Y%m%d_%H%M%S).html" \
-        --regression-threshold 0.1
-    
-    # Also generate a "latest" version for easy access
-    python3 performance_dashboard.py \
-        --benchmark-dir "$BENCHMARK_DIR" \
-        --output "$REPORT_DIR/latest_performance_report.html" \
-        --regression-threshold 0.1
-    
-    log_success "Performance dashboard generated in $REPORT_DIR"
-}
+
+
+# Function to generate performance report
+
 
 # Function to check dependencies
 check_dependencies() {
@@ -248,7 +180,6 @@ main() {
             check_dependencies
             install_python_deps
             run_existing_perf_tests
-            generate_report
             ;;
         "report")
             check_dependencies

@@ -1,0 +1,69 @@
+name: Performance Benchmarks
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  run_benchmarks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install LLVM
+        uses: KyleMayes/install-llvm-action@v2.0.5
+        with:
+          version: "12"
+
+      - name: Install Bazelisk
+        uses: bazelbuild/setup-bazelisk@v3
+
+      - name: Set up environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget
+          wget http://security.debian.org/debian-security/pool/updates/main/n/ncurses/libtinfo5_6.1+20181013-2+deb10u5_amd64.deb
+          sudo dpkg -i libtinfo5_6.1+20181013-2+deb10u5_amd64.deb
+
+      - name: autogenerate
+        run: ./autogen.sh
+
+      - name: configure
+        run: ./configure --with-llvm=$(llvm-config-12 --prefix) CC=clang-12 CXX=clang++-12
+
+      - name: make
+        run: make
+
+      - name: Run Performance Tests and Generate Report
+        run: ./tools/run_existing_perf_tests.sh run
+
+      - name: Upload Performance Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-report
+          path: performance_reports/latest_performance_report.html
+
+  deploy_report:
+    needs: run_benchmarks
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Performance Report
+        uses: actions/download-artifact@v4
+        with:
+          name: performance-report
+          path: performance_reports
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./performance_reports
+          destination_dir: performance-benchmarks
+          keep_files: true
+          force_orphan: true

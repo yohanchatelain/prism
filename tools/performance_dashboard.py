@@ -9,6 +9,7 @@ performance evolution over git commits and identify performance regressions.
 import json
 import os
 import glob
+import re
 import argparse
 import subprocess
 from datetime import datetime
@@ -28,69 +29,151 @@ class PerformanceAnalyzer:
         self.benchmark_dir = Path(benchmark_dir)
         self.data_cache = {}
         
-    def load_benchmark_data(self) -> pd.DataFrame:
-        """Load all benchmark JSON files from the results directory."""
+    def load_benchmark_data(self, raw_output_file: Optional[Path] = None,
+                            commit_hash: Optional[str] = None,
+                            timestamp: Optional[str] = None,
+                            cpu_info: Optional[str] = None) -> pd.DataFrame:
+        """Load all benchmark JSON files from the results directory or process raw output."""
+        all_data = []
+
+        if raw_output_file and raw_output_file.exists():
+            with open(raw_output_file, 'r') as f:
+                content = f.read()
+            
+            # Split content by benchmark output blocks
+            print(f"Content of raw_output_file:\n{content}")
+            benchmark_blocks = re.findall(r'''---START_BENCHMARK_OUTPUT---
+test_name: (.*?)
+precision: (.*?)
+(.*?)---END_BENCHMARK_OUTPUT---''', content, re.DOTALL)
+            print(f"Found {len(benchmark_blocks)} benchmark blocks.")
+
+            for test_name, precision, test_output in benchmark_blocks:
+                if not test_output.strip():
+                    print(f"Skipping empty benchmark block: {test_name}")
+                    continue
+                operation_prefix = ""
+                if test_name == "sr-perf-dynamic":
+                    operation_prefix = "SR_Dynamic"
+                elif test_name == "sr-perf-static":
+                    operation_prefix = "SR_Static"
+                elif test_name == "ud-perf-dynamic":
+                    operation_prefix = "UD_Dynamic"
+                elif test_name == "ud-perf-static":
+                    operation_prefix = "UD_Static"
+                
+                # Use the parse_benchmark_output logic directly
+                current_operation_name = "UnknownOp"
+                current_data_type = "UnknownType"
+                for line in test_output.splitlines():
+                    operation_name_match = re.search(r'Measure function (.*?) with', line)
+                    if operation_name_match:
+                        full_op_name = operation_name_match.group(1).strip()
+                        parts = full_op_name.split('::')
+                        if len(parts) > 1:
+                            op_and_type = parts[1].split(' ')[0]
+                            current_operation_name = op_and_type[:-3]  # Remove f32/f64
+                            current_data_type = op_and_type[-3:] # Extract f32/f64
+                        else:
+                            current_operation_name = full_op_name.split(' ')[0]
+                            current_data_type = "UnknownType" # Fallback if format is unexpected
+                        continue # Move to next line to find benchmark data
+
+                    match = re.match(r'\[(\d+)\s*\]\s*([0-9]+\.[0-9]+e[+-]?[0-9]+)\s*±\s*([0-9]+\.[0-9]+e[+-]?[0-9]+)\s*\[([0-9]+\.[0-9]+e[+-]?[0-9]+)\s*-\s*([0-9]+\.[0-9]+e[+-]?[0-9]+)\]\s*\((\d+)\)', line)
+                    if match:
+                        size = int(match.group(1))
+                        mean_sec = float(match.group(2))
+                        std_sec = float(match.group(3))
+                        min_sec = float(match.group(4))
+                        max_sec = float(match.group(5))
+                        iterations = int(match.group(6))
+
+                        operation_name = current_operation_name
+                        data_type = current_data_type
+                        print(f"Matched benchmark line: size={size}, mean_sec={mean_sec}, op={operation_name}, dtype={data_type}")
+
+                        mean_ns = mean_sec * 1e9
+                        std_ns = std_sec * 1e9
+                        min_ns = min_sec * 1e9
+                        max_ns = max_sec * 1e9
+
+                        throughput_mops = (size / mean_sec) / 1e6 if mean_sec > 0 else 0
+
+                        benchmark_key = f"{operation_prefix}_{operation_name}_{precision}_{size}"
+                        
+                        all_data.append({
+                            "commit_hash": commit_hash,
+                            "commit_short": commit_hash[:8] if commit_hash != 'unknown' else 'unknown',
+                            "timestamp": timestamp,
+                            "datetime": datetime.strptime(timestamp if timestamp != 'unknown' else '1970-01-01_00-00-00', '%Y-%m-%d_%H-%M-%S'),
+                            "build_config": "Release", # Assuming Release for perf tests
+                            "cpu_info": cpu_info,
+                            "benchmark_name": benchmark_key,
+                            "operation_name": operation_name,
+                            "data_type": data_type,
+                            "vector_size": size,
+                            "min_time": min_ns,
+                            "max_time": max_ns,
+                            "mean_time": mean_ns,
+                            "median_time": mean_ns, # Assuming median is close to mean for now
+                            "stddev_time": std_ns,
+                            "p95_time": mean_ns + 1.645 * std_ns,
+                            "p99_time": mean_ns + 2.326 * std_ns,
+                            "iterations": iterations,
+                            "elements_processed": size * iterations,
+                            "throughput_mops": throughput_mops
+                        })
+
+        # Load existing JSON files
         json_files = list(self.benchmark_dir.glob("benchmark_*.json"))
-        
-        if not json_files:
-            print(f"No benchmark files found in {self.benchmark_dir}")
-            return []
-        
-        data = pd.DataFrame()
         for json_file in json_files:
             try:
-                benchmark_data = pd.read_json(json_file, orient='records')
-                data = pd.concat([data, benchmark_data], ignore_index=True)
-            except Exception as e:
-                print(f"Error loading {json_file}: {e}")
-        
-        # Sort by timestamp
-        data.sort_values(by='timestamp', inplace=True)
-        return data
-    
-    def process_data_for_plotting(self, data: pd.DataFrame) -> pd.DataFrame:
-        """Convert benchmark data to pandas DataFrame for easier plotting."""
-        rows = []
+                with open(json_file, 'r') as f:
+                    content = json.load(f)
+                
+                # If the file contains a single benchmark run (old format)
+                if 'benchmarks' in content:
+                    for benchmark_name, stats in content['benchmarks'].items():
+                        all_data.append({
+                            "commit_hash": content.get('commit_hash', 'unknown'),
+                            "commit_short": content.get('commit_hash', 'unknown')[:8] if content.get('commit_hash', 'unknown') != 'unknown' else 'unknown',
+                            "timestamp": content.get('timestamp', 'unknown'),
+                            "datetime": datetime.strptime(timestamp if timestamp != 'unknown' else '1970-01-01_00-00-00', '%Y-%m-%d_%H-%M-%S'),
+                            "build_config": content.get('build_config', 'unknown'),
+                            "cpu_info": content.get('cpu_info', 'unknown'),
+                            "benchmark_name": benchmark_name,
+                            "operation_name": stats.get('operation_name', ''),
+                            "data_type": stats.get('data_type', ''),
+                            "vector_size": stats.get('vector_size', 0),
+                            "median_time": stats.get('median_time', 0),
+                            "mean_time": stats.get('mean_time', 0),
+                            "min_time": stats.get('min_time', 0),
+                            "max_time": stats.get('max_time', 0),
+                            "stddev_time": stats.get('stddev_time', 0),
+                            "p95_time": stats.get('p95_time', 0),
+                            'p99_time': stats.get('p99_time', 0),
+                            "throughput_mops": stats.get('throughput_mops', 0),
+                            "iterations": stats.get('iterations', 0),
+                            "elements_processed": stats.get('elements_processed', 0),
+                        })
+                # If the file contains a list of benchmark runs (new format from parse_benchmark_output.py)
+                elif isinstance(content, list):
+                    for item in content:
+                        all_data.append(item)
 
-        commits = data.commit_hash.unique()
-        for commit_hash in commits:
-            benchmark_run = data[data['commit_hash'] == commit_hash]
-            timestamp = benchmark_run.timestamp.unique()[0]
-            build_config = benchmark_run.build_config.unique()[0]
-            cpu_info = benchmark_run.cpu_info.unique()[0]
-            
-            # Parse timestamp
-            try:
-                dt = datetime.strptime(timestamp, '%Y-%m-%d_%H-%M-%S')
-            except:
-                dt = datetime.now()
-            
-            for benchmark_name, stats in benchmark_run.get('benchmarks', {}).items():
-                row = {
-                    'commit_hash': commit_hash,
-                    'commit_short': commit_hash[:8] if commit_hash != 'unknown' else 'unknown',
-                    'timestamp': timestamp,
-                    'datetime': dt,
-                    'build_config': build_config,
-                    'cpu_info': cpu_info,
-                    'benchmark_name': benchmark_name,
-                    'operation_name': stats.get('operation_name', ''),
-                    'data_type': stats.get('data_type', ''),
-                    'vector_size': stats.get('vector_size', 0),
-                    'median_time': stats.get('median_time', 0),
-                    'mean_time': stats.get('mean_time', 0),
-                    'min_time': stats.get('min_time', 0),
-                    'max_time': stats.get('max_time', 0),
-                    'stddev_time': stats.get('stddev_time', 0),
-                    'p95_time': stats.get('p95_time', 0),
-                    'p99_time': stats.get('p99_time', 0),
-                    'throughput_mops': stats.get('throughput_mops', 0),
-                    'iterations': stats.get('iterations', 0),
-                    'elements_processed': stats.get('elements_processed', 0),
-                }
-                rows.append(row)
+            except json.JSONDecodeError as e:
+                print(f"Error loading {json_file}: {e}")
+            except Exception as e:
+                print(f"Error processing {json_file}: {e}")
         
-        return pd.DataFrame(rows)
+        print(f"all_data before DataFrame creation: {all_data}")
+        df = pd.DataFrame(all_data)
+        if not df.empty:
+            df['datetime'] = pd.to_datetime(df['timestamp'], errors='coerce')
+            df.sort_values(by='datetime', inplace=True)
+        return df
+    
+    
     
     def create_performance_trend_plot(self, df: pd.DataFrame, operation: str) -> go.Figure:
         """Create a performance trend plot for a specific operation across commits."""
@@ -335,17 +418,12 @@ class PerformanceAnalyzer:
         
         return fig
     
-    def generate_performance_report(self, output_file: str = "performance_report.html"):
+    def generate_performance_report(self, df: pd.DataFrame, output_file: str = "performance_report.html"):
         """Generate a comprehensive interactive performance report."""
-        data = self.load_benchmark_data()
         
-        if data.empty:
+        if df.empty:
             print("No benchmark data available for report generation")
             return
-        
-        df = self.process_data_for_plotting(data)
-        
-        print(f"Loaded {len(data)} benchmark runs with {len(df)} data points")
         
         # Create all plots
         operations = df['operation_name'].unique()
@@ -372,7 +450,7 @@ class PerformanceAnalyzer:
         """
         
         # Add summary statistics
-        latest_run = data.sort_values('timestamp').iloc[-1]
+        latest_run = df.sort_values('timestamp').iloc[-1]
         html_content += f"""
             <div class="summary">
                 <h2>Latest Benchmark Summary</h2>
@@ -465,11 +543,21 @@ def main():
                        help='Output HTML file name')
     parser.add_argument('--regression-threshold', type=float, default=0.1,
                        help='Performance regression threshold (default: 10%)')
+    parser.add_argument('--raw-output-file', type=Path, help='Path to a file containing raw benchmark output')
+    parser.add_argument('--commit-hash', type=str, help='Commit hash for the current benchmark run')
+    parser.add_argument('--timestamp', type=str, help='Timestamp for the current benchmark run')
+    parser.add_argument('--cpu-info', type=str, help='CPU info for the current benchmark run')
     
     args = parser.parse_args()
     
     analyzer = PerformanceAnalyzer(args.benchmark_dir)
-    analyzer.generate_performance_report(args.output)
+    df = analyzer.load_benchmark_data(args.raw_output_file, args.commit_hash, args.timestamp, args.cpu_info)
+
+    if df.empty:
+        print("No benchmark data available for report generation")
+        return
+
+    analyzer.generate_performance_report(df, args.output)
     
     print(f"\nTo view the report, open {args.output} in your web browser")
 

@@ -514,30 +514,8 @@ HWY_FLATTEN auto round(const D d, const V sigma, const V tau) -> V {
 
   // Cache exponent calculations to avoid redundant computation
   using VI = hn::VFromD<DI>;
-  thread_local static V last_sigma = hn::Zero(d);
-  thread_local static VI last_sigma_exp = hn::Zero(di);
-  thread_local static V last_pred_sigma = hn::Zero(d);
-  thread_local static VI last_pred_sigma_exp = hn::Zero(di);
-  
-  VI sigma_exp, pred_sigma_exp;
-  
-  // Check if we can reuse cached sigma exponent
-  if (HWY_LIKELY(hn::AllTrue(d, hn::Eq(sigma, last_sigma)))) {
-    sigma_exp = last_sigma_exp;
-  } else {
-    sigma_exp = get_exponent(d, sigma);
-    last_sigma = sigma;
-    last_sigma_exp = sigma_exp;
-  }
-  
-  // Check if we can reuse cached pred_sigma exponent
-  if (HWY_LIKELY(hn::AllTrue(d, hn::Eq(pred_sigma, last_pred_sigma)))) {
-    pred_sigma_exp = last_pred_sigma_exp;
-  } else {
-    pred_sigma_exp = get_exponent(d, pred_sigma);
-    last_pred_sigma = pred_sigma;
-    last_pred_sigma_exp = pred_sigma_exp;
-  }
+  VI sigma_exp = get_exponent(d, sigma);
+  VI pred_sigma_exp = get_exponent(d, pred_sigma);
   
   const auto eta = hn::IfThenElse(sign_diff_int, pred_sigma_exp, sigma_exp);
   dbg::debug_vec(di, "[sr_round] η", eta, false);
