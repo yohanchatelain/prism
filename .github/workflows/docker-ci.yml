@@ -3,12 +3,11 @@ name: docker
 on:
   workflow_dispatch:
   push:
-    branches: [ '*' ]
+    branches: ["*"]
   pull_request:
-    branches: [ '*' ]
+    branches: ["*"]
   release:
-    types: [ published ]
-
+    types: [published]
 
 jobs:
   llvm_latest:
@@ -22,7 +21,7 @@ jobs:
       - name: Install Bazelisk
         uses: bazelbuild/setup-bazelisk@v3
       - name: Set up environment
-        run: |          
+        run: |
           sudo apt-get update
           sudo apt-get install -y wget
           wget http://ftp.us.debian.org/debian/pool/main/n/ncurses/libtinfo5_6.4-4_amd64.deb
@@ -35,7 +34,6 @@ jobs:
         run: make
       - name: Run tests
         run: bazel test --test_output=errors tests:all
-
 
   llvm_all:
     if: github.event_name == 'pull_request' || github.event_name == 'release'
@@ -67,7 +65,9 @@ jobs:
             llvm: 17
           - os: ubuntu-24.04
             llvm: 18
-    
+          - os: ubuntu-24.04
+            llvm: 19
+
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -76,7 +76,7 @@ jobs:
         with:
           version: ${{ matrix.llvm }}
       - name: Install Bazelisk
-        uses: bazelbuild/setup-bazelisk@v3        
+        uses: bazelbuild/setup-bazelisk@v3
       - name: Set up environment
         run: |
           sudo apt-get update
