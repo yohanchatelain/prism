@@ -67,6 +67,8 @@ jobs:
             llvm: 18
           - os: ubuntu-24.04
             llvm: 19
+          - os: ubuntu-24.04
+            llvm: 20
 
     runs-on: ${{ matrix.os }}
     steps:
