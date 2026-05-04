@@ -29,6 +29,7 @@ This combination of features makes the library versatile for scientific computin
 ## Requirements
 
 - clang, clang++
+- parallel ([install](https://www.gnu.org/software/parallel/))
 - **bazelisk** ([install](https://github.com/bazelbuild/bazelisk/releases))
   
 ## Install
