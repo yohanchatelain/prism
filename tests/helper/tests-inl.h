@@ -132,7 +132,7 @@ void TestRandom01(TestFunc &&check, D d, const ConfigTest config = {}) {
 template <size_t arity, typename TestFunc, class D, class V = hn::VFromD<D>,
           typename T = hn::TFromD<D>>
 void TestRandomNoOverlap(TestFunc &&check, D d, const ConfigTest config = {}) {
-  constexpr auto s2 = IEEE754<T>::precision - 1;
+  const auto s2 = prism::sr::get_virtual_precision<T>();
   const auto _start = [](int s) -> double { return std::ldexp(1.0, s + 1); };
   const auto _end = [](int s) -> double { return std::ldexp(1.0, s + 2); };
 
@@ -149,7 +149,7 @@ template <size_t arity, typename TestFunc, class D, class V = hn::VFromD<D>,
           typename T = hn::TFromD<D>>
 void TestRandomLastBitOverlap(TestFunc &&check, D d,
                               const ConfigTest config = {}) {
-  constexpr auto s2 = IEEE754<T>::precision;
+  const auto s2 = prism::sr::get_virtual_precision<T>() + 1;
   const auto _start = [](int s) -> double { return std::ldexp(1.0, s + 1); };
   const auto _end = [](int s) -> double { return std::ldexp(1.0, s + 2); };
 
@@ -165,7 +165,7 @@ void TestRandomLastBitOverlap(TestFunc &&check, D d,
 template <size_t arity, typename TestFunc, class D, class V = hn::VFromD<D>,
           typename T = hn::TFromD<D>>
 void TestRandomMidOverlap(TestFunc &&check, D d, const ConfigTest config = {}) {
-  constexpr auto s2 = IEEE754<T>::precision / 2;
+  const auto s2 = (prism::sr::get_virtual_precision<T>() + 1) / 2;
   const auto _start = [](int s) -> double { return std::ldexp(1.0, s + 1); };
   const auto _end = [](int s) -> double { return std::ldexp(1.0, s + 2); };
 
@@ -241,7 +241,7 @@ template <class M, class Op, class D, class V = hn::VFromD<D>,
           typename T = hn::TFromD<D>>
 void TestRandomNoOverlap(D d, const ConfigTest &config) {
 
-  constexpr auto s2 = IEEE754<T>::precision - 1;
+  const auto s2 = prism::sr::get_virtual_precision<T>();
   const auto _start = [](int s) -> double { return std::ldexp(1.0, s + 1); };
   const auto _end = [](int s) -> double { return std::ldexp(1.0, s + 2); };
 
@@ -261,7 +261,7 @@ void TestRandomNoOverlap(D d, const ConfigTest &config) {
 template <class M, class Op, class D, class V = hn::VFromD<D>,
           typename T = hn::TFromD<D>>
 void TestRandomLastBitOverlap(D d, const ConfigTest &config) {
-  constexpr auto s2 = IEEE754<T>::precision;
+  const auto s2 = prism::sr::get_virtual_precision<T>() + 1;
   const auto _start = [](int s) -> double { return std::ldexp(1.0, s + 1); };
   const auto _end = [](int s) -> double { return std::ldexp(1.0, s + 2); };
 
@@ -281,7 +281,7 @@ void TestRandomLastBitOverlap(D d, const ConfigTest &config) {
 template <class M, class Op, class D, class V = hn::VFromD<D>,
           typename T = hn::TFromD<D>>
 void TestRandomMidOverlap(D d, const ConfigTest &config) {
-  constexpr auto s2 = IEEE754<T>::precision / 2;
+  const auto s2 = (prism::sr::get_virtual_precision<T>() + 1) / 2;
   const auto _start = [](int s) -> double { return std::ldexp(1.0, s + 1); };
   const auto _end = [](int s) -> double { return std::ldexp(1.0, s + 2); };
 
@@ -299,10 +299,6 @@ void TestRandomMidOverlap(D d, const ConfigTest &config) {
 }
 
 } // namespace prism::tests::helper::distribution::HWY_NAMESPACE
-
-namespace prism::tests::helper::HWY_NAMESPACE {
-
-}; // namespace prism::tests::helper::HWY_NAMESPACE
 
 HWY_AFTER_NAMESPACE();
 

@@ -132,7 +132,10 @@ auto get_ulp(T a) -> H {
       return static_cast<H>(IEEE754<T>::min_subnormal);
     }
     int exponent = get_exponent(a);
-    H ulp = std::ldexp(1.0, exponent - IEEE754<T>::mantissa);
+    // Return the ULP corresponding to the virtual precision grid 't'
+    // rather than the hardware mantissa to ensure accurate distance scaling.
+    int t = prism::sr::get_virtual_precision<T>();
+    H ulp = std::ldexp(1.0, exponent - t);
     return ulp;
   }
 }

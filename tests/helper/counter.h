@@ -7,68 +7,50 @@ namespace prism::tests::helper {
 
 template <typename T> class Counter {
 private:
-  int _up_count{};
-  int _down_count{};
-  T _down;
-  T _up;
-  std::map<T, int> data;
-  bool _is_finalized = false;
+  std::map<T, int> _data;
+  T _prev_expected;
+  T _next_expected;
 
 public:
-  Counter() = default;
+  Counter(T prev, T next) : _prev_expected(prev), _next_expected(next) {}
+
+  void add(const T &val) {
+    _data[val]++;
+  }
 
   auto operator[](const T &key) -> int & {
-    _is_finalized = false;
-    return data[key];
+    return _data[key];
   }
 
-  void finalize() {
-    if (_is_finalized) {
-      return;
-    }
-
-    auto keys = data.begin();
-    _down = keys->first;
-    _down_count = keys->second;
-    keys++;
-    if (keys == data.end()) {
-      _is_finalized = true;
-      _up = 0;
-      _up_count = 0;
-      return;
-    }
-    _up = keys->first;
-    _up_count = keys->second;
-
-    if (_down > _up) {
-      std::swap(_down, _up);
-      std::swap(_down_count, _up_count);
-    }
-
-    _is_finalized = true;
+  auto get(const T &key) const -> int {
+    auto it = _data.find(key);
+    if (it != _data.end()) return it->second;
+    return 0;
   }
 
-  [[nodiscard]] auto size() const -> int { return data.size(); }
-  [[nodiscard]] auto count() const -> int { return _down_count + _up_count; }
+  [[nodiscard]] auto size() const -> int { return _data.size(); }
 
-  auto down() -> const T & {
-    finalize();
-    return _down;
-  }
-  auto up() -> const T & {
-    finalize();
-    return _up;
+  auto down() const -> T {
+    return _data.empty() ? T{} : _data.begin()->first;
   }
 
-  auto down_count() -> const int & {
-    finalize();
-    return _down_count;
+  auto up() const -> T {
+    return _data.empty() ? T{} : _data.rbegin()->first;
   }
 
-  auto up_count() -> const int & {
-    finalize();
-    return _up_count;
+  auto count() const -> int {
+    int total = 0;
+    for (auto const& [val, freq] : _data) total += freq;
+    return total;
   }
+
+  auto down_count() const -> int { return get(_prev_expected); }
+  auto up_count() const -> int { return get(_next_expected); }
+
+  auto down_expected() const -> T { return _prev_expected; }
+  auto up_expected() const -> T { return _next_expected; }
+
+  const std::map<T, int>& data() const { return _data; }
 };
 }; // namespace prism::tests::helper
 

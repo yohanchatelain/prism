@@ -61,6 +61,8 @@ auto default_repetitions() -> int {
 
 namespace sr = prism::sr::scalar::HWY_NAMESPACE;
 
+ 
+ 
 struct SRAdd : public helper::PrAdd {
   template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
   auto operator()(D d, V a, V b) const -> V {
@@ -122,14 +124,16 @@ struct SRFma : public helper::PrFma {
 };
 
 struct TestExactOperationsAdd {
-  helper::ConfigTest config = {.name = "TestExactOperationsAdd",
-                               .description =
-                                   "Test exact operations for addition",
-                               .repetitions = default_repetitions(),
-                               .alpha = default_alpha};
+  const helper::ConfigTest config = {.name = "TestExactOperationsAdd",
+                                     .description =
+                                         "Test exact operations for addition",
+                                     .repetitions = default_repetitions(),
+                                     .alpha = default_alpha};
 
   template <typename T, class D> void operator()(T /*unused*/, D d) {
-    test_distribution::TestExactAdd<M, SRAdd>(d, config);
+    helper::RunWithPrecisions<T>(d, [&]() {
+      test_distribution::TestExactAdd<M, SRAdd>(d, config);
+    });
   }
 };
 
@@ -138,14 +142,16 @@ HWY_NOINLINE void TestAllExactOperationsAdd() {
 }
 
 template <class Op> struct TestBasicAssertions {
-  helper::ConfigTest config = {
+  const helper::ConfigTest config = {
       .name = "TestBasicAssertions",
       .description = "Test basic assertions for arithmetic operations",
       .repetitions = default_repetitions(),
       .alpha = default_alpha};
 
   template <typename T, class D> void operator()(T /*unused*/, D d) {
-    test_distribution::TestSimpleCase<M, Op>(d, config);
+    helper::RunWithPrecisions<T>(d, [&]() {
+      test_distribution::TestSimpleCase<M, Op>(d, config);
+    });
   }
 };
 
@@ -181,7 +187,7 @@ HWY_NOINLINE void TestAllBasicAssertionsFma() {
 }
 
 template <class Op> struct TestRandom01Assertions {
-  helper::ConfigTest config = {
+  const helper::ConfigTest config = {
       .name = "TestRandom01Assertions",
       .description =
           "Test random numbers in (0,1) assertions for arithmetic operations",
@@ -189,7 +195,9 @@ template <class Op> struct TestRandom01Assertions {
       .alpha = default_alpha};
 
   template <typename T, class D> void operator()(T /*unused*/, D d) {
-    test_distribution::TestRandom01<M, Op>(d, config);
+    helper::RunWithPrecisions<T>(d, [&]() {
+      test_distribution::TestRandom01<M, Op>(d, config);
+    });
   }
 };
 
@@ -225,14 +233,16 @@ HWY_NOINLINE void TestAllRandom01AssertionsFma() {
 }
 
 template <class Op> struct TestRandomNoOverlapAssertions {
-  helper::ConfigTest config = {
+  const helper::ConfigTest config = {
       .name = "TestRandomNoOverlapAssertions",
       .description = "Test random with no overlap assertions for arithmetic ",
       .repetitions = default_repetitions(),
       .alpha = default_alpha};
 
   template <typename T, class D> void operator()(T /*unused*/, D d) {
-    test_distribution::TestRandomNoOverlap<M, Op>(d, config);
+    helper::RunWithPrecisions<T>(d, [&]() {
+      test_distribution::TestRandomNoOverlap<M, Op>(d, config);
+    });
   }
 };
 
@@ -274,7 +284,7 @@ HWY_NOINLINE void TestAllRandomNoOverlapAssertionsFma() {
 }
 
 template <class Op> struct TestRandomLastBitOverlap {
-  helper::ConfigTest config = {
+  const helper::ConfigTest config = {
       .name = "TestRandomLastBitOverlap",
       .description =
           "Test random with last bit overlapping assertions for arithmetic ",
@@ -282,7 +292,9 @@ template <class Op> struct TestRandomLastBitOverlap {
       .alpha = default_alpha};
 
   template <typename T, class D> void operator()(T /*unused*/, D d) {
-    test_distribution::TestRandomLastBitOverlap<M, Op>(d, config);
+    helper::RunWithPrecisions<T>(d, [&]() {
+      test_distribution::TestRandomLastBitOverlap<M, Op>(d, config);
+    });
   }
 };
 
@@ -318,7 +330,7 @@ HWY_NOINLINE void TestAllRandomLastBitOverlapFma() {
 }
 
 template <class Op> struct TestRandomMidOverlap {
-  helper::ConfigTest config = {
+  const helper::ConfigTest config = {
       .name = "TestRandomMidOverlap",
       .description =
           "Test random number with mid overlap assertions for arithmetic",
@@ -326,7 +338,9 @@ template <class Op> struct TestRandomMidOverlap {
       .alpha = default_alpha};
 
   template <typename T, class D> void operator()(T /*unused*/, D d) {
-    test_distribution::TestRandomMidOverlap<M, Op>(d, config);
+    helper::RunWithPrecisions<T>(d, [&]() {
+      test_distribution::TestRandomMidOverlap<M, Op>(d, config);
+    });
   }
 };
 

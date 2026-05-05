@@ -67,6 +67,8 @@ auto default_repetitions() -> int {
 
 namespace sr = prism::sr::vector::PRISM_DISPATCH::HWY_NAMESPACE;
 
+ 
+ 
 struct SRAdd : public helper::PrAdd {
   template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
   auto operator()(D d, V a, V b) const -> V {
@@ -117,7 +119,9 @@ struct TestExactOperationsAdd {
                                      .alpha = get_alpha()};
 
   template <typename T, class D> void operator()(T /*unused*/, D d) {
-    test_distribution::TestExactAdd<M, SRAdd>(d, config);
+    helper::RunWithPrecisions<T>(d, [&]() {
+      test_distribution::TestExactAdd<M, SRAdd>(d, config);
+    });
   }
 };
 
@@ -133,7 +137,9 @@ template <class Op> struct TestBasicAssertions {
       .alpha = get_alpha()};
 
   template <typename T, class D> void operator()(T /*unused*/, D d) {
-    test_distribution::TestSimpleCase<M, Op>(d, config);
+    helper::RunWithPrecisions<T>(d, [&]() {
+      test_distribution::TestSimpleCase<M, Op>(d, config);
+    });
   }
 };
 
@@ -177,7 +183,9 @@ template <class Op> struct TestRandom01Assertions {
       .alpha = get_alpha()};
 
   template <typename T, class D> void operator()(T /*unused*/, D d) {
-    test_distribution::TestRandom01<M, Op>(d, config);
+    helper::RunWithPrecisions<T>(d, [&]() {
+      test_distribution::TestRandom01<M, Op>(d, config);
+    });
   }
 };
 
@@ -220,7 +228,9 @@ template <class Op> struct TestRandomNoOverlapAssertions {
       .alpha = get_alpha()};
 
   template <typename T, class D> void operator()(T /*unused*/, D d) {
-    test_distribution::TestRandomNoOverlap<M, Op>(d, config);
+    helper::RunWithPrecisions<T>(d, [&]() {
+      test_distribution::TestRandomNoOverlap<M, Op>(d, config);
+    });
   }
 };
 
@@ -270,7 +280,9 @@ template <class Op> struct TestRandomLastBitOverlap {
       .alpha = get_alpha()};
 
   template <typename T, class D> void operator()(T /*unused*/, D d) {
-    test_distribution::TestRandomLastBitOverlap<M, Op>(d, config);
+    helper::RunWithPrecisions<T>(d, [&]() {
+      test_distribution::TestRandomLastBitOverlap<M, Op>(d, config);
+    });
   }
 };
 
@@ -314,7 +326,9 @@ template <class Op> struct TestRandomMidOverlap {
       .alpha = get_alpha()};
 
   template <typename T, class D> void operator()(T /*unused*/, D d) {
-    test_distribution::TestRandomMidOverlap<M, Op>(d, config);
+    helper::RunWithPrecisions<T>(d, [&]() {
+      test_distribution::TestRandomMidOverlap<M, Op>(d, config);
+    });
   }
 };
 

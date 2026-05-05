@@ -152,7 +152,7 @@ void assert_equal_inputs(D d, Args... args) {
   i++;
 }
 
-template <typename T, typename H = typename IEEE754<T>::H>
+template <typename T, typename H = typename prism::utils::IEEE754<T>::H>
 void assert_counter_infnan_values(const DistanceError<H> &distance_error,
                                   Counter<T> &counter, const H reference) {
 
@@ -175,6 +175,8 @@ void assert_counter_infnan_values(const DistanceError<H> &distance_error,
 
   match |= is_nan_reference and is_nan_up;
   match |= is_inf_reference and (reference == counter.up());
+  match |= (counter.up() == static_cast<T>(distance_error.next));
+  match |= (counter.up() == static_cast<T>(distance_error.prev));
 
   if (not match) {
     std::cerr << "Error in nan/inf comparison\n"
@@ -187,8 +189,10 @@ void assert_counter_infnan_values(const DistanceError<H> &distance_error,
 
   const auto is_nan_down = isnan(counter.down());
 
-  match |= is_nan_reference and is_nan_down;
+  match = is_nan_reference and is_nan_down;
   match |= is_inf_reference and (reference == counter.down());
+  match |= (counter.down() == static_cast<T>(distance_error.prev));
+  match |= (counter.down() == static_cast<T>(distance_error.next));
 
   if (not match) {
     std::cerr << "Error in nan/inf comparison\n"
@@ -200,7 +204,7 @@ void assert_counter_infnan_values(const DistanceError<H> &distance_error,
   }
 }
 
-template <typename Op, typename T, typename H = typename IEEE754<T>::H>
+template <typename Op, typename T, typename H = typename prism::utils::IEEE754<T>::H>
 void print_assert_error(const DistanceError<H> &distance_error,
                         Counter<T> &counter, Args<T> args, const double alpha,
                         const int lane, const int lanes,
@@ -209,6 +213,7 @@ void print_assert_error(const DistanceError<H> &distance_error,
   const auto op_name = Op::name;
   const auto *const ftype = typeid(T).name();
   const auto args_str = get_args_str<T, Op>(args, distance_error.reference);
+  const int32_t virtual_precision = prism::sr::get_virtual_precision<T>();
 
   const auto pdown = fmt_proba(distance_error.probability_down);
   const auto pup = fmt_proba(distance_error.probability_up);
@@ -228,6 +233,7 @@ void print_assert_error(const DistanceError<H> &distance_error,
             << "     Lane/#Lanes: " << lane + 1 << "/" << lanes << "\n"
             << "            type: " << ftype << "\n"
             << "              op: " << op_name << "\n"
+            << "    v. precision: " << virtual_precision << "\n"
             << "           alpha: " << alpha << "\n"
             << std::hexfloat << std::setprecision(precision) << args_str
             << std::defaultfloat << "" << "-- theoretical -\n"
@@ -243,7 +249,7 @@ void print_assert_error(const DistanceError<H> &distance_error,
             << std::defaultfloat << flush();
 }
 
-template <typename Op, typename T, typename H = typename IEEE754<T>::H>
+template <typename Op, typename T, typename H = typename prism::utils::IEEE754<T>::H>
 void assert_unique_value_eq_reference(const DistanceError<H> &distance_error,
                                       Counter<T> &counter, Args<T> args,
                                       const double alpha) {
@@ -263,7 +269,6 @@ void assert_unique_value_eq_reference(const DistanceError<H> &distance_error,
       distance_error.next == counter.up()) {
     return;
   }
-
   if (distance_error.error <= prism::utils::IEEE754<T>::min_subnormal) {
     return;
   }
@@ -273,7 +278,7 @@ void assert_unique_value_eq_reference(const DistanceError<H> &distance_error,
   hwy_assert_may_fail<Op>();
 }
 
-template <typename Op, typename T, typename H = typename IEEE754<T>::H>
+template <typename Op, typename T, typename H = typename prism::utils::IEEE754<T>::H>
 void assert_value_eq_reference(const DistanceError<H> &distance_error,
                                Counter<T> &counter, Args<T> args,
                                const double alpha, const int lane,
@@ -290,20 +295,32 @@ void assert_value_eq_reference(const DistanceError<H> &distance_error,
     return;
   }
 
-  if (distance_error.next != counter.up()) {
-    print_assert_error<Op>(distance_error, counter, args, alpha, lane, lanes,
-                           "Value ↑ is not equal to reference");
-    hwy_assert_may_fail<Op>();
-  }
-
-  if (distance_error.prev != counter.down()) {
-    print_assert_error<Op>(distance_error, counter, args, alpha, lane, lanes,
-                           "Value ↓ is not equal to reference");
-    hwy_assert_may_fail<Op>();
+  // Handle cases where there are only two possible values
+  if (counter.size() == 2) {
+    if (counter.down() != static_cast<T>(distance_error.prev)) {
+       print_assert_error<Op>(distance_error, counter, args, alpha, lane, lanes,
+                              "Value ↓ is not equal to reference");
+       hwy_assert_may_fail<Op>();
+    }
+    if (counter.up() != static_cast<T>(distance_error.next)) {
+       print_assert_error<Op>(distance_error, counter, args, alpha, lane, lanes,
+                              "Value ↑ is not equal to reference");
+       hwy_assert_may_fail<Op>();
+    }
+  } else {
+    for (auto const& [val, freq] : counter.data()) {
+      if (val != static_cast<T>(distance_error.prev) && val != static_cast<T>(distance_error.next)) {
+        print_assert_error<Op>(distance_error, counter, args, alpha, lane, lanes,
+                               "Value " + hexfloat(val) + " is not equal to reference bounds [" +
+                               hexfloat(static_cast<T>(distance_error.prev)) + ", " +
+                               hexfloat(static_cast<T>(distance_error.next)) + "]");
+        hwy_assert_may_fail<Op>();
+      }
+    }
   }
 }
 
-template <class M, typename Op, typename T, typename H = typename IEEE754<T>::H>
+template <class M, typename Op, typename T, typename H = typename prism::utils::IEEE754<T>::H>
 void assert_binomial_test(const DistanceError<H> &distance_error,
                           Counter<T> &counter, const BinomialTest &test,
                           Args<T> args, const double alpha, const int lane,
@@ -320,11 +337,11 @@ void assert_binomial_test(const DistanceError<H> &distance_error,
   static auto robust_config = prism::tests::helper::get_robust_test_config();
   robust_config.base_alpha = alpha;
   robust_config.num_tests_estimate = lanes; // Use actual number of lanes for Bonferroni correction
-  
+
   prism::tests::helper::RobustBinomialTest robust_test(robust_config);
   auto pdown = static_cast<double>(distance_error.probability_down);
   auto result = robust_test.test(counter.down_count(), counter.count(), pdown);
-  
+
   if (!result.passed) {
     // Log robust test details for debugging
     std::cerr << "Robust test details:\n"
@@ -333,7 +350,7 @@ void assert_binomial_test(const DistanceError<H> &distance_error,
               << "  Final alpha: " << result.final_alpha << "\n"
               << "  Sample size: " << result.final_sample_size << "\n"
               << "  Failure reason: " << result.failure_reason << "\n";
-    
+
     print_assert_error<Op>(distance_error, counter, args, alpha, lane, lanes,
                            "Robust statistical test rejected null hypothesis!");
     if constexpr (M::is_sr) {
@@ -344,7 +361,7 @@ void assert_binomial_test(const DistanceError<H> &distance_error,
 
 template <class Op, class D, class V = hn::VFromD<D>,
           typename T = hn::TFromD<D>, typename... Args>
-auto eval_op(int repetitions, D d, Args... args) -> std::vector<Counter<T>> {
+auto eval_op(int repetitions, D d, T prev, T next, Args... args) -> std::vector<Counter<T>> {
 
 #ifdef SR_DEBUG
   const size_t lanes = 1;
@@ -354,7 +371,10 @@ auto eval_op(int repetitions, D d, Args... args) -> std::vector<Counter<T>> {
 #endif
   Op op{};
 
-  std::vector<Counter<T>> c(lanes);
+  std::vector<Counter<T>> c;
+  c.reserve(lanes);
+  for (size_t i = 0; i < lanes; i++) c.emplace_back(prev, next);
+
   for (int i = 0; i < repetitions; i++) {
     const auto v = op(d, args...);
     for (size_t j = 0; j < lanes; j++) {
@@ -391,9 +411,10 @@ void CheckDistributionResults(D d, const ConfigTest &config, Args... args) {
   // ensure that we have vector of same value
   assert_equal_inputs(d, args...);
 
-  auto counters = eval_op<Op>(config.repetitions, d, args...);
   H reference = Op::reference(scalar_args);
   auto distance_error = compute_distance_error(scalar_args, reference);
+
+  auto counters = eval_op<Op>(config.repetitions, d, static_cast<T>(distance_error.prev), static_cast<T>(distance_error.next), args...);
   assert_errors_eq_ulp<T>(distance_error);
   assert_proba_eq_one<T>(distance_error, reference);
 
@@ -401,8 +422,13 @@ void CheckDistributionResults(D d, const ConfigTest &config, Args... args) {
   for (auto &counter : counters) {
 
     auto count_down = counter.down_count();
-
     if (distance_error.is_exact) {
+      return;
+    }
+
+    // Skip statistical test when one of the representatives overflows to +-inf.
+    if (not isfinite(static_cast<T>(distance_error.prev)) or
+        not isfinite(static_cast<T>(distance_error.next))) {
       return;
     }
 

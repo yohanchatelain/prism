@@ -94,7 +94,18 @@ auto is_exact_operation(Args<T> args, const H reference) -> bool {
   is_exact |= isnan(ref_cast);
   is_exact |= isinf(reference);
   is_exact |= isinf(ref_cast);
-  is_exact |= (ref_cast - reference) == 0;
+
+  // Check exactness at the virtual precision, not just hardware precision.  If
+  // an operation is exact in hardware but falls between virtual
+  // representatives, it must still be stochastically rounded.
+  if (!is_exact) {
+    if (prism::sr::get_virtual_precision<T>() < IEEE754<T>::mantissa) {
+      // Truncate ref_cast to virtual precision and check if it matches reference
+      is_exact = (static_cast<H>(prism::sr::truncate_mantissa(ref_cast, prism::sr::get_virtual_precision<T>())) == reference);
+    } else {
+      is_exact = (ref_cast - reference) == 0;
+    }
+  }
 
   return is_exact;
 }
@@ -102,6 +113,9 @@ auto is_exact_operation(Args<T> args, const H reference) -> bool {
 template <typename T, typename H = typename IEEE754<T>::H>
 auto compute_distance_error(Args<T> args, H reference) -> DistanceError<H> {
   T ref_cast = static_cast<T>(reference);
+  if (prism::sr::get_virtual_precision<T>() < IEEE754<T>::mantissa) {
+    ref_cast = prism::sr::truncate_mantissa(ref_cast, prism::sr::get_virtual_precision<T>());
+  }
 
   DistanceError<H> result = {.reference = reference,
                              .error = 0,
@@ -142,19 +156,16 @@ auto compute_distance_error(Args<T> args, H reference) -> DistanceError<H> {
     // casted reference being the next representable value is equal to 1
     result.is_exact = true;
   } else if (not same_binade) {
-    // if the distance between the reference and the casted reference is
-    // exactly
-    // a power of 2, and the reference and the casted reference does not
-    // belong
-    // to the same binade, then the probability of the casted reference
-    // being the next representable value is equal to 0.5, not .75/.25
     const auto ordered = (result.exponent_next < result.exponent_prev);
-    result.probability_down = 0.5;
-    result.probability_up = 0.5;
     H ulp_prev = ordered ? result.ulp : (result.ulp / 2);
     H ulp_next = ordered ? (result.ulp / 2) : result.ulp;
     result.prev = (ref_cast < reference) ? ref_cast : (ref_cast - ulp_prev);
     result.next = (ref_cast < reference) ? (ref_cast + ulp_next) : ref_cast;
+    // For variable precision crossing a binade boundary, the distances might be
+    // asymmetric so we cannot assume fixed 0.5/0.5 probabilities.
+    H distance = result.next - result.prev;
+    result.probability_down = (result.next - reference) / distance;
+    result.probability_up = (reference - result.prev) / distance;
   }
 
   result.set_distance_error(T{});
