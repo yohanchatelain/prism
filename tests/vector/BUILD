@@ -112,7 +112,7 @@ cc_test_lib_gen(
     src = [":test_ud_accuracy.cpp"],
     copts = RANDOM_FULLBITS_COPTS,
     mode = "",
-    deps = ["//src:prism-dynamic-fullbits-dbg"],
+    deps = ["//src:prism-dynamic-fullbits"],
 )
 
 cc_test_lib_gen(
