@@ -37,8 +37,8 @@ float addf32(float a, float b) { return HWY_STATIC_DISPATCH(addf32)(a, b); }
 float subf32(float a, float b) { return HWY_STATIC_DISPATCH(subf32)(a, b); }
 float mulf32(float a, float b) { return HWY_STATIC_DISPATCH(mulf32)(a, b); }
 float divf32(float a, float b) { return HWY_STATIC_DISPATCH(divf32)(a, b); }
-float sqrtf32(float a) { return HWY_STATIC_DISPATCH(sqrt)(a); }
-float fmaf32(float a, float b, float c) { return HWY_STATIC_DISPATCH(fma)(a, b, c); }
+float sqrtf32(float a) { return HWY_STATIC_DISPATCH(sqrtf32)(a); }
+float fmaf32(float a, float b, float c) { return HWY_STATIC_DISPATCH(fmaf32)(a, b, c); }
 
 double addf64(double a, double b) { return HWY_STATIC_DISPATCH(addf64)(a, b); }
 double subf64(double a, double b) { return HWY_STATIC_DISPATCH(subf64)(a, b); }

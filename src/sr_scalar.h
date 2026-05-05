@@ -1,6 +1,8 @@
 #ifndef __PRISM_SR_SCALAR_H__
 #define __PRISM_SR_SCALAR_H__
 
+#include <cstdint>
+
 namespace prism::sr::scalar {
 
 namespace dynamic_dispatch {
