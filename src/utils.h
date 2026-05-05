@@ -2,6 +2,7 @@
 #define __PRISM_UTILS_H__
 
 #include <cstdint>
+#include <cassert>
 #include <cstring>
 #include <string>
 
@@ -186,5 +187,26 @@ auto pow2_float(int32_t n) -> float;
 auto pow2_double(int64_t n) -> double;
 
 } // namespace prism::utils
+
+namespace prism::sr {
+  // Configurable virtual precision, default to hardware precision.
+  inline thread_local int32_t virtual_precision_f32 = 23;
+  inline thread_local int32_t virtual_precision_f64 = 52;
+
+  template <typename T>
+  inline int32_t get_virtual_precision() {
+    if constexpr (sizeof(T) == 4) return virtual_precision_f32;
+    else return virtual_precision_f64;
+  }
+
+  template <typename T>
+  inline void set_virtual_precision(int32_t t) {
+    const int32_t mantissa = prism::utils::IEEE754<T>::mantissa;
+    assert(t >= 1 && t <= mantissa);
+
+    if constexpr (sizeof(T) == 4) virtual_precision_f32 = t;
+    else virtual_precision_f64 = t;
+  }
+} // namespace prism::sr
 
 #endif // __PRISM_UTILS_H__
