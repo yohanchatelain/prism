@@ -6,6 +6,10 @@
 #define _GNU_SOURCE
 #endif
 #include <unistd.h>
+#include <cmath>
+#include <cstdint>
+#include <cstring>
+#include <type_traits>
 
 #if defined(PRISM_SR_SCALAR_INL_H) == defined(HWY_TARGET_TOGGLE)
 #ifdef PRISM_SR_SCALAR_INL_H
@@ -25,59 +29,126 @@ namespace rng = prism::scalar::xoshiro::HWY_NAMESPACE;
 
 template <typename T> auto isnumber(const T a, const T b) -> bool {
   using U = typename prism::utils::IEEE754<T>::U;
-  // fast check for a or b is not 0, inf or nan
   debug_start();
   constexpr auto naninf_mask = prism::utils::IEEE754<T>::inf_nan_mask;
+  constexpr int32_t mantissa = prism::utils::IEEE754<T>::mantissa;
   prism::utils::binaryN<T> a_bits = {.f = a};
   prism::utils::binaryN<T> b_bits = {.f = b};
   const U a_uint = a_bits.u;
   const U b_uint = b_bits.u;
-  const bool ret =
-      ((a_uint != 0) and ((a_uint & naninf_mask) != naninf_mask)) and
-      ((b_uint != 0) and ((b_uint & naninf_mask) != naninf_mask));
+
+  const int32_t t = prism::sr::get_virtual_precision<T>();
+  bool ret;
+  if (t < mantissa) {
+    // At reduced virtual precision, zero operands can produce results
+    // that need rounding. Only reject inf/nan.
+    ret = ((a_uint & naninf_mask) != naninf_mask) and
+          ((b_uint & naninf_mask) != naninf_mask);
+  } else {
+    // At hardware precision, zero operands produce exact results.
+    // fast check for a or b is not 0, inf or nan
+    ret = ((a_uint != 0) and ((a_uint & naninf_mask) != naninf_mask)) and
+          ((b_uint != 0) and ((b_uint & naninf_mask) != naninf_mask));
+  }
   debug_print("a_bits = 0x%016x\n", a_uint);
   debug_print("b_bits = 0x%016x\n", b_uint);
-  debug_print("0x%016x & 0x%016x = 0x%016x\n", a_uint, naninf_mask,
-              a_uint & naninf_mask);
-  debug_print("0x%016x & 0x%016x = 0x%016x\n", b_uint, naninf_mask,
-              b_uint & naninf_mask);
   debug_print("isnumber(%.13a, %.13a) = %d\n", a, b, ret);
   debug_end();
   return ret;
 }
 
-template <typename T> inline auto round(const T sigma, const T tau) -> T {
+// Virtual Stochastic Rounding
+//
+// Based on the algorithm in Fasi and Mikaitis: Algorithms for Stochastically
+// Rounded Elementary Arithmetic Operations, originally implemented in Verrou,
+// extended to
+//  - support fma op
+//  - support variable precision
+//
+// Given sigma + tau (an error-free representation of the exact result x),
+// returns SR_t(x): the stochastically rounded result at virtual precision t.
+//
+// The result is returned directly.
+//
+// Proof of exact sign evaluation for D = (rho - pi) + tau:
+//
+// 1. |rho - pi| > |tau|
+//    In this case, (rho - pi) might suffer rounding error in float.
+//    However, since |tau| is bounded by 0.5 * ULP_hardware, and the
+//    distance to the zero-boundary is greater than |tau|, the rounding
+//    error cannot pull the result across zero. The boolean outcome of the
+//    sign check remains invariant to the rounding.
+//
+// 2. |rho - pi| <= |tau|
+//    Since |tau| < 0.5 * ULP_hardware, this condition implies rho and pi
+//    share the same exponent and thus satisfy the Sterbenz Lemma
+//    (y/2 <= x <= 2y). Thus, the subtraction (rho - pi) is exact.
+//
+//    (rho - pi) + tau can be inexact but we are only interested in its sign
+//    and IEEE-754 guarantees monotonic rounding.
+// ------------------------------------------------------------------------
+template <typename T>
+inline auto round(const T sigma, const T tau) -> T {
+  const int32_t t = prism::sr::get_virtual_precision<T>();
   using prism::utils::get_exponent;
   using prism::utils::get_predecessor_abs;
   using prism::utils::IEEE754;
   using prism::utils::pow2;
-  debug_start();
-  if (tau == 0) {
-    debug_end();
-    return 0;
-  }
-  constexpr int32_t mantissa = IEEE754<T>::mantissa;
-  const bool sign_tau = tau < 0;
-  const bool sign_sigma = sigma < 0;
-  const int32_t eta = (sign_tau != sign_sigma)
-                          ? get_exponent(get_predecessor_abs(sigma))
-                          : get_exponent(sigma);
-  const T ulp = (sign_tau ? -1 : 1) * pow2<T>(eta - mantissa);
-  const T z = rng::uniform(T{});
-  const T pi = ulp * z;
-  const T rnd = (std::abs(tau + pi) >= std::abs(ulp)) ? ulp : 0;
 
-  debug_print("z     = %+.13a\n", z);
-  debug_print("sigma = %+.13a\n", sigma);
-  debug_print("tau   = %+.13a\n", tau);
-  debug_print("eta   = %d\n", eta);
-  debug_print("pi    = %+.13a\n", pi);
-  debug_print("tau+pi= %+.13a\n", tau + pi);
-  debug_print("ulp   = %+.13a\n", ulp);
-  debug_print("sr_round(%+.13a, %+.13a, %+.13a) = %+.13a\n", sigma, tau, z,
-              rnd);
+  debug_start();
+
+  // compute trunc_t(sigma), the truncated value at precision t
+  const T trunc = prism::sr::truncate_mantissa(sigma, t);
+
+  // rho is the distance from sigma to trunc
+  // the computation is exact in IEEE-754
+  const T rho = sigma - trunc;
+
+  // x = sigma + tau is exactly representable in precision t
+  if (rho == 0 && tau == 0) {
+    debug_end();
+    return trunc;
+  }
+
+  // The distance between x and the truncated representable at precision t is
+  // noted delta = x - trunc = rho + tau, with rho > tau
+  const bool sign_tau = (tau < 0);
+  const bool sign_rho = (rho < 0);
+  const bool sign_trunc = (trunc < 0);
+  const bool sign_delta = (rho == 0) ? sign_tau : sign_rho;
+  const T sign_dir = sign_delta ? T{-1} : T{1};
+
+  // If the distance pushes us in the opposite direction of our value,
+  // we are moving towards zero, so the predecessor might drop an exponent.
+  const int32_t eta = (sign_delta != sign_trunc)
+                          ? get_exponent(get_predecessor_abs(trunc))
+                          : get_exponent(trunc);
+
+  // Compute ulp at precision t
+  const T ulp_t = sign_dir * pow2<T>(eta - t);
+
+  // We sample pi in Uniform(0, ulp_t)
+  const T z = rng::uniform(T{});
+  const T pi = ulp_t * z;
+
+  // We want to check if P < |x - trunc| where P = abs(pi).
+  // We evaluate this by checking the sign of D:
+  const T D = (rho - pi) + tau;
+
+  // When delta and D have the same sign then the random threshold is crossed
+  // and we must round-up
+  const T rnd = (D * sign_dir >= 0) ? ulp_t : T{0};
+
+  debug_print("z         = %+.13a\n", z);
+  debug_print("sigma     = %+.13a\n", sigma);
+  debug_print("trunc     = %+.13a\n", trunc);
+  debug_print("rho       = %+.13a\n", rho);
+  debug_print("eta       = %d\n", eta);
+  debug_print("ulp_t     = %+.13a\n", ulp_t);
+  debug_print("D         = %+.13a\n", D);
   debug_end();
-  return rnd;
+
+  return trunc + rnd;
 }
 
 template <typename T> inline auto add(const T a, const T b) -> T {
@@ -89,10 +160,10 @@ template <typename T> inline auto add(const T a, const T b) -> T {
   T tau;
   T sigma;
   twosum(a, b, sigma, tau);
-  const T rnd = round(sigma, tau);
-  debug_print("sr_add(%+.13a, %+.13a) = %+.13a + %+.13a\n", a, b, sigma, rnd);
+  const T res = round(sigma, tau);
+  debug_print("sr_add(%+.13a, %+.13a) = %+.13a\n", a, b, res);
   debug_end();
-  return sigma + rnd;
+  return res;
 }
 
 template <typename T> inline auto sub(T a, T b) -> T { return add(a, -b); }
@@ -106,9 +177,9 @@ template <typename T> inline auto mul(T a, T b) -> T {
   T tau;
   T sigma;
   twoprodfma(a, b, sigma, tau);
-  const T rnd = round(sigma, tau);
+  const T res = round(sigma, tau);
   debug_end();
-  return sigma + rnd;
+  return res;
 }
 
 template <typename T> inline auto div(const T a, const T b) -> T {
@@ -126,21 +197,20 @@ template <typename T> inline auto div(const T a, const T b) -> T {
               a, std::fma(-sigma, b, a));
   debug_print("tau = (-%+.13a * %+.13a + %+.13a) / %+.13a\n", -sigma, b, a, b);
 
-  const T rnd = round(sigma, tau);
-  debug_print("sr_div(%+.13a, %+.13a) = %+.13a + %+.13a\n", a, b, sigma, tau);
+  const T res = round(sigma, tau);
+  debug_print("sr_div(%+.13a, %+.13a) = %+.13a\n", a, b, res);
   debug_end();
-  return sigma + rnd;
+  return res;
 }
 
 template <typename T> inline auto sqrt(const T a) -> T {
   const T sigma = std::sqrt(a);
-  if (not std::isfinite(a)) {
+  if (not std::isfinite(a) or a <= 0) {
     return sigma;
   }
   const T tau_p = std::fma(-sigma, sigma, a);
   const T tau = tau_p / (2 * sigma);
-  const T rnd = round(sigma, tau);
-  return sigma + rnd;
+  return round(sigma, tau);
 }
 
 /*
@@ -175,11 +245,10 @@ template <typename T> inline auto fma(const T a, const T b, const T c) -> T {
   twosum(u1, alpha1, beta1, beta2);
   gamma = (beta1 - r1) + beta2;
   r2 = gamma + alpha2;
-  const T rnd = round(r1, r2);
-  debug_print("sr_fma(%+.13a, %+.13a, %+.13a) = %+.13a + %+.13a\n", a, b, c, r1,
-              r2);
+  const T res = round(r1, r2);
+  debug_print("sr_fma(%+.13a, %+.13a, %+.13a) = %+.13a\n", a, b, c, res);
   debug_end();
-  return r1 + rnd;
+  return res;
 }
 
 /* binary32 */

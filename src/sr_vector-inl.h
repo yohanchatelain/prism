@@ -420,7 +420,7 @@ HWY_INLINE auto pow2(const D d, const VI n) -> hn::VFromD<D> {
 
   constexpr I mantissa = prism::utils::IEEE754<T>::mantissa;
   constexpr I min_exponent = prism::utils::IEEE754<T>::min_exponent;
-  
+
   // Fast path: check if we can use lookup table (framework for future optimization)
   // For now, use the original computation path for all values
 
@@ -466,105 +466,166 @@ HWY_INLINE auto pow2(const D d, const VI n) -> hn::VFromD<D> {
   return res_float;
 }
 
-/*
-Algorithm 6.6. A Helper Function for Stochastic Rounding
-p = precision
-ε = 2^(1−p)
-1. Function SRround(σ, τ, Z)
-2. Compute round.
-3. if sign(τ) != sign(σ)
-4.     η = get_exponent(pred(|σ|));
-5. else
-6.     η = get_exponent(σ);
-7. ulp = sign(τ) * 2^η * ε;
-8. π = ulp * Z;
-9. if |RN(τ + π)| >= |ulp|
-10.    round = ulp;
-11. else
-12.    round = 0;
-13. return round;
-*/
+template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
+HWY_INLINE auto truncate_mantissa(const D d, const V val) -> V {
+  const int32_t t = prism::sr::get_virtual_precision<T>();
+  constexpr int32_t mantissa = prism::utils::IEEE754<T>::mantissa;
+
+  if (HWY_UNLIKELY(t >= mantissa)) return val;
+
+  using DU = hn::RebindToUnsigned<D>;
+  const DU du{};
+  using U = hn::TFromD<DU>;
+
+  const int32_t shift = mantissa - t;
+  const U mask_val = ~((static_cast<U>(1) << shift) - 1);
+  const auto mask = hn::Set(du, mask_val);
+
+  const auto bits = hn::BitCast(du, val);
+  const auto masked_bits = hn::And(bits, mask);
+  return hn::BitCast(d, masked_bits);
+}
+
+// Virtual Stochastic Rounding (Vector)
+//
+// Based on the algorithm in Fasi and Mikaitis: Algorithms for Stochastically
+// Rounded Elementary Arithmetic Operations, originally implemented in Verrou,
+// extended to
+//  - support fma op
+//  - support variable precision
+//
+// Given sigma + tau (an error-free representation of the exact result x),
+// returns SR_t(x): the stochastically rounded result at virtual precision t.
+//
+// The result is returned directly.
+//
+// Proof of exact sign evaluation for D = (rho - pi) + tau:
+//
+// 1. |rho - pi| > |tau|
+//    In this case, (rho - pi) might suffer rounding error in float.
+//    However, since |tau| is bounded by 0.5 * ULP_hardware, and the
+//    distance to the zero-boundary is greater than |tau|, the rounding
+//    error cannot pull the result across zero. The boolean outcome of the
+//    sign check remains invariant to the rounding.
+//
+// 2. |rho - pi| <= |tau|
+//    Since |tau| < 0.5 * ULP_hardware, this condition implies rho and pi
+//    share the same exponent and thus satisfy the Sterbenz Lemma
+//    (y/2 <= x <= 2y). Thus, the subtraction (rho - pi) is exact.
+//
+//    (rho - pi) + tau can be inexact but we are only interested in its sign
+//    and IEEE-754 guarantees monotonic rounding.
+// ------------------------------------------------------------------------
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
 HWY_FLATTEN auto round(const D d, const V sigma, const V tau) -> V {
   dbg::debug_msg("\n[sr_round] START");
   dbg::debug_vec(d, "[sr_round] σ", sigma);
   dbg::debug_vec(d, "[sr_round] τ", tau);
 
-  // get tag for int with same number of lanes as T
+  const int32_t t = prism::sr::get_virtual_precision<T>();
+  const auto zero = hn::Zero(d);
+  const auto one = hn::Set(d, T{1});
+  const auto neg_one = hn::Set(d, T{-1});
+
+  // compute trunc_t(sigma), the truncated value at precision t
+  const auto trunc = truncate_mantissa(d, sigma);
+
+  // rho is the distance from sigma to trunc
+  // the computation is exact in IEEE-754
+  const auto rho = hn::Sub(sigma, trunc);
+
+  // Early exit: x = sigma + tau is exactly representable in precision t
+  const auto rho_is_zero = hn::Eq(rho, zero);
+  const auto tau_is_zero = hn::Eq(tau, zero);
+  const auto both_zero = hn::And(rho_is_zero, tau_is_zero);
+
+  // The distance between x and the truncated representable at precision t is
+  // noted delta = x - trunc = rho + tau, with rho > tau
+  // sign_delta = sign(tau) if rho == 0 else sign(rho)
+  const auto tau_lt_zero = hn::Lt(tau, zero);
+  const auto rho_lt_zero = hn::Lt(rho, zero);
+  const auto sign_delta = hn::Or(
+      hn::And(rho_is_zero, tau_lt_zero),
+      hn::And(hn::Not(rho_is_zero), rho_lt_zero));
+
+  // sign_dir = -1 if sign_delta else 1
+  const auto sign_dir = hn::IfThenElse(sign_delta, neg_one, one);
+
+  // If the distance pushes us in the opposite direction of our value,
+  // we are moving towards zero, so the predecessor might drop an exponent.
+  const auto sign_trunc = hn::Lt(trunc, zero);
+  const auto sign_diff = hn::Xor(sign_delta, sign_trunc);
+
   using DI = hn::RebindToSigned<D>;
   const DI di{};
-  using I = hn::TFromD<DI>;
-
-  constexpr I mantissa = prism::utils::IEEE754<T>::mantissa;
-
-  const auto zero = hn::Zero(d);
-  const auto sign_tau = hn::Lt(tau, zero);
-  const auto sign_sigma = hn::Lt(sigma, zero);
-
-  const auto z_rng = rng::uniform(T{});
-  using DZ = hn::DFromV<decltype(z_rng)>;
-  const auto z = hn::ResizeBitCast(d, z_rng);
-
-  const auto pred_sigma = get_predecessor_abs(d, sigma);
-
-  // sign_diff = sign_tau != sign_sigma
-  const auto sign_diff = hn::Xor(sign_tau, sign_sigma);
-
   const auto sign_diff_int = hn::RebindMask(di, sign_diff);
+
+  const auto pred_trunc = get_predecessor_abs(d, trunc);
 
   // Cache exponent calculations to avoid redundant computation
   using VI = hn::VFromD<DI>;
-  thread_local static V last_sigma = hn::Zero(d);
-  thread_local static VI last_sigma_exp = hn::Zero(di);
-  thread_local static V last_pred_sigma = hn::Zero(d);
-  thread_local static VI last_pred_sigma_exp = hn::Zero(di);
-  
-  VI sigma_exp, pred_sigma_exp;
-  
-  // Check if we can reuse cached sigma exponent
-  if (HWY_LIKELY(hn::AllTrue(d, hn::Eq(sigma, last_sigma)))) {
-    sigma_exp = last_sigma_exp;
+  thread_local static V last_trunc = hn::Zero(d);
+  thread_local static VI last_trunc_exp = hn::Zero(di);
+  thread_local static V last_pred_trunc = hn::Zero(d);
+  thread_local static VI last_pred_trunc_exp = hn::Zero(di);
+
+  VI trunc_exp, pred_trunc_exp;
+
+  // Check if we can reuse cached trunc exponent
+  if (HWY_LIKELY(hn::AllTrue(d, hn::Eq(trunc, last_trunc)))) {
+    trunc_exp = last_trunc_exp;
   } else {
-    sigma_exp = get_exponent(d, sigma);
-    last_sigma = sigma;
-    last_sigma_exp = sigma_exp;
+    trunc_exp = get_exponent(d, trunc);
+    last_trunc = trunc;
+    last_trunc_exp = trunc_exp;
   }
-  
-  // Check if we can reuse cached pred_sigma exponent
-  if (HWY_LIKELY(hn::AllTrue(d, hn::Eq(pred_sigma, last_pred_sigma)))) {
-    pred_sigma_exp = last_pred_sigma_exp;
+
+  // Check if we can reuse cached pred_trunc exponent
+  if (HWY_LIKELY(hn::AllTrue(d, hn::Eq(pred_trunc, last_pred_trunc)))) {
+    pred_trunc_exp = last_pred_trunc_exp;
   } else {
-    pred_sigma_exp = get_exponent(d, pred_sigma);
-    last_pred_sigma = pred_sigma;
-    last_pred_sigma_exp = pred_sigma_exp;
+    pred_trunc_exp = get_exponent(d, pred_trunc);
+    last_pred_trunc = pred_trunc;
+    last_pred_trunc_exp = pred_trunc_exp;
   }
-  
-  const auto eta = hn::IfThenElse(sign_diff_int, pred_sigma_exp, sigma_exp);
+  const auto eta = hn::IfThenElse(sign_diff_int, pred_trunc_exp, trunc_exp);
   dbg::debug_vec(di, "[sr_round] η", eta, false);
 
-  const auto mantissa_v = hn::Set(di, mantissa);
-  const auto exp = hn::Sub(eta, mantissa_v);
-  const auto abs_ulp = pow2(d, exp);
-  dbg::debug_vec(d, "[sr_round] |ulp|", abs_ulp);
+  // Compute ulp at precision t
+  const auto t_v = hn::Set(di, t);
+  const auto exp = hn::Sub(eta, t_v);
+  const auto abs_ulp_t = pow2(d, exp);
 
-  const auto ulp = hn::CopySign(abs_ulp, tau);
-  dbg::debug_vec(d, "[sr_round] ulp", ulp);
+  // ulp_t = sign_dir * abs_ulp_t
+  const auto ulp_t = hn::Mul(sign_dir, abs_ulp_t);
+  dbg::debug_vec(d, "[sr_round] ulp", ulp_t);
 
-  const auto pi = hn::Mul(ulp, z);
-  dbg::debug_vec(DZ{}, "[sr_round] z raw", z_rng);
-  dbg::debug_vec(d, "[sr_round] z", z);
-  dbg::debug_vec(d, "[sr_round] π", pi);
+  // We sample pi in Uniform(0, ulp_t)
+  const auto z_rng = rng::uniform(T{});
+  const auto z = hn::ResizeBitCast(d, z_rng);
+  const auto pi = hn::Mul(ulp_t, z);
 
-  const auto tau_plus_pi = hn::Add(tau, pi);
-  const auto abs_tau_plus_pi = hn::Abs(tau_plus_pi);
-  dbg::debug_vec(d, "[sr_round] |τ|+π", abs_tau_plus_pi);
+  // We want to check if P < |x - trunc| where P = abs(pi).
+  // We evaluate this by checking the sign of D:
+  // D = (rho - pi) + tau   (exact sign, see proof above)
+  const auto rho_minus_pi = hn::Sub(rho, pi);
+  const auto D_val = hn::Add(rho_minus_pi, tau);
 
-  const auto ge = hn::Ge(abs_tau_plus_pi, abs_ulp);
-  const auto round = hn::IfThenElse(ge, ulp, zero);
-  dbg::debug_vec(d, "[sr_round] round", round);
+  // When delta and D have the same sign then the random threshold is crossed
+  // and we must round-up: D * sign_dir >= 0
+  const auto D_signed = hn::Mul(D_val, sign_dir);
+  const auto threshold_crossed = hn::Ge(D_signed, zero);
+  const auto rnd = hn::IfThenElseZero(threshold_crossed, ulp_t);
+  dbg::debug_vec(d, "[sr_round] rnd", rnd);
 
+  // result = trunc + rnd, or just trunc if both_zero
+  const auto trunc_plus_rnd = hn::Add(trunc, rnd);
+  const auto res = hn::IfThenElse(both_zero, trunc, trunc_plus_rnd);
+
+  dbg::debug_vec(d, "[sr_round] res", res);
   dbg::debug_msg("[sr_round] END\n");
-  return round;
+
+  return res;
 }
 
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
@@ -573,8 +634,7 @@ HWY_FLATTEN auto add(const D d, const V a, const V b) -> V {
   V sigma;
   V tau;
   twosum(d, a, b, sigma, tau);
-  const auto rounding = round(d, sigma, tau);
-  const auto ret = hn::Add(sigma, rounding);
+  const auto ret = round(d, sigma, tau);
   dbg::debug_vec(d, "[sr_add] res", ret);
   dbg::debug_msg("[sr_add] END\n");
   return ret;
@@ -595,8 +655,7 @@ HWY_FLATTEN auto mul(const D d, const V a, const V b) -> V {
   V sigma;
   V tau;
   twoprodfma(d, a, b, sigma, tau);
-  const auto rounding = round(d, sigma, tau);
-  const auto ret = hn::Add(sigma, rounding);
+  const auto ret = round(d, sigma, tau);
   dbg::debug_vec(d, "[sr_mul] res", ret);
   dbg::debug_msg("[sr_mul] END\n");
 
@@ -636,9 +695,7 @@ HWY_FLATTEN auto div(const D d, const V a, const V b) -> V {
   dbg::debug_vec(d, "[sr_div] τ'", tau_p);
   const auto tau = hn::Div(tau_p, b);
   dbg::debug_vec(d, "[sr_div] τ", tau);
-  const auto rounding = round(d, sigma, tau);
-  dbg::debug_vec(d, "[sr_div] round", rounding);
-  const auto ret = hn::Add(sigma, rounding);
+  const auto ret = round(d, sigma, tau);
   dbg::debug_vec(d, "[sr_div] res", ret);
   dbg::debug_msg("[sr_div] END\n");
 
@@ -654,8 +711,7 @@ HWY_FLATTEN auto sqrt(const D d, const V a) -> V {
   const auto _div = hn::Div(tau_p, sigma);
   const auto half = hn::Set(d, 0.5);
   const auto tau = hn::Mul(half, _div);
-  const auto rounding = round(d, sigma, tau);
-  const auto ret = hn::Add(sigma, rounding);
+  const auto ret = round(d, sigma, tau);
   dbg::debug_vec(d, "[sr_sqrt] res", ret);
   dbg::debug_msg("[sr_sqrt] END\n");
 
@@ -702,8 +758,7 @@ HWY_FLATTEN auto fma(const D d, const V a, const V b, const V c) -> V {
   const auto beta1_sub_r1 = hn::Sub(beta1, r1);
   gamma = hn::Add(beta1_sub_r1, beta2);
   r2 = hn::Add(gamma, alpha2);
-  const auto rounding = round(d, r1, r2);
-  const auto res = hn::Add(r1, rounding);
+  const auto res = round(d, r1, r2);
   dbg::debug_vec(d, "[sr_fma] res", res);
   dbg::debug_msg("[sr_fma] END\n");
 

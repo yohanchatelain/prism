@@ -207,6 +207,28 @@ namespace prism::sr {
     if constexpr (sizeof(T) == 4) virtual_precision_f32 = t;
     else virtual_precision_f64 = t;
   }
+
+  // Helper to mask off the lower bits of the mantissa to match a virtual precision t
+  template <typename T>
+  inline auto truncate_mantissa(const T val, const int32_t t) -> T {
+    constexpr int32_t mantissa = prism::utils::IEEE754<T>::mantissa;
+
+    // If virtual precision meets or exceeds hardware, no truncation needed
+    if (t >= mantissa) return val;
+
+    // Use appropriate unsigned integer type for bit manipulation
+    using UintT = std::conditional_t<sizeof(T) == 8, uint64_t, uint32_t>;
+    UintT bits;
+    std::memcpy(&bits, &val, sizeof(T));
+
+    const int32_t shift = mantissa - t;
+    const UintT mask = ~((static_cast<UintT>(1) << shift) - 1);
+    bits &= mask;
+
+    T res;
+    std::memcpy(&res, &bits, sizeof(T));
+    return res;
+  }
 } // namespace prism::sr
 
 #endif // __PRISM_UTILS_H__
