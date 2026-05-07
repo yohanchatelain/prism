@@ -474,13 +474,13 @@ HWY_INLINE auto truncate_mantissa(const D d, const V val) -> V {
   const int32_t t = prism::sr::get_virtual_precision<T>();
   constexpr int32_t mantissa = prism::utils::IEEE754<T>::mantissa;
 
-  if (HWY_UNLIKELY(t >= mantissa)) return val;
+  if (HWY_UNLIKELY((t - 1) >= mantissa)) return val;
 
   using DU = hn::RebindToUnsigned<D>;
   const DU du{};
   using U = hn::TFromD<DU>;
 
-  const int32_t shift = mantissa - t;
+  const int32_t shift = mantissa - (t - 1);
   const U mask_val = ~((static_cast<U>(1) << shift) - 1);
   const auto mask = hn::Set(du, mask_val);
 
@@ -595,7 +595,7 @@ HWY_FLATTEN auto round(const D d, const V sigma, const V tau) -> V {
   dbg::debug_vec(di, "[sr_round] η", eta, false);
 
   // Compute ulp at precision t
-  const auto t_v = hn::Set(di, t);
+  const auto t_v = hn::Set(di, (t-1));
   const auto exp = hn::Sub(eta, t_v);
   const auto abs_ulp_t = pow2(d, exp);
 

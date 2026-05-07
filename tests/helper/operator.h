@@ -137,7 +137,7 @@ auto get_ulp(T a) -> H {
     // Return the ULP corresponding to the virtual precision grid 't'
     // rather than the hardware mantissa to ensure accurate distance scaling.
     int t = prism::sr::get_virtual_precision<T>();
-    H ulp = std::ldexp(1.0, exponent - t);
+    H ulp = std::ldexp(1.0, exponent - (t - 1));
     return ulp;
   }
 }

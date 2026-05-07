@@ -39,7 +39,7 @@ template <typename T> auto isnumber(const T a, const T b) -> bool {
 
   const int32_t t = prism::sr::get_virtual_precision<T>();
   bool ret;
-  if (t < mantissa) {
+  if ((t - 1) < mantissa) {
     // At reduced virtual precision, zero operands can produce results
     // that need rounding. Only reject inf/nan.
     ret = ((a_uint & naninf_mask) != naninf_mask) and
@@ -125,13 +125,13 @@ inline auto round(const T sigma, const T tau) -> T {
                           : get_exponent(trunc);
 
   // Compute ulp at precision t
-  const T ulp_t = sign_dir * pow2<T>(eta - t);
+  const T ulp_t = sign_dir * pow2<T>(eta - (t - 1));
 
   // For ulp_t subnormals we scale the variables by 2^64 to lift them into the
   // normal range to preserve full random precision when generating pi.
   // (scaling is exact)
   constexpr int32_t min_exp = IEEE754<T>::min_exponent;
-  const T scale = (eta - t <= min_exp) ? pow2<T>(64) : T{1};
+  const T scale = (eta - (t - 1) <= min_exp) ? pow2<T>(64) : T{1};
   const T sc_rho = rho * scale;
   const T sc_tau = tau * scale;
   const T sc_ulp = ulp_t * scale;

@@ -198,8 +198,8 @@ auto pow2_double(int64_t n) -> double;
 
 namespace prism::sr {
   // Configurable virtual precision, default to hardware precision.
-  inline thread_local int32_t virtual_precision_f32 = 23;
-  inline thread_local int32_t virtual_precision_f64 = 52;
+  inline thread_local int32_t virtual_precision_f32 = 24;
+  inline thread_local int32_t virtual_precision_f64 = 53;
 
   template <typename T>
   inline int32_t get_virtual_precision() {
@@ -209,8 +209,8 @@ namespace prism::sr {
 
   template <typename T>
   inline void set_virtual_precision(int32_t t) {
-    const int32_t mantissa = prism::utils::IEEE754<T>::mantissa;
-    assert(t >= 1 && t <= mantissa);
+    constexpr int32_t precision = prism::utils::IEEE754<T>::mantissa + 1;
+    assert(t >= 2 && t <= precision);
 
     if constexpr (sizeof(T) == 4) virtual_precision_f32 = t;
     else virtual_precision_f64 = t;
@@ -222,14 +222,14 @@ namespace prism::sr {
     constexpr int32_t mantissa = prism::utils::IEEE754<T>::mantissa;
 
     // If virtual precision meets or exceeds hardware, no truncation needed
-    if (t >= mantissa) return val;
+    if (t >= mantissa + 1) return val;
 
     // Use appropriate unsigned integer type for bit manipulation
     using UintT = std::conditional_t<sizeof(T) == 8, uint64_t, uint32_t>;
     UintT bits;
     std::memcpy(&bits, &val, sizeof(T));
 
-    const int32_t shift = mantissa - t;
+    const int32_t shift = mantissa - (t - 1);
     const UintT mask = ~((static_cast<UintT>(1) << shift) - 1);
     bits &= mask;
 

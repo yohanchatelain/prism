@@ -99,7 +99,7 @@ auto is_exact_operation(Args<T> args, const H reference) -> bool {
   // an operation is exact in hardware but falls between virtual
   // representatives, it must still be stochastically rounded.
   if (!is_exact) {
-    if (prism::sr::get_virtual_precision<T>() < IEEE754<T>::mantissa) {
+    if (prism::sr::get_virtual_precision<T>() < (IEEE754<T>::mantissa + 1)) {
       // Truncate ref_cast to virtual precision and check if it matches reference
       is_exact = (static_cast<H>(prism::sr::truncate_mantissa(ref_cast, prism::sr::get_virtual_precision<T>())) == reference);
     } else {
@@ -113,7 +113,7 @@ auto is_exact_operation(Args<T> args, const H reference) -> bool {
 template <typename Op = void, typename T, typename H = typename IEEE754<T>::H>
 auto compute_distance_error(Args<T> args, H reference) -> DistanceError<H> {
   T ref_cast = static_cast<T>(reference);
-  if (prism::sr::get_virtual_precision<T>() < IEEE754<T>::mantissa) {
+  if (prism::sr::get_virtual_precision<T>() < (IEEE754<T>::mantissa + 1)) {
     ref_cast = prism::sr::truncate_mantissa(ref_cast, prism::sr::get_virtual_precision<T>());
   }
 
