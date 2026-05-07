@@ -377,12 +377,15 @@ HWY_INLINE auto get_exponent(const D d, const V a) -> VI {
   dbg::debug_vec(di, "[get_exponent] raw_exp", raw_exp);
   dbg::debug_vec(di, "[get_exponent] exp", exp, false);
 
-  const auto res = hn::IfThenZeroElse(is_zero, exp);
 
-  dbg::debug_vec(di, "[get_exponent] res", res, false);
+  const auto raw_exp_is_zero = hn::Eq(raw_exp, hn::Zero(di));
+  const auto min_exponent_v = hn::Set(di, prism::utils::IEEE754<T>::min_exponent);
+  const auto exp_clamped = hn::IfThenElse(raw_exp_is_zero, min_exponent_v, exp);
+
+  dbg::debug_vec(di, "[get_exponent] res", exp_clamped, false);
   dbg::debug_msg("[get_exponent] END\n");
 
-  return res;
+  return exp_clamped;
 }
 
 // Computes 2^x, where x is an integer.
@@ -600,16 +603,28 @@ HWY_FLATTEN auto round(const D d, const V sigma, const V tau) -> V {
   const auto ulp_t = hn::Mul(sign_dir, abs_ulp_t);
   dbg::debug_vec(d, "[sr_round] ulp", ulp_t);
 
-  // We sample pi in Uniform(0, ulp_t)
+  // For ulp_t subnormals we scale the variables by 2^64 to lift them into the
+  // normal range to preserve full random precision when generating pi.
+  // (scaling is exact)
+  constexpr int32_t min_exp = prism::utils::IEEE754<T>::min_exponent;
+  const auto min_exp_v = hn::Set(di, min_exp);
+  const auto is_min_exp = hn::Le(hn::Sub(eta, t_v), min_exp_v);
+  const auto scale =
+      hn::IfThenElse(hn::RebindMask(d, is_min_exp),
+                     hn::Set(d, prism::utils::pow2<T>(64)), one);
+  const auto sc_rho = hn::Mul(rho, scale);
+  const auto sc_tau = hn::Mul(tau, scale);
+  const auto sc_ulp = hn::Mul(ulp_t, scale);
+
+  // We sample pi in Uniform(0, sc_ulp)
   const auto z_rng = rng::uniform(T{});
   const auto z = hn::ResizeBitCast(d, z_rng);
-  const auto pi = hn::Mul(ulp_t, z);
+  const auto pi = hn::Mul(sc_ulp, z);
 
   // We want to check if P < |x - trunc| where P = abs(pi).
   // We evaluate this by checking the sign of D:
   // D = (rho - pi) + tau   (exact sign, see proof above)
-  const auto rho_minus_pi = hn::Sub(rho, pi);
-  const auto D_val = hn::Add(rho_minus_pi, tau);
+  const auto D_val = hn::Add(hn::Sub(sc_rho, pi), sc_tau);
 
   // When delta and D have the same sign then the random threshold is crossed
   // and we must round-up: D * sign_dir >= 0

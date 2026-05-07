@@ -127,16 +127,25 @@ inline auto round(const T sigma, const T tau) -> T {
   // Compute ulp at precision t
   const T ulp_t = sign_dir * pow2<T>(eta - t);
 
-  // We sample pi in Uniform(0, ulp_t)
+  // For ulp_t subnormals we scale the variables by 2^64 to lift them into the
+  // normal range to preserve full random precision when generating pi.
+  // (scaling is exact)
+  constexpr int32_t min_exp = IEEE754<T>::min_exponent;
+  const T scale = (eta - t <= min_exp) ? pow2<T>(64) : T{1};
+  const T sc_rho = rho * scale;
+  const T sc_tau = tau * scale;
+  const T sc_ulp = ulp_t * scale;
+
+  // We sample pi in Uniform(0, sc_ulp)
   const T z = rng::uniform(T{});
-  const T pi = ulp_t * z;
+  const T pi = sc_ulp * z;
 
   // We want to check if P < |x - trunc| where P = abs(pi).
   // We evaluate this by checking the sign of D:
-  const T D = (rho - pi) + tau;
+  const T D = (sc_rho - pi) + sc_tau;
 
   // When delta and D have the same sign then the random threshold is crossed
-  // and we must round-up
+  // and we must round-up. We use the unscaled ulp_t for the result.
   const T rnd = (D * sign_dir >= 0) ? ulp_t : T{0};
 
   debug_print("z         = %+.13a\n", z);
