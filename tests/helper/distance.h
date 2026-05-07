@@ -77,7 +77,7 @@ auto relative_distance(const T1 a, const T2 b) -> std::common_type_t<T1, T2> {
   return absolute_distance(a, b) / absolute_distance(a);
 }
 
-template <typename T, typename H = typename IEEE754<T>::H>
+template <typename Op = void, typename T, typename H = typename IEEE754<T>::H>
 auto is_exact_operation(Args<T> args, const H reference) -> bool {
   T ref_cast = static_cast<T>(reference);
 
@@ -110,7 +110,7 @@ auto is_exact_operation(Args<T> args, const H reference) -> bool {
   return is_exact;
 }
 
-template <typename T, typename H = typename IEEE754<T>::H>
+template <typename Op = void, typename T, typename H = typename IEEE754<T>::H>
 auto compute_distance_error(Args<T> args, H reference) -> DistanceError<H> {
   T ref_cast = static_cast<T>(reference);
   if (prism::sr::get_virtual_precision<T>() < IEEE754<T>::mantissa) {
@@ -130,7 +130,7 @@ auto compute_distance_error(Args<T> args, H reference) -> DistanceError<H> {
                              .msg = "Not initialized",
                              .is_exact = false};
 
-  if (is_exact_operation(args, reference)) {
+  if (is_exact_operation<Op>(args, reference)) {
     result.is_exact = true;
     result.probability_down = 1;
     result.msg = "Exact operation";
@@ -147,13 +147,38 @@ auto compute_distance_error(Args<T> args, H reference) -> DistanceError<H> {
   result.exponent_next = get_exponent(result.next);
   result.exponent_prev = get_exponent(result.prev);
 
-  const bool error_small = result.error <IEEE754<T>::ulp * result.ulp;
   const bool same_binade = result.exponent_next == result.exponent_prev;
 
-  if (error_small) {
-    // if the error is smaller 2^-52 * result.ulp; then the probability of the
-    // casted reference being the next representable value is equal to 1
+  // if the float128 error is smaller 2^-52 * result.ulp; then the probability of the
+  // casted reference being the next representable value is equal to 1
+  const bool rel_error_small = result.error < IEEE754<T>::ulp * result.ulp;
+
+  // Fasi and Mikaitis note that twodiv and twosqrt are approximations
+  // eg. with 1.0 / 2^128, unscaled twodiv will flush tau to zero.
+  // For twodiv, we could conditionally scale to fix this, but it's a performance tradeoff.
+  // here we stick with the twodiv and twosqrt proposed in Fasi and Mikaitis paper
+  bool eft_underflow = false;
+  if constexpr (!std::is_void_v<Op> && std::is_base_of_v<PrDiv, Op>) {
+    // tau is too small
+    const bool final_underflow = result.error < IEEE754<T>::min_subnormal;
+    // twodiv FMA (tau * b) is flushed
+    const auto approx_remainder = result.error * std::abs(args[1]);
+    const bool intermediate_underflow =
+        approx_remainder < IEEE754<T>::min_subnormal;
+    eft_underflow = final_underflow || intermediate_underflow;
+  } else if constexpr (!std::is_void_v<Op> && std::is_base_of_v<PrSqrt, Op>) {
+    // twosqrt FMA approximation: r ~ tau * 2 * sigma is flushed
+    const auto approx_remainder =
+        (result.error * T(2.0) * result.ulp) / IEEE754<T>::ulp;
+    eft_underflow = approx_remainder < IEEE754<T>::min_subnormal;
+  }
+
+  // ignore exact results and twodiv / twosqrt underflows
+  if (rel_error_small || eft_underflow) {
     result.is_exact = true;
+  }
+
+  if (result.is_exact) {
   } else if (not same_binade) {
     const auto ordered = (result.exponent_next < result.exponent_prev);
     H ulp_prev = ordered ? result.ulp : (result.ulp / 2);

@@ -412,7 +412,7 @@ void CheckDistributionResults(D d, const ConfigTest &config, Args... args) {
   assert_equal_inputs(d, args...);
 
   H reference = Op::reference(scalar_args);
-  auto distance_error = compute_distance_error(scalar_args, reference);
+  auto distance_error = compute_distance_error<Op>(scalar_args, reference);
 
   auto counters = eval_op<Op>(config.repetitions, d, static_cast<T>(distance_error.prev), static_cast<T>(distance_error.next), args...);
   assert_errors_eq_ulp<T>(distance_error);
