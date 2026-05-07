@@ -120,7 +120,7 @@ inline auto get_exponent(T a) -> I {
   debug_start();
   if (a == 0) {
     debug_end();
-    return 0;
+    return IEEE754<T>::min_exponent;
   }
   using U = typename IEEE754<T>::U;
   constexpr I bias = IEEE754<T>::bias;
@@ -135,6 +135,14 @@ inline auto get_exponent(T a) -> I {
   debug_print("a = 0x%016x\n", a_bits);
   const auto raw_exp = (a_bits & exponent_mask) >> mantissa;
   debug_print("raw exponent = %d\n", raw_exp);
+
+  if (raw_exp == 0) {
+    debug_print("get_exponent(%.13a) = %d (subnormal)\n", a,
+                IEEE754<T>::min_exponent);
+    debug_end();
+    return IEEE754<T>::min_exponent;
+  }
+
   const I exp = raw_exp - bias;
   debug_print("get_exponent(%.13a) = %d\n", a, exp);
   debug_end();
