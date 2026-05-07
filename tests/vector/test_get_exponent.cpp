@@ -36,13 +36,12 @@ template <typename T> auto get_exponent(T a) -> int32_t {
   auto cls = std::fpclassify(a);
   switch (cls) {
   case FP_ZERO:
-    return 0;
+  case FP_SUBNORMAL:
+    return std::numeric_limits<T>::min_exponent - 1;
   case FP_NORMAL:
     std::frexp(a, &exp);
     return exp - 1;
     break;
-  case FP_SUBNORMAL:
-    return std::numeric_limits<T>::min_exponent - 2;
   case FP_INFINITE:
   case FP_NAN:
     return std::numeric_limits<T>::max_exponent;

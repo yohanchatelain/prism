@@ -363,6 +363,51 @@ HWY_NOINLINE void TestAllRandomMidOverlapFma() {
   hn::ForFloat3264Types(hn::ForPartialVectors<TestRandomMidOverlapFma>());
 }
 
+template <class Op> struct TestSubnormalAssertions {
+  const helper::ConfigTest config = {
+      .name = "TestSubnormalAssertions",
+      .description = "Test subnormal assertions for arithmetic operations",
+      .repetitions = default_repetitions(),
+      .alpha = get_alpha()};
+
+  template <typename T, class D> void operator()(T /*unused*/, D d) {
+    helper::RunWithPrecisions<T>(d, [&]() {
+      test_distribution::TestSubnormal<M, Op>(d, config);
+    });
+  }
+};
+
+using TestSubnormalAssertionsAdd = TestSubnormalAssertions<SRAdd>;
+using TestSubnormalAssertionsSub = TestSubnormalAssertions<SRSub>;
+using TestSubnormalAssertionsMul = TestSubnormalAssertions<SRMul>;
+using TestSubnormalAssertionsDiv = TestSubnormalAssertions<SRDiv>;
+using TestSubnormalAssertionsSqrt = TestSubnormalAssertions<SRSqrt>;
+using TestSubnormalAssertionsFma = TestSubnormalAssertions<SRFma>;
+
+HWY_NOINLINE void TestAllSubnormalAssertionsAdd() {
+  hn::ForFloat3264Types(hn::ForPartialVectors<TestSubnormalAssertionsAdd>());
+}
+
+HWY_NOINLINE void TestAllSubnormalAssertionsSub() {
+  hn::ForFloat3264Types(hn::ForPartialVectors<TestSubnormalAssertionsSub>());
+}
+
+HWY_NOINLINE void TestAllSubnormalAssertionsMul() {
+  hn::ForFloat3264Types(hn::ForPartialVectors<TestSubnormalAssertionsMul>());
+}
+
+HWY_NOINLINE void TestAllSubnormalAssertionsDiv() {
+  hn::ForFloat3264Types(hn::ForPartialVectors<TestSubnormalAssertionsDiv>());
+}
+
+HWY_NOINLINE void TestAllSubnormalAssertionsSqrt() {
+  hn::ForFloat3264Types(hn::ForPartialVectors<TestSubnormalAssertionsSqrt>());
+}
+
+HWY_NOINLINE void TestAllSubnormalAssertionsFma() {
+  hn::ForFloat3264Types(hn::ForPartialVectors<TestSubnormalAssertionsFma>());
+}
+
 } // namespace
 } // namespace prism::HWY_NAMESPACE
 HWY_AFTER_NAMESPACE();
@@ -408,6 +453,12 @@ HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllRandomMidOverlapMul);
 HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllRandomMidOverlapDiv);
 HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllRandomMidOverlapSqrt);
 HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllRandomMidOverlapFma);
+HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllSubnormalAssertionsAdd);
+HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllSubnormalAssertionsSub);
+HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllSubnormalAssertionsMul);
+HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllSubnormalAssertionsDiv);
+HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllSubnormalAssertionsSqrt);
+HWY_EXPORT_AND_TEST_P(SRVectorAccuracyTest, TestAllSubnormalAssertionsFma);
 HWY_AFTER_TEST();
 // NOLINTEND
 } // namespace prism::HWY_NAMESPACE

@@ -178,6 +178,38 @@ void TestRandomMidOverlap(TestFunc &&check, D d, const ConfigTest config = {}) {
   TestRandom<arity>(check, d, config, ranges);
 }
 
+template <size_t arity, typename TestFunc, class D, class V = hn::VFromD<D>,
+          typename T = hn::TFromD<D>>
+void TestSubnormal(TestFunc &&check, D d, ConfigTest config = {}) {
+  const auto subnormals = helper::SubnormalCases<T>();
+  const size_t n = subnormals.size();
+
+  if constexpr (arity == 1) {
+    for (auto a : subnormals) {
+      check(d, config, std::forward_as_tuple(hn::Set(d, a)));
+    }
+  } else if constexpr (arity == 2) {
+    for (size_t i = 0; i < n; ++i) {
+      for (size_t j = i; j < n; ++j) {
+        check(d, config,
+              std::forward_as_tuple(hn::Set(d, subnormals[i]),
+                                    hn::Set(d, subnormals[j])));
+      }
+    }
+  } else if constexpr (arity == 3) {
+    for (size_t i = 0; i < n; ++i) {
+      for (size_t j = i; j < n; ++j) {
+        for (size_t k = j; k < n; ++k) {
+          check(d, config,
+                std::forward_as_tuple(hn::Set(d, subnormals[i]),
+                                      hn::Set(d, subnormals[j]),
+                                      hn::Set(d, subnormals[k])));
+        }
+      }
+    }
+  }
+}
+
 template <int arity, typename TestFunc, class D, class V = hn::VFromD<D>,
           typename T = hn::TFromD<D>>
 void TestBinade(TestFunc &&test, D d, const ConfigTest config = {}, int n = 0) {
@@ -296,6 +328,14 @@ void TestRandomMidOverlap(D d, const ConfigTest &config) {
   generic::TestRandom<Op::arity>(
       helper::CheckDistributionResultsWrapper<args_t, M, Op, D>, d, config,
       ranges);
+}
+
+template <class M, class Op, class D, class V = hn::VFromD<D>,
+          typename T = hn::TFromD<D>>
+void TestSubnormal(D d, const ConfigTest &config) {
+  using args_t = typename TupleN<Op::arity, V>::type;
+  generic::TestSubnormal<Op::arity>(
+      helper::CheckDistributionResultsWrapper<args_t, M, Op, D>, d, config);
 }
 
 } // namespace prism::tests::helper::distribution::HWY_NAMESPACE

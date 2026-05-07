@@ -29,7 +29,7 @@ cc_test_gen_scalar(
 
 cc_test_lib_gen(
     name = "sr-accuracy",
-    size = "small",
+    size = "medium",
     src = [
         ":test_sr_accuracy.cpp",
     ],
@@ -38,7 +38,7 @@ cc_test_lib_gen(
 
 cc_test_lib_gen(
     name = "sr-accuracy-dbg",
-    size = "small",
+    size = "medium",
     src = [
         ":test_sr_accuracy.cpp",
     ],

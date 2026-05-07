@@ -158,9 +158,9 @@ template <typename T, class D, class F> void RunWithPrecisions(D d, F &&func) {
   auto default_t = prism::sr::get_virtual_precision<T>();
   std::vector<int> precisions;
   if constexpr (sizeof(T) == 4)
-    precisions = {23, 10, 4, 1};
+    precisions = {23, 20, 10, 4, 1};
   else
-    precisions = {52, 26, 8, 1};
+    precisions = {52, 49, 26, 8, 1};
 
   for (int t : precisions) {
     prism::sr::set_virtual_precision<T>(t);

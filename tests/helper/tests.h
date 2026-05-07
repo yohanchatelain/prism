@@ -30,6 +30,14 @@ template <typename T> auto SimpleCase() -> std::vector<T> {
   return simple_case;
 }
 
+template <typename T> auto SubnormalCases() -> std::vector<T> {
+  if constexpr (sizeof(T) == 4) {
+    return {1.5e-40f, 2.8e-41f, std::numeric_limits<T>::denorm_min()};
+  } else {
+    return {1.5e-315, 2.8e-316, std::numeric_limits<T>::denorm_min()};
+  }
+}
+
 template <typename T, int arity, int repetitions = default_repetitions,
           typename TestFunc = std::any>
 void TestBasic(TestFunc &&test) {

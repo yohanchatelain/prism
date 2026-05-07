@@ -86,24 +86,29 @@ template <typename T> auto is_subnormal(const T a) -> bool {
 }
 
 template <typename T> auto get_exponent(T a) -> int {
-  int exp = 0;
+  constexpr int min_exp_quad = -16382; // Minimum exponent for quad precision
   if (a == 0) {
-    return 0;
+    if constexpr (std::is_same_v<T, Float128_boost>) {
+      return min_exp_quad;
+    } else {
+      return prism::utils::IEEE754<T>::min_exponent;
+    }
   }
   if constexpr (std::is_same_v<T, Float128_boost>) {
     const auto res =
         boost::multiprecision::floor(boost::multiprecision::log2(abs(a)));
-    return static_cast<int>(res);
+    return std::max(static_cast<int>(res), min_exp_quad);
   } else {
     using U = typename IEEE754<T>::U;
     U u;
     std::memcpy(&u, &a, sizeof(T));
     u &= IEEE754<T>::exponent_mask_scaled;
     u >>= IEEE754<T>::mantissa;
-    exp = static_cast<int>(u);
-    exp -= IEEE754<T>::bias;
+    if (u == 0) {
+      return prism::utils::IEEE754<T>::min_exponent;
+    }
+    return static_cast<int>(u) - IEEE754<T>::bias;
   }
-  return exp;
 }
 
 template <typename T> auto is_power_of_2(T a) -> bool {
@@ -128,9 +133,6 @@ auto get_ulp(T a) -> H {
     H ulp = boost::multiprecision::ldexp(one, exponent - mantissa);
     return ulp;
   } else {
-    if (is_subnormal(a)) {
-      return static_cast<H>(IEEE754<T>::min_subnormal);
-    }
     int exponent = get_exponent(a);
     // Return the ULP corresponding to the virtual precision grid 't'
     // rather than the hardware mantissa to ensure accurate distance scaling.

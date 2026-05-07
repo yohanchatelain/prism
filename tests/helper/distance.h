@@ -147,12 +147,11 @@ auto compute_distance_error(Args<T> args, H reference) -> DistanceError<H> {
   result.exponent_next = get_exponent(result.next);
   result.exponent_prev = get_exponent(result.prev);
 
-  const bool error_small = result.error < IEEE754<T>::ulp;
-
+  const bool error_small = result.error <IEEE754<T>::ulp * result.ulp;
   const bool same_binade = result.exponent_next == result.exponent_prev;
 
   if (error_small) {
-    // if the error is smaller than an ulp, then the probability of the
+    // if the error is smaller 2^-52 * result.ulp; then the probability of the
     // casted reference being the next representable value is equal to 1
     result.is_exact = true;
   } else if (not same_binade) {
