@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install LLVM
-        uses: KyleMayes/install-llvm-action@v2.0.5
+        uses: KyleMayes/install-llvm-action@v2.0.9
         with:
           version: "18"
       - name: Install Bazelisk
@@ -29,7 +29,10 @@ jobs:
       - name: autogenerate
         run: ./autogen.sh
       - name: configure
-        run: ./configure
+        run: |
+          ./configure || status=$?
+          [ -f config.log ] && cat config.log
+          exit ${status:-0}
       - name: make
         run: make
       - name: Run tests
@@ -41,26 +44,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-20.04
-            llvm: 7
-          - os: ubuntu-20.04
-            llvm: 8
-          - os: ubuntu-20.04
-            llvm: 9
-          - os: ubuntu-20.04
-            llvm: 10
-          - os: ubuntu-22.04
-            llvm: 11
-          - os: ubuntu-22.04
-            llvm: 12
-          - os: ubuntu-22.04
-            llvm: 13
-          - os: ubuntu-22.04
-            llvm: 14
-          - os: ubuntu-22.04
-            llvm: 15
-          - os: ubuntu-24.04
-            llvm: 16
           - os: ubuntu-24.04
             llvm: 17
           - os: ubuntu-24.04
@@ -74,7 +57,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install LLVM
-        uses: KyleMayes/install-llvm-action@v2.0.5
+        uses: KyleMayes/install-llvm-action@v2.0.9
         with:
           version: ${{ matrix.llvm }}
       - name: Install Bazelisk
@@ -82,16 +65,15 @@ jobs:
       - name: Set up environment
         run: |
           sudo apt-get update
-            sudo apt-get install -y wget
-            if [ "${{ runner.arch }}" = "X64" ]; then
-              wget http://security.debian.org/debian-security/pool/updates/main/n/ncurses/libtinfo5_6.1+20181013-2+deb10u5_amd64.deb
-            elif [ "${{ runner.arch }}" = "ARM64" ]; then
-              wget http://security.debian.org/debian-security/pool/updates/main/n/ncurses/libtinfo5_6.1+20181013-2+deb10u5_arm64.deb
-            fi
-          sudo dpkg -i libtinfo5_6.1+20181013-2+deb10u5_amd64.deb
+          sudo apt-get install -y wget
+          wget http://ftp.us.debian.org/debian/pool/main/n/ncurses/libtinfo5_6.4-4_amd64.deb
+          sudo dpkg -i libtinfo5_6.4-4_amd64.deb
       - name: autogenerate
         run: ./autogen.sh
       - name: configure
-        run: ./configure
+        run: |
+          ./configure || status=$?
+          [ -f config.log ] && cat config.log
+          exit ${status:-0}
       - name: Run tests
         run: bazel test --test_output=errors tests:all
