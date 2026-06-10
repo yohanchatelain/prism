@@ -4,6 +4,7 @@
 #endif
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/syscall.h>
 
 #include <cstdlib>
 #include <execinfo.h>
@@ -41,7 +42,7 @@ void debug(const char *fmt, ...) {
 }
 
 void init_rng(const std::uint64_t seed = get_user_seed(),
-              const std::uint64_t tid = gettid() % getpid()) {
+              const std::uint64_t tid = syscall(__NR_gettid) % getpid()) {
 #if PRISM_RNG_DEBUG
   // WARNING: Do not use c++ ostream in the constructor as some of its internal
   // objects are not initialized yet. Use fprintf instead.
@@ -117,7 +118,7 @@ void debug(const char *fmt, ...) {
 }
 
 void init_rng(const std::uint64_t seed = get_user_seed(),
-              const std::uint64_t tid = gettid() % getpid()) {
+              const std::uint64_t tid = syscall(__NR_gettid) % getpid()) {
 #if PRISM_RNG_DEBUG
   // WARNING: Do not use c++ ostream in the constructor as some of its internal
   // objects are not initialized yet. Use fprintf instead.

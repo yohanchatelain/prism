@@ -8,12 +8,10 @@
 
 #include "debug.h"
 
-#ifdef __clang__
+#if defined(__x86_64__)
 using Float128 = __float128;
-#elif defined(__GNUC__) || defined(__GNUG__)
-typedef _Float128 Float128;
 #else
-#error "Unsupported compiler. Please use GCC or Clang."
+using Float128 = _Float128;
 #endif
 
 namespace prism::utils {
