@@ -511,9 +511,10 @@ HWY_INLINE auto truncate_mantissa(const D d, const V val) -> V {
 //    sign check remains invariant to the rounding.
 //
 // 2. |rho - pi| <= |tau|
-//    Since |tau| < 0.5 * ULP_hardware, this condition implies rho and pi
-//    share the same exponent and thus satisfy the Sterbenz Lemma
-//    (y/2 <= x <= 2y). Thus, the subtraction (rho - pi) is exact.
+//    Since |tau| <= 0.5 * ULP_hardware, and the minimum non-zero rho is
+//    1.0 * ULP_hardware, this condition restricts pi to the interval
+//    [0.5*rho, 1.5*rho] satisfying the Sterbenz Lemma. Thus, the subtraction
+//    (rho - pi) is exact.
 //
 //    (rho - pi) + tau can be inexact but we are only interested in its sign
 //    and IEEE-754 guarantees monotonic rounding.
