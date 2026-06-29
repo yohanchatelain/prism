@@ -36,4 +36,12 @@ uint64_t interflop_prism_get_seed(void) { return get_user_seed(); }
 
 void interflop_prism_set_seed(uint64_t seed) { set_user_seed(seed); }
 
+void interflop_prism_set_rounding_mode(int32_t mode) {
+  prism::sr::set_rounding_mode(mode);
+}
+
+int32_t interflop_prism_get_rounding_mode(void) {
+  return prism::sr::rounding_mode;
+}
+
 } // extern "C"

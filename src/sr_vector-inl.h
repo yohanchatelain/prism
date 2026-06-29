@@ -601,8 +601,15 @@ HWY_FLATTEN auto round(const D d, const V sigma, const V tau) -> V {
   const auto sc_ulp = hn::Mul(ulp_t, scale);
 
   // We sample pi in Uniform(0, sc_ulp)
-  const auto z_rng = rng::uniform(T{});
-  const auto z = hn::ResizeBitCast(d, z_rng);
+  // In SR mode, z is a random sample from Uniform(0, 1).
+  // In RN mode, z = 0.5 gives untied round-to-nearest (ties away from zero).
+  V z;
+  if (prism::sr::rounding_mode == prism::sr::PRISM_RN) {
+    z = hn::Set(d, T{0.5});
+  } else {
+    const auto z_rng = rng::uniform(T{});
+    z = hn::ResizeBitCast(d, z_rng);
+  }
   const auto pi = hn::Mul(sc_ulp, z);
 
   // We want to check if P < |x - trunc| where P = abs(pi).

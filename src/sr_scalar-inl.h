@@ -123,7 +123,11 @@ template <typename T> inline auto round(const T sigma, const T tau) -> T {
   const T sc_ulp = ulp_t * scale;
 
   // We sample pi in Uniform(0, sc_ulp)
-  const T z = rng::uniform(T{});
+  // In SR mode, z is a random sample from Uniform(0, 1).
+  // In RN mode, z = 0.5 gives untied round-to-nearest (ties away from zero).
+  const T z = (prism::sr::rounding_mode == prism::sr::PRISM_RN)
+                  ? T{0.5}
+                  : rng::uniform(T{});
   const T pi = sc_ulp * z;
 
   // We want to check if P < |x - trunc| where P = abs(pi).

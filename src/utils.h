@@ -198,18 +198,26 @@ auto pow2_double(int64_t n) -> double;
 } // namespace prism::utils
 
 namespace prism::sr {
+// Rounding mode constants
+constexpr int32_t PRISM_SR = 0; // Stochastic Rounding
+constexpr int32_t PRISM_RN = 1; // Round-to-Nearest (untied, ties away from zero)
+
 // Process-wide defaults, set once before main() by vfcwrapper init.
 // Thread-local vars initialize from these so every new thread inherits them.
 inline int32_t default_virtual_precision_f32 = utils::IEEE754<float>::precision;
 inline int32_t default_virtual_precision_f64 =
     utils::IEEE754<double>::precision;
+inline int32_t default_rounding_mode = PRISM_SR;
 
 // Configurable virtual precision, default to hardware precision.
-// NOLINT
-inline thread_local int32_t virtual_precision_f32 = // NOLINT
+inline thread_local int32_t virtual_precision_f32 =
     default_virtual_precision_f32;
-inline thread_local int32_t virtual_precision_f64 = // NOLINT
+inline thread_local int32_t virtual_precision_f64 =
     default_virtual_precision_f64;
+
+// Configurable rounding mode, default to SR
+inline thread_local int32_t rounding_mode =
+    default_rounding_mode;
 
 template <typename T> inline auto get_virtual_precision() -> int32_t {
   if constexpr (std::is_same_v<T, float>) {
@@ -232,6 +240,13 @@ template <typename T> inline void set_virtual_precision(int32_t t) {
   } else {
     static_assert(!sizeof(T), "set_virtual_precision: unsupported type");
   }
+}
+
+inline auto get_rounding_mode() -> int32_t { return rounding_mode; }
+
+inline void set_rounding_mode(int32_t mode) {
+  assert(mode == PRISM_SR || mode == PRISM_RN);
+  rounding_mode = mode;
 }
 
 // Helper to mask off the lower bits of the mantissa to match a virtual

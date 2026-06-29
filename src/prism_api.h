@@ -28,6 +28,13 @@ int32_t interflop_prism_get_default_virtual_precision_binary64(void);
 uint64_t interflop_prism_get_seed(void);
 void interflop_prism_set_seed(uint64_t seed);
 
+/* Rounding modes */
+#define INTERFLOP_PRISM_SR 0
+#define INTERFLOP_PRISM_RN 1
+
+void interflop_prism_set_rounding_mode(int32_t mode);
+int32_t interflop_prism_get_rounding_mode(void);
+
 #ifdef __cplusplus
 } // extern "C"
 #endif

@@ -13,6 +13,11 @@ cc_test_gen_vector(
 )
 
 cc_test_gen_vector(
+    name = "test_rn_mode",
+    mode = "dynamic",
+)
+
+cc_test_gen_vector(
     name = "test_get_exponent",
     dbg = True,
 )
@@ -228,6 +233,7 @@ test_suite(
         ":test_split",
         ":test_splitbit",
         ":test_twosum",
+        ":test_rn_mode",
         ":thread",
         ":thread-static",
         ":ud-accuracy",
