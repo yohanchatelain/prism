@@ -56,7 +56,7 @@ template <typename T> auto isnumber(const T a, const T b) -> bool {
   return ret;
 }
 
-// Virtual Stochastic Rounding
+// Variable Precision Stochastic Rounding
 //
 // Based on the algorithm in Fasi and Mikaitis: Algorithms for Stochastically
 // Rounded Elementary Arithmetic Operations, originally implemented in Verrou,
@@ -69,23 +69,10 @@ template <typename T> auto isnumber(const T a, const T b) -> bool {
 //
 // The result is returned directly.
 //
-// Proof of exact sign evaluation for D = (rho - pi) + tau:
+// Proof of exact sign evaluation for D = (rho - pi) + tau available at:
 //
-// 1. |rho - pi| > |tau|
-//    In this case, (rho - pi) might suffer rounding error in float.
-//    However, since |tau| is bounded by 0.5 * ULP_hardware, and the
-//    distance to the zero-boundary is greater than |tau|, the rounding
-//    error cannot pull the result across zero. The boolean outcome of the
-//    sign check remains invariant to the rounding.
+//       https://github.com/user-attachments/files/29456845/vpsr.pdf
 //
-// 2. |rho - pi| <= |tau|
-//    Since |tau| <= 0.5 * ULP_hardware, and the minimum non-zero rho is
-//    1.0 * ULP_hardware, this condition restricts pi to the interval
-//    [0.5*rho, 1.5*rho] satisfying the Sterbenz Lemma. Thus, the subtraction
-//    (rho - pi) is exact.
-//
-//    (rho - pi) + tau can be inexact but we are only interested in its sign
-//    and IEEE-754 guarantees monotonic rounding.
 // ------------------------------------------------------------------------
 template <typename T> inline auto round(const T sigma, const T tau) -> T {
   const int32_t t = prism::sr::get_virtual_precision<T>();
