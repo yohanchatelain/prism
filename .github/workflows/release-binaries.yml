@@ -90,7 +90,7 @@ jobs:
           done
 
           for library in "$package_root"/lib/libprism-*.so; do
-            patchelf --add-needed libhwy.so --set-rpath '$ORIGIN' "$library"
+            patchelf --add-needed libhwy.so "$library"
           done
 
           documentation_root="$package_root/share/doc/prism"
