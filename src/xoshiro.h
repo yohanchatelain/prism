@@ -1,7 +1,15 @@
 #ifndef __PRISM_XOSHIRO_H__
 #define __PRISM_XOSHIRO_H__
 
+#include <atomic>
 #include <random>
+
+inline auto get_thread_id() -> uint64_t {
+  static std::atomic<uint64_t> thread_counter{0};
+  thread_local uint64_t tid =
+      thread_counter.fetch_add(1, std::memory_order_relaxed);
+  return tid;
+}
 
 // inline with external linkage: static locals are shared across all TUs.
 inline auto seed_state(bool set = false, uint64_t new_seed = 0) -> uint64_t {
