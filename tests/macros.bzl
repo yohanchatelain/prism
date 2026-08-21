@@ -23,6 +23,21 @@ SRCS_VECTOR = [
     "//src:target_utils.h",
 ]
 
+SRCS_ARRAY = [
+    "//src:prism_api.h",
+    "//src:prism_array.h",
+    "//src:sr_array.h",
+    "//src:ud_array.h",
+    "//src:generic_vector.h",
+    "//src:generic_vector-inl.h",
+    "//src:sr_vector-inl.h",
+    "//src:ud_vector-inl.h",
+    "//src:debug_vector-inl.h",
+    "//src:xoshiro.h",
+    "//src:random-inl.h",
+    "//src:target_utils.h",
+]
+
 DEPS = [
     "@hwy",
     "@hwy//:hwy_test_util",
@@ -93,7 +108,7 @@ def get_deps(deps, mode, dbg):
     return _deps + prism_deps
 
 def cc_test_gen_scalar(name, src = None, deps = None, copts = COPTS, size = "small", dbg = False, mode = None):
-    srcs = (src if src else []) + [name + ".cpp"]
+    srcs = src if src else [name + ".cpp"]
     native.cc_test(
         name = name,
         srcs = srcs + HEADERS + SRCS_SCALAR,
@@ -103,10 +118,21 @@ def cc_test_gen_scalar(name, src = None, deps = None, copts = COPTS, size = "sma
     )
 
 def cc_test_gen_vector(name, src = None, deps = None, copts = COPTS, size = "small", dbg = False, mode = None):
-    srcs = (src if src else []) + [name + ".cpp"]
+    srcs = src if src else [name + ".cpp"]
     native.cc_test(
         name = name,
         srcs = srcs + HEADERS + SRCS_VECTOR,
+        copts = get_copts(copts) + get_dbg_copts(dbg) + get_copts_mode(mode),
+        deps = get_deps(deps, mode, dbg),
+        size = size,
+        features = ["vector"],
+    )
+
+def cc_test_gen_array(name, src = None, deps = None, copts = COPTS, size = "small", dbg = False, mode = None):
+    srcs = src if src else [name + ".cpp"]
+    native.cc_test(
+        name = name,
+        srcs = srcs + HEADERS + SRCS_ARRAY,
         copts = get_copts(copts) + get_dbg_copts(dbg) + get_copts_mode(mode),
         deps = get_deps(deps, mode, dbg),
         size = size,
