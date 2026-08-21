@@ -10,6 +10,19 @@ namespace variable {
 
 /* IEEE-754 binary32 */
 
+#if PRISM_PR_MODE == PRISM_SR_MODE
+void round(const float *HWY_RESTRICT sigma, const float *HWY_RESTRICT tau,
+           float *HWY_RESTRICT result, size_t count);
+#elif PRISM_PR_MODE == PRISM_UD_MODE
+void round(const float *HWY_RESTRICT a, float *HWY_RESTRICT result,
+           size_t count);
+#else
+void round(const float *HWY_RESTRICT sigma, const float *HWY_RESTRICT tau,
+           float *HWY_RESTRICT result, size_t count);
+void round(const float *HWY_RESTRICT a, float *HWY_RESTRICT result,
+           size_t count);
+#endif
+
 void addf32(const float *HWY_RESTRICT a, const float *HWY_RESTRICT b,
             float *HWY_RESTRICT result, size_t count);
 
@@ -30,6 +43,19 @@ void fmaf32(const float *HWY_RESTRICT a, const float *HWY_RESTRICT b,
             size_t count);
 
 /* IEEE-754 binary64 */
+
+#if PRISM_PR_MODE == PRISM_SR_MODE
+void round(const double *HWY_RESTRICT sigma, const double *HWY_RESTRICT tau,
+           double *HWY_RESTRICT result, size_t count);
+#elif PRISM_PR_MODE == PRISM_UD_MODE
+void round(const double *HWY_RESTRICT a, double *HWY_RESTRICT result,
+           size_t count);
+#else
+void round(const double *HWY_RESTRICT sigma, const double *HWY_RESTRICT tau,
+           double *HWY_RESTRICT result, size_t count);
+void round(const double *HWY_RESTRICT a, double *HWY_RESTRICT result,
+           size_t count);
+#endif
 
 void addf64(const double *HWY_RESTRICT a, const double *HWY_RESTRICT b,
             double *HWY_RESTRICT result, size_t count);

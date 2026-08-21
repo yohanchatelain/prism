@@ -636,8 +636,8 @@ HWY_FLATTEN auto round(const D d, const V sigma, const V tau,
 }
 
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
-HWY_FLATTEN auto add(const D d, const V a, const V b) -> V {
-  const auto config = prism::sr::get_config_snapshot<T>();
+HWY_FLATTEN auto add(const D d, const V a, const V b,
+                     const prism::sr::ConfigSnapshot &config) -> V {
   dbg::debug_msg("\n[sr_add] START");
   V sigma;
   V tau;
@@ -649,18 +649,31 @@ HWY_FLATTEN auto add(const D d, const V a, const V b) -> V {
 }
 
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
-HWY_FLATTEN auto sub(const D d, const V a, const V b) -> V {
+HWY_FLATTEN auto add(const D d, const V a, const V b) -> V {
+  const auto config = prism::sr::get_config_snapshot<T>();
+  return add(d, a, b, config);
+}
+
+template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
+HWY_FLATTEN auto sub(const D d, const V a, const V b,
+                     const prism::sr::ConfigSnapshot &config) -> V {
   dbg::debug_msg("\n[sr_sub] START");
   const auto b_neg = hn::Neg(b);
-  const auto ret = add(d, a, b_neg);
+  const auto ret = add(d, a, b_neg, config);
   dbg::debug_msg("[sr_sub] END\n");
   return ret;
 }
 
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
-HWY_FLATTEN auto mul(const D d, const V a, const V b) -> V {
+HWY_FLATTEN auto sub(const D d, const V a, const V b) -> V {
   const auto config = prism::sr::get_config_snapshot<T>();
-  dbg::debug_msg("\n[sr_add] START");
+  return sub(d, a, b, config);
+}
+
+template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
+HWY_FLATTEN auto mul(const D d, const V a, const V b,
+                     const prism::sr::ConfigSnapshot &config) -> V {
+  dbg::debug_msg("\n[sr_mul] START");
   V sigma;
   V tau;
   twoprodfma(d, a, b, sigma, tau);
@@ -669,6 +682,12 @@ HWY_FLATTEN auto mul(const D d, const V a, const V b) -> V {
   dbg::debug_msg("[sr_mul] END\n");
 
   return ret;
+}
+
+template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
+HWY_FLATTEN auto mul(const D d, const V a, const V b) -> V {
+  const auto config = prism::sr::get_config_snapshot<T>();
+  return mul(d, a, b, config);
 }
 
 /*
@@ -686,8 +705,8 @@ the Change of the Rounding Mode
 9. return σ
 */
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
-HWY_FLATTEN auto div(const D d, const V a, const V b) -> V {
-  const auto config = prism::sr::get_config_snapshot<T>();
+HWY_FLATTEN auto div(const D d, const V a, const V b,
+                     const prism::sr::ConfigSnapshot &config) -> V {
   dbg::debug_msg("\n[sr_div] START");
   dbg::debug_vec(d, "[sr_div] a", a);
   dbg::debug_vec(d, "[sr_div] b", b);
@@ -713,8 +732,14 @@ HWY_FLATTEN auto div(const D d, const V a, const V b) -> V {
 }
 
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
-HWY_FLATTEN auto sqrt(const D d, const V a) -> V {
+HWY_FLATTEN auto div(const D d, const V a, const V b) -> V {
   const auto config = prism::sr::get_config_snapshot<T>();
+  return div(d, a, b, config);
+}
+
+template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
+HWY_FLATTEN auto sqrt(const D d, const V a,
+                      const prism::sr::ConfigSnapshot &config) -> V {
   dbg::debug_msg("\n[sr_sqrt] START");
   const auto sigma = hn::Sqrt(a);
   // -sigma * sigma + a
@@ -727,6 +752,12 @@ HWY_FLATTEN auto sqrt(const D d, const V a) -> V {
   dbg::debug_msg("[sr_sqrt] END\n");
 
   return ret;
+}
+
+template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
+HWY_FLATTEN auto sqrt(const D d, const V a) -> V {
+  const auto config = prism::sr::get_config_snapshot<T>();
+  return sqrt(d, a, config);
 }
 
 /*
@@ -742,8 +773,8 @@ Algorithm 5 (ErrFmaNearest):
   r2 = ◦(γ + α2)
 */
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
-HWY_FLATTEN auto fma(const D d, const V a, const V b, const V c) -> V {
-  const auto config = prism::sr::get_config_snapshot<T>();
+HWY_FLATTEN auto fma(const D d, const V a, const V b, const V c,
+                     const prism::sr::ConfigSnapshot &config) -> V {
   dbg::debug_msg("\n[sr_fma] START");
   dbg::debug_vec(d, "[sr_fma] a", a);
   dbg::debug_vec(d, "[sr_fma] b", b);
@@ -775,6 +806,12 @@ HWY_FLATTEN auto fma(const D d, const V a, const V b, const V c) -> V {
   dbg::debug_msg("[sr_fma] END\n");
 
   return res;
+}
+
+template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
+HWY_FLATTEN auto fma(const D d, const V a, const V b, const V c) -> V {
+  const auto config = prism::sr::get_config_snapshot<T>();
+  return fma(d, a, b, c, config);
 }
 
 // NOLINTNEXTLINE(google-readability-namespace-comments)

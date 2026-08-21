@@ -248,9 +248,9 @@ test_suite(
 test_suite(
     name = "perf",
     tests = [
-        ":sr-perf",
-        ":sr-perf-native",
-        ":ud-perf",
-        ":ud-perf-native",
+        ":sr-perf-dynamic",
+        ":sr-perf-static",
+        ":ud-perf-dynamic",
+        ":ud-perf-static",
     ],
 )

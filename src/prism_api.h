@@ -13,6 +13,7 @@
 #ifndef __PRISM_API_H__
 #define __PRISM_API_H__
 
+#include <stddef.h>
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -50,6 +51,69 @@ void interflop_prism_set_rounding_mode(int32_t mode);
 int32_t interflop_prism_get_rounding_mode(void);
 /* Per-thread override, in effect until the next process-wide set. */
 void interflop_prism_set_thread_rounding_mode(int32_t mode);
+
+/* =========================================================================
+ * Array Interface (Contiguous memory buffers)
+ * ========================================================================= */
+
+/* Stochastic Rounding (SR) Array Operations - binary32 (float) */
+void interflop_prism_sr_round_f32(const float *sigma, const float *tau,
+                                 float *result, size_t count);
+void interflop_prism_sr_add_f32(const float *a, const float *b, float *result,
+                               size_t count);
+void interflop_prism_sr_sub_f32(const float *a, const float *b, float *result,
+                               size_t count);
+void interflop_prism_sr_mul_f32(const float *a, const float *b, float *result,
+                               size_t count);
+void interflop_prism_sr_div_f32(const float *a, const float *b, float *result,
+                               size_t count);
+void interflop_prism_sr_sqrt_f32(const float *a, float *result, size_t count);
+void interflop_prism_sr_fma_f32(const float *a, const float *b, const float *c,
+                               float *result, size_t count);
+
+/* Stochastic Rounding (SR) Array Operations - binary64 (double) */
+void interflop_prism_sr_round_f64(const double *sigma, const double *tau,
+                                 double *result, size_t count);
+void interflop_prism_sr_add_f64(const double *a, const double *b,
+                               double *result, size_t count);
+void interflop_prism_sr_sub_f64(const double *a, const double *b,
+                               double *result, size_t count);
+void interflop_prism_sr_mul_f64(const double *a, const double *b,
+                               double *result, size_t count);
+void interflop_prism_sr_div_f64(const double *a, const double *b,
+                               double *result, size_t count);
+void interflop_prism_sr_sqrt_f64(const double *a, double *result, size_t count);
+void interflop_prism_sr_fma_f64(const double *a, const double *b,
+                               const double *c, double *result, size_t count);
+
+/* Up-Down Rounding (UD) Array Operations - binary32 (float) */
+void interflop_prism_ud_round_f32(const float *a, float *result, size_t count);
+void interflop_prism_ud_add_f32(const float *a, const float *b, float *result,
+                               size_t count);
+void interflop_prism_ud_sub_f32(const float *a, const float *b, float *result,
+                               size_t count);
+void interflop_prism_ud_mul_f32(const float *a, const float *b, float *result,
+                               size_t count);
+void interflop_prism_ud_div_f32(const float *a, const float *b, float *result,
+                               size_t count);
+void interflop_prism_ud_sqrt_f32(const float *a, float *result, size_t count);
+void interflop_prism_ud_fma_f32(const float *a, const float *b, const float *c,
+                               float *result, size_t count);
+
+/* Up-Down Rounding (UD) Array Operations - binary64 (double) */
+void interflop_prism_ud_round_f64(const double *a, double *result,
+                                 size_t count);
+void interflop_prism_ud_add_f64(const double *a, const double *b,
+                               double *result, size_t count);
+void interflop_prism_ud_sub_f64(const double *a, const double *b,
+                               double *result, size_t count);
+void interflop_prism_ud_mul_f64(const double *a, const double *b,
+                               double *result, size_t count);
+void interflop_prism_ud_div_f64(const double *a, const double *b,
+                               double *result, size_t count);
+void interflop_prism_ud_sqrt_f64(const double *a, double *result, size_t count);
+void interflop_prism_ud_fma_f64(const double *a, const double *b,
+                               const double *c, double *result, size_t count);
 
 #ifdef __cplusplus
 } // extern "C"

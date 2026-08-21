@@ -11,6 +11,8 @@
  ****************************************************************************/
 
 #include "prism_api.h"
+#include "sr_vector.h"
+#include "ud_vector.h"
 #include "utils.h"
 #include "xoshiro.h"
 
@@ -64,6 +66,151 @@ int32_t interflop_prism_get_rounding_mode(void) {
 
 void interflop_prism_set_thread_rounding_mode(int32_t mode) {
   prism::sr::set_rounding_mode(mode);
+}
+
+/* =========================================================================
+ * Array Interface Implementations
+ * ========================================================================= */
+
+/* Stochastic Rounding (SR) Array Operations - binary32 */
+void interflop_prism_sr_round_f32(const float *sigma, const float *tau,
+                                 float *result, size_t count) {
+  prism::sr::vector::PRISM_DISPATCH::variable::round(sigma, tau, result, count);
+}
+
+void interflop_prism_sr_add_f32(const float *a, const float *b, float *result,
+                               size_t count) {
+  prism::sr::vector::PRISM_DISPATCH::variable::addf32(a, b, result, count);
+}
+
+void interflop_prism_sr_sub_f32(const float *a, const float *b, float *result,
+                               size_t count) {
+  prism::sr::vector::PRISM_DISPATCH::variable::subf32(a, b, result, count);
+}
+
+void interflop_prism_sr_mul_f32(const float *a, const float *b, float *result,
+                               size_t count) {
+  prism::sr::vector::PRISM_DISPATCH::variable::mulf32(a, b, result, count);
+}
+
+void interflop_prism_sr_div_f32(const float *a, const float *b, float *result,
+                               size_t count) {
+  prism::sr::vector::PRISM_DISPATCH::variable::divf32(a, b, result, count);
+}
+
+void interflop_prism_sr_sqrt_f32(const float *a, float *result, size_t count) {
+  prism::sr::vector::PRISM_DISPATCH::variable::sqrtf32(a, result, count);
+}
+
+void interflop_prism_sr_fma_f32(const float *a, const float *b, const float *c,
+                               float *result, size_t count) {
+  prism::sr::vector::PRISM_DISPATCH::variable::fmaf32(a, b, c, result, count);
+}
+
+/* Stochastic Rounding (SR) Array Operations - binary64 */
+void interflop_prism_sr_round_f64(const double *sigma, const double *tau,
+                                 double *result, size_t count) {
+  prism::sr::vector::PRISM_DISPATCH::variable::round(sigma, tau, result, count);
+}
+
+void interflop_prism_sr_add_f64(const double *a, const double *b,
+                               double *result, size_t count) {
+  prism::sr::vector::PRISM_DISPATCH::variable::addf64(a, b, result, count);
+}
+
+void interflop_prism_sr_sub_f64(const double *a, const double *b,
+                               double *result, size_t count) {
+  prism::sr::vector::PRISM_DISPATCH::variable::subf64(a, b, result, count);
+}
+
+void interflop_prism_sr_mul_f64(const double *a, const double *b,
+                               double *result, size_t count) {
+  prism::sr::vector::PRISM_DISPATCH::variable::mulf64(a, b, result, count);
+}
+
+void interflop_prism_sr_div_f64(const double *a, const double *b,
+                               double *result, size_t count) {
+  prism::sr::vector::PRISM_DISPATCH::variable::divf64(a, b, result, count);
+}
+
+void interflop_prism_sr_sqrt_f64(const double *a, double *result,
+                                size_t count) {
+  prism::sr::vector::PRISM_DISPATCH::variable::sqrtf64(a, result, count);
+}
+
+void interflop_prism_sr_fma_f64(const double *a, const double *b,
+                               const double *c, double *result, size_t count) {
+  prism::sr::vector::PRISM_DISPATCH::variable::fmaf64(a, b, c, result, count);
+}
+
+/* Up-Down Rounding (UD) Array Operations - binary32 */
+void interflop_prism_ud_round_f32(const float *a, float *result, size_t count) {
+  prism::ud::vector::PRISM_DISPATCH::variable::round(a, result, count);
+}
+
+void interflop_prism_ud_add_f32(const float *a, const float *b, float *result,
+                               size_t count) {
+  prism::ud::vector::PRISM_DISPATCH::variable::addf32(a, b, result, count);
+}
+
+void interflop_prism_ud_sub_f32(const float *a, const float *b, float *result,
+                               size_t count) {
+  prism::ud::vector::PRISM_DISPATCH::variable::subf32(a, b, result, count);
+}
+
+void interflop_prism_ud_mul_f32(const float *a, const float *b, float *result,
+                               size_t count) {
+  prism::ud::vector::PRISM_DISPATCH::variable::mulf32(a, b, result, count);
+}
+
+void interflop_prism_ud_div_f32(const float *a, const float *b, float *result,
+                               size_t count) {
+  prism::ud::vector::PRISM_DISPATCH::variable::divf32(a, b, result, count);
+}
+
+void interflop_prism_ud_sqrt_f32(const float *a, float *result, size_t count) {
+  prism::ud::vector::PRISM_DISPATCH::variable::sqrtf32(a, result, count);
+}
+
+void interflop_prism_ud_fma_f32(const float *a, const float *b, const float *c,
+                               float *result, size_t count) {
+  prism::ud::vector::PRISM_DISPATCH::variable::fmaf32(a, b, c, result, count);
+}
+
+/* Up-Down Rounding (UD) Array Operations - binary64 */
+void interflop_prism_ud_round_f64(const double *a, double *result,
+                                 size_t count) {
+  prism::ud::vector::PRISM_DISPATCH::variable::round(a, result, count);
+}
+
+void interflop_prism_ud_add_f64(const double *a, const double *b,
+                               double *result, size_t count) {
+  prism::ud::vector::PRISM_DISPATCH::variable::addf64(a, b, result, count);
+}
+
+void interflop_prism_ud_sub_f64(const double *a, const double *b,
+                               double *result, size_t count) {
+  prism::ud::vector::PRISM_DISPATCH::variable::subf64(a, b, result, count);
+}
+
+void interflop_prism_ud_mul_f64(const double *a, const double *b,
+                               double *result, size_t count) {
+  prism::ud::vector::PRISM_DISPATCH::variable::mulf64(a, b, result, count);
+}
+
+void interflop_prism_ud_div_f64(const double *a, const double *b,
+                               double *result, size_t count) {
+  prism::ud::vector::PRISM_DISPATCH::variable::divf64(a, b, result, count);
+}
+
+void interflop_prism_ud_sqrt_f64(const double *a, double *result,
+                                size_t count) {
+  prism::ud::vector::PRISM_DISPATCH::variable::sqrtf64(a, result, count);
+}
+
+void interflop_prism_ud_fma_f64(const double *a, const double *b,
+                               const double *c, double *result, size_t count) {
+  prism::ud::vector::PRISM_DISPATCH::variable::fmaf64(a, b, c, result, count);
 }
 
 } // extern "C"
