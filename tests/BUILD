@@ -7,6 +7,7 @@ exports_files(
 test_suite(
     name = "all",
     tests = [
+        "//tests/array:all",
         "//tests/scalar:all",
         "//tests/vector:all",
     ],

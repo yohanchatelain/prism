@@ -81,13 +81,20 @@ HWY_FLATTEN void _add(const T *HWY_RESTRICT a, const T *HWY_RESTRICT b,
   using D = hn::ScalableTag<T>;
   const D d{};
   const size_t N = hn::Lanes(d);
+#if PRISM_PR_MODE == PRISM_SR_MODE
+  const auto config = prism::sr::get_config_snapshot<T>();
+#endif
 
   for (size_t i = 0; i < count; i += N) {
     const size_t remaining = count - i;
     const size_t lanes = remaining < N ? remaining : N;
     auto a_vec = hn::LoadN(d, a + i, lanes);
     auto b_vec = hn::LoadN(d, b + i, lanes);
+#if PRISM_PR_MODE == PRISM_SR_MODE
+    auto res = pr::add(d, a_vec, b_vec, config);
+#else
     auto res = pr::add(d, a_vec, b_vec);
+#endif
     hn::StoreN(res, d, result + i, lanes);
   }
 }
@@ -98,12 +105,19 @@ HWY_FLATTEN void _sub(const T *HWY_RESTRICT a, const T *HWY_RESTRICT b,
   using D = hn::ScalableTag<T>;
   const D d{};
   const size_t N = hn::Lanes(d);
+#if PRISM_PR_MODE == PRISM_SR_MODE
+  const auto config = prism::sr::get_config_snapshot<T>();
+#endif
   for (size_t i = 0; i < count; i += N) {
     const size_t remaining = count - i;
     const size_t lanes = remaining < N ? remaining : N;
     auto a_vec = hn::LoadN(d, a + i, lanes);
     auto b_vec = hn::LoadN(d, b + i, lanes);
+#if PRISM_PR_MODE == PRISM_SR_MODE
+    auto res = pr::sub(d, a_vec, b_vec, config);
+#else
     auto res = pr::sub(d, a_vec, b_vec);
+#endif
     hn::StoreN(res, d, result + i, lanes);
   }
 }
@@ -114,12 +128,19 @@ HWY_FLATTEN void _mul(const T *HWY_RESTRICT a, const T *HWY_RESTRICT b,
   using D = hn::ScalableTag<T>;
   const D d{};
   const size_t N = hn::Lanes(d);
+#if PRISM_PR_MODE == PRISM_SR_MODE
+  const auto config = prism::sr::get_config_snapshot<T>();
+#endif
   for (size_t i = 0; i < count; i += N) {
     const size_t remaining = count - i;
     const size_t lanes = remaining < N ? remaining : N;
     auto a_vec = hn::LoadN(d, a + i, lanes);
     auto b_vec = hn::LoadN(d, b + i, lanes);
+#if PRISM_PR_MODE == PRISM_SR_MODE
+    auto res = pr::mul(d, a_vec, b_vec, config);
+#else
     auto res = pr::mul(d, a_vec, b_vec);
+#endif
     hn::StoreN(res, d, result + i, lanes);
   }
 }
@@ -130,13 +151,20 @@ HWY_FLATTEN void _div(const T *HWY_RESTRICT a, const T *HWY_RESTRICT b,
   using D = hn::ScalableTag<T>;
   const D d{};
   const size_t N = hn::Lanes(d);
+#if PRISM_PR_MODE == PRISM_SR_MODE
+  const auto config = prism::sr::get_config_snapshot<T>();
+#endif
 
   for (size_t i = 0; i < count; i += N) {
     const size_t remaining = count - i;
     const size_t lanes = remaining < N ? remaining : N;
     auto a_vec = hn::LoadN(d, a + i, lanes);
     auto b_vec = hn::LoadN(d, b + i, lanes);
+#if PRISM_PR_MODE == PRISM_SR_MODE
+    auto res = pr::div(d, a_vec, b_vec, config);
+#else
     auto res = pr::div(d, a_vec, b_vec);
+#endif
     hn::StoreN(res, d, result + i, lanes);
   }
 }
@@ -147,12 +175,19 @@ HWY_FLATTEN void _sqrt(const T *HWY_RESTRICT a, T *HWY_RESTRICT result,
   using D = hn::ScalableTag<T>;
   const D d{};
   const size_t N = hn::Lanes(d);
+#if PRISM_PR_MODE == PRISM_SR_MODE
+  const auto config = prism::sr::get_config_snapshot<T>();
+#endif
 
   for (size_t i = 0; i < count; i += N) {
     const size_t remaining = count - i;
     const size_t lanes = remaining < N ? remaining : N;
     auto a_vec = hn::LoadN(d, a + i, lanes);
+#if PRISM_PR_MODE == PRISM_SR_MODE
+    auto res = pr::sqrt(d, a_vec, config);
+#else
     auto res = pr::sqrt(d, a_vec);
+#endif
     hn::StoreN(res, d, result + i, lanes);
   }
 }
@@ -164,6 +199,9 @@ HWY_FLATTEN void _fma(const T *HWY_RESTRICT a, const T *HWY_RESTRICT b,
   using D = hn::ScalableTag<T>;
   const D d{};
   const size_t N = hn::Lanes(d);
+#if PRISM_PR_MODE == PRISM_SR_MODE
+  const auto config = prism::sr::get_config_snapshot<T>();
+#endif
 
   for (size_t i = 0; i < count; i += N) {
     const size_t remaining = count - i;
@@ -171,7 +209,11 @@ HWY_FLATTEN void _fma(const T *HWY_RESTRICT a, const T *HWY_RESTRICT b,
     auto a_vec = hn::LoadN(d, a + i, lanes);
     auto b_vec = hn::LoadN(d, b + i, lanes);
     auto c_vec = hn::LoadN(d, c + i, lanes);
+#if PRISM_PR_MODE == PRISM_SR_MODE
+    auto res = pr::fma(d, a_vec, b_vec, c_vec, config);
+#else
     auto res = pr::fma(d, a_vec, b_vec, c_vec);
+#endif
     hn::StoreN(res, d, result + i, lanes);
   }
 }
@@ -499,16 +541,22 @@ HWY_EXPORT(_fma_f64);
 
 /* Variable size functions */
 
+#if defined(HWY_COMPILE_ONLY_STATIC)
+#define PRISM_ARRAY_DISPATCH(func) HWY_STATIC_DISPATCH(func)
+#else
+#define PRISM_ARRAY_DISPATCH(func) HWY_DYNAMIC_DISPATCH(func)
+#endif
+
 /* binary32 */
 #if PRISM_PR_MODE == PRISM_SR_MODE
 void round(const float *HWY_RESTRICT sigma, const float *HWY_RESTRICT tau,
            float *HWY_RESTRICT result, const size_t count) {
-  return HWY_DYNAMIC_DISPATCH(_round_f32)(sigma, tau, result, count);
+  return PRISM_ARRAY_DISPATCH(_round_f32)(sigma, tau, result, count);
 }
 #elif PRISM_PR_MODE == PRISM_UD_MODE
 void round(const float *HWY_RESTRICT a, float *HWY_RESTRICT result,
            const size_t count) {
-  return HWY_DYNAMIC_DISPATCH(_round_f32)(a, result, count);
+  return PRISM_ARRAY_DISPATCH(_round_f32)(a, result, count);
 }
 #else
 #error "Invalid PRISM_PR_MODE"
@@ -516,45 +564,45 @@ void round(const float *HWY_RESTRICT a, float *HWY_RESTRICT result,
 
 void addf32(const float *HWY_RESTRICT a, const float *HWY_RESTRICT b,
             float *HWY_RESTRICT result, const size_t count) {
-  return HWY_DYNAMIC_DISPATCH(_add_f32)(a, b, result, count);
+  return PRISM_ARRAY_DISPATCH(_add_f32)(a, b, result, count);
 }
 
 void subf32(const float *HWY_RESTRICT a, const float *HWY_RESTRICT b,
             float *HWY_RESTRICT result, const size_t count) {
-  return HWY_DYNAMIC_DISPATCH(_sub_f32)(a, b, result, count);
+  return PRISM_ARRAY_DISPATCH(_sub_f32)(a, b, result, count);
 }
 
 void mulf32(const float *HWY_RESTRICT a, const float *HWY_RESTRICT b,
             float *HWY_RESTRICT result, const size_t count) {
-  return HWY_DYNAMIC_DISPATCH(_mul_f32)(a, b, result, count);
+  return PRISM_ARRAY_DISPATCH(_mul_f32)(a, b, result, count);
 }
 
 void divf32(const float *HWY_RESTRICT a, const float *HWY_RESTRICT b,
             float *HWY_RESTRICT result, const size_t count) {
-  return HWY_DYNAMIC_DISPATCH(_div_f32)(a, b, result, count);
+  return PRISM_ARRAY_DISPATCH(_div_f32)(a, b, result, count);
 }
 
 void sqrtf32(const float *HWY_RESTRICT a, float *HWY_RESTRICT result,
              const size_t count) {
-  return HWY_DYNAMIC_DISPATCH(_sqrt_f32)(a, result, count);
+  return PRISM_ARRAY_DISPATCH(_sqrt_f32)(a, result, count);
 }
 
 void fmaf32(const float *HWY_RESTRICT a, const float *HWY_RESTRICT b,
             const float *HWY_RESTRICT c, float *HWY_RESTRICT result,
             const size_t count) {
-  return HWY_DYNAMIC_DISPATCH(_fma_f32)(a, b, c, result, count);
+  return PRISM_ARRAY_DISPATCH(_fma_f32)(a, b, c, result, count);
 }
 
 /* binary64 */
 #if PRISM_PR_MODE == PRISM_SR_MODE
 void round(const double *HWY_RESTRICT sigma, const double *HWY_RESTRICT tau,
            double *HWY_RESTRICT result, const size_t count) {
-  return HWY_DYNAMIC_DISPATCH(_round_f64)(sigma, tau, result, count);
+  return PRISM_ARRAY_DISPATCH(_round_f64)(sigma, tau, result, count);
 }
 #elif PRISM_PR_MODE == PRISM_UD_MODE
 void round(const double *HWY_RESTRICT a, double *HWY_RESTRICT result,
            const size_t count) {
-  return HWY_DYNAMIC_DISPATCH(_round_f64)(a, result, count);
+  return PRISM_ARRAY_DISPATCH(_round_f64)(a, result, count);
 }
 #else
 #error "Invalid PRISM_PR_MODE"
@@ -562,34 +610,146 @@ void round(const double *HWY_RESTRICT a, double *HWY_RESTRICT result,
 
 void addf64(const double *HWY_RESTRICT a, const double *HWY_RESTRICT b,
             double *HWY_RESTRICT result, const size_t count) {
-  return HWY_DYNAMIC_DISPATCH(_add_f64)(a, b, result, count);
+  return PRISM_ARRAY_DISPATCH(_add_f64)(a, b, result, count);
 }
 
 void subf64(const double *HWY_RESTRICT a, const double *HWY_RESTRICT b,
             double *HWY_RESTRICT result, const size_t count) {
-  return HWY_DYNAMIC_DISPATCH(_sub_f64)(a, b, result, count);
+  return PRISM_ARRAY_DISPATCH(_sub_f64)(a, b, result, count);
 }
 
 void mulf64(const double *HWY_RESTRICT a, const double *HWY_RESTRICT b,
             double *HWY_RESTRICT result, const size_t count) {
-  return HWY_DYNAMIC_DISPATCH(_mul_f64)(a, b, result, count);
+  return PRISM_ARRAY_DISPATCH(_mul_f64)(a, b, result, count);
 }
 
 void divf64(const double *HWY_RESTRICT a, const double *HWY_RESTRICT b,
             double *HWY_RESTRICT result, const size_t count) {
-  return HWY_DYNAMIC_DISPATCH(_div_f64)(a, b, result, count);
+  return PRISM_ARRAY_DISPATCH(_div_f64)(a, b, result, count);
 }
 
 void sqrtf64(const double *HWY_RESTRICT a, double *HWY_RESTRICT result,
              const size_t count) {
-  return HWY_DYNAMIC_DISPATCH(_sqrt_f64)(a, result, count);
+  return PRISM_ARRAY_DISPATCH(_sqrt_f64)(a, result, count);
 }
 
 void fmaf64(const double *HWY_RESTRICT a, const double *HWY_RESTRICT b,
             const double *HWY_RESTRICT c, double *HWY_RESTRICT result,
             const size_t count) {
-  return HWY_DYNAMIC_DISPATCH(_fma_f64)(a, b, c, result, count);
+  return PRISM_ARRAY_DISPATCH(_fma_f64)(a, b, c, result, count);
 }
+
+} // namespace variable
+
+} // namespace PRISM_PR_MODE_NAMESPACE::PRISM_DISPATCH
+
+#if PRISM_PR_MODE == PRISM_SR_MODE
+namespace prism::sr::array::PRISM_DISPATCH {
+
+void round(const float *sigma, const float *tau, float *result, size_t count) {
+  prism::sr::vector::PRISM_DISPATCH::variable::round(sigma, tau, result, count);
+}
+void round(const double *sigma, const double *tau, double *result, size_t count) {
+  prism::sr::vector::PRISM_DISPATCH::variable::round(sigma, tau, result, count);
+}
+
+void addf32(const float *a, const float *b, float *result, size_t count) {
+  prism::sr::vector::PRISM_DISPATCH::variable::addf32(a, b, result, count);
+}
+void subf32(const float *a, const float *b, float *result, size_t count) {
+  prism::sr::vector::PRISM_DISPATCH::variable::subf32(a, b, result, count);
+}
+void mulf32(const float *a, const float *b, float *result, size_t count) {
+  prism::sr::vector::PRISM_DISPATCH::variable::mulf32(a, b, result, count);
+}
+void divf32(const float *a, const float *b, float *result, size_t count) {
+  prism::sr::vector::PRISM_DISPATCH::variable::divf32(a, b, result, count);
+}
+void sqrtf32(const float *a, float *result, size_t count) {
+  prism::sr::vector::PRISM_DISPATCH::variable::sqrtf32(a, result, count);
+}
+void fmaf32(const float *a, const float *b, const float *c, float *result,
+            size_t count) {
+  prism::sr::vector::PRISM_DISPATCH::variable::fmaf32(a, b, c, result, count);
+}
+
+void addf64(const double *a, const double *b, double *result, size_t count) {
+  prism::sr::vector::PRISM_DISPATCH::variable::addf64(a, b, result, count);
+}
+void subf64(const double *a, const double *b, double *result, size_t count) {
+  prism::sr::vector::PRISM_DISPATCH::variable::subf64(a, b, result, count);
+}
+void mulf64(const double *a, const double *b, double *result, size_t count) {
+  prism::sr::vector::PRISM_DISPATCH::variable::mulf64(a, b, result, count);
+}
+void divf64(const double *a, const double *b, double *result, size_t count) {
+  prism::sr::vector::PRISM_DISPATCH::variable::divf64(a, b, result, count);
+}
+void sqrtf64(const double *a, double *result, size_t count) {
+  prism::sr::vector::PRISM_DISPATCH::variable::sqrtf64(a, result, count);
+}
+void fmaf64(const double *a, const double *b, const double *c, double *result,
+            size_t count) {
+  prism::sr::vector::PRISM_DISPATCH::variable::fmaf64(a, b, c, result, count);
+}
+
+} // namespace prism::sr::array::PRISM_DISPATCH
+#elif PRISM_PR_MODE == PRISM_UD_MODE
+namespace prism::ud::array::PRISM_DISPATCH {
+
+void round(const float *a, float *result, size_t count) {
+  prism::ud::vector::PRISM_DISPATCH::variable::round(a, result, count);
+}
+void round(const double *a, double *result, size_t count) {
+  prism::ud::vector::PRISM_DISPATCH::variable::round(a, result, count);
+}
+
+void addf32(const float *a, const float *b, float *result, size_t count) {
+  prism::ud::vector::PRISM_DISPATCH::variable::addf32(a, b, result, count);
+}
+void subf32(const float *a, const float *b, float *result, size_t count) {
+  prism::ud::vector::PRISM_DISPATCH::variable::subf32(a, b, result, count);
+}
+void mulf32(const float *a, const float *b, float *result, size_t count) {
+  prism::ud::vector::PRISM_DISPATCH::variable::mulf32(a, b, result, count);
+}
+void divf32(const float *a, const float *b, float *result, size_t count) {
+  prism::ud::vector::PRISM_DISPATCH::variable::divf32(a, b, result, count);
+}
+void sqrtf32(const float *a, float *result, size_t count) {
+  prism::ud::vector::PRISM_DISPATCH::variable::sqrtf32(a, result, count);
+}
+void fmaf32(const float *a, const float *b, const float *c, float *result,
+            size_t count) {
+  prism::ud::vector::PRISM_DISPATCH::variable::fmaf32(a, b, c, result, count);
+}
+
+void addf64(const double *a, const double *b, double *result, size_t count) {
+  prism::ud::vector::PRISM_DISPATCH::variable::addf64(a, b, result, count);
+}
+void subf64(const double *a, const double *b, double *result, size_t count) {
+  prism::ud::vector::PRISM_DISPATCH::variable::subf64(a, b, result, count);
+}
+void mulf64(const double *a, const double *b, double *result, size_t count) {
+  prism::ud::vector::PRISM_DISPATCH::variable::mulf64(a, b, result, count);
+}
+void divf64(const double *a, const double *b, double *result, size_t count) {
+  prism::ud::vector::PRISM_DISPATCH::variable::divf64(a, b, result, count);
+}
+void sqrtf64(const double *a, double *result, size_t count) {
+  prism::ud::vector::PRISM_DISPATCH::variable::sqrtf64(a, result, count);
+}
+void fmaf64(const double *a, const double *b, const double *c, double *result,
+            size_t count) {
+  prism::ud::vector::PRISM_DISPATCH::variable::fmaf64(a, b, c, result, count);
+}
+
+} // namespace prism::ud::array::PRISM_DISPATCH
+#endif
+
+namespace PRISM_PR_MODE_NAMESPACE::PRISM_DISPATCH {
+
+namespace variable {
 
 /* Single vector instructions with dynamic dispatch */
 
