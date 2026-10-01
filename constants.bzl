@@ -30,6 +30,10 @@ NATIVE_COPTS = [
 STATIC_COPTS = [
     "-DWARN_FMA_EMULATION",
     "-DHWY_COMPILE_ONLY_STATIC",
+    # Highway's SSE4, AVX2 and AVX3 targets also require AES and PCLMUL, which
+    # the x86-64-v2/v3/v4 levels do not include. PRISM does not use either, so
+    # without this, --with-arch=x86-64-v{2,3,4} silently falls back to SSSE3.
+    "-DHWY_DISABLE_PCLMUL_AES",
     "-DPRISM_DISPATCH=static_dispatch",
 ] + NATIVE_COPTS
 
