@@ -5,12 +5,14 @@ exports_files([
     "prism_api.cpp",
     "prism_api.h",
     "prism_array.h",
+    "prism_config.cpp",
     "debug.h",
     "debug_vector-inl.h",
     "eft.h",
     "generic_vector.h",
     "generic_vector-inl.h",
     "random-inl.h",
+    "seed.h",
     "sr_array.h",
     "sr_scalar.h",
     "sr_scalar_static.cpp",
@@ -76,6 +78,7 @@ filegroup(
         ],
         exclude = [
             "*static*",
+            "prism_config.cpp",
         ],
     ),
     visibility = ["//visibility:public"],
@@ -92,12 +95,28 @@ filegroup(
         ],
         exclude = [
             "*dynamic*",
+            "prism_config.cpp",
         ],
     ),
     visibility = ["//visibility:public"],
 )
 
 # Libraries
+
+# Process-wide state (configuration, seed, thread numbering). Every other PRISM
+# library depends on it, so that they all share a single copy of the state.
+
+cc_library(
+    name = "prism-config",
+    srcs = ["prism_config.cpp"],
+    hdrs = [
+        "debug.h",
+        "seed.h",
+        "utils.h",
+    ],
+    copts = COPTS,
+    visibility = ["//visibility:public"],
+)
 
 # Xoshiro random number generator
 
@@ -107,7 +126,10 @@ cc_library(
     hdrs = ["xoshiro.h"],
     copts = COPTS + DYNAMIC_COPTS + DEBUG_COPTS,
     visibility = ["//visibility:public"],
-    deps = ["@hwy"],
+    deps = [
+        ":prism-config",
+        "@hwy",
+    ],
 )
 
 # PRISM dynamic dispatch library
@@ -118,7 +140,10 @@ cc_library(
     hdrs = [":headers-prism"],
     copts = COPTS + DYNAMIC_COPTS,
     visibility = ["//visibility:public"],
-    deps = ["@hwy"],
+    deps = [
+        ":prism-config",
+        "@hwy",
+    ],
 )
 
 cc_library(
@@ -127,7 +152,10 @@ cc_library(
     hdrs = [":headers-prism"],
     copts = COPTS + DYNAMIC_COPTS + DEBUG_COPTS,
     visibility = ["//visibility:public"],
-    deps = ["@hwy"],
+    deps = [
+        ":prism-config",
+        "@hwy",
+    ],
 )
 
 # PRISM dynamic library using full bits for random numbers.
@@ -138,7 +166,10 @@ cc_library(
     hdrs = [":headers-prism"],
     copts = COPTS + DYNAMIC_COPTS + RANDOM_FULLBITS_COPTS,
     visibility = ["//visibility:public"],
-    deps = ["@hwy"],
+    deps = [
+        ":prism-config",
+        "@hwy",
+    ],
 )
 
 cc_library(
@@ -147,7 +178,10 @@ cc_library(
     hdrs = [":headers-prism"],
     copts = COPTS + DYNAMIC_COPTS + DEBUG_COPTS + RANDOM_FULLBITS_COPTS,
     visibility = ["//visibility:public"],
-    deps = ["@hwy"],
+    deps = [
+        ":prism-config",
+        "@hwy",
+    ],
 )
 
 cc_library(
@@ -156,7 +190,10 @@ cc_library(
     hdrs = [":headers-prism"],
     copts = COPTS + DYNAMIC_COPTS + RANDOM_PARTIALBITS_COPTS,
     visibility = ["//visibility:public"],
-    deps = ["@hwy"],
+    deps = [
+        ":prism-config",
+        "@hwy",
+    ],
 )
 
 cc_library(
@@ -165,7 +202,10 @@ cc_library(
     hdrs = [":headers-prism"],
     copts = COPTS + DYNAMIC_COPTS + DEBUG_COPTS + RANDOM_PARTIALBITS_COPTS,
     visibility = ["//visibility:public"],
-    deps = ["@hwy"],
+    deps = [
+        ":prism-config",
+        "@hwy",
+    ],
 )
 
 # PRISM static dispatch library
@@ -176,7 +216,10 @@ cc_library(
     hdrs = [":headers-prism"],
     copts = COPTS + STATIC_COPTS,
     visibility = ["//visibility:public"],
-    deps = ["@hwy"],
+    deps = [
+        ":prism-config",
+        "@hwy",
+    ],
 )
 
 cc_library(
@@ -185,7 +228,10 @@ cc_library(
     hdrs = [":headers-prism"],
     copts = COPTS + STATIC_COPTS + DEBUG_COPTS,
     visibility = ["//visibility:public"],
-    deps = ["@hwy"],
+    deps = [
+        ":prism-config",
+        "@hwy",
+    ],
 )
 
 # PRISM static library using full bits for random numbers.
@@ -196,7 +242,10 @@ cc_library(
     hdrs = [":headers-prism"],
     copts = COPTS + STATIC_COPTS + RANDOM_PARTIALBITS_COPTS,
     visibility = ["//visibility:public"],
-    deps = ["@hwy"],
+    deps = [
+        ":prism-config",
+        "@hwy",
+    ],
 )
 
 cc_library(
@@ -205,12 +254,16 @@ cc_library(
     hdrs = [":headers-prism"],
     copts = COPTS + STATIC_COPTS + DEBUG_COPTS + RANDOM_PARTIALBITS_COPTS,
     visibility = ["//visibility:public"],
-    deps = ["@hwy"],
+    deps = [
+        ":prism-config",
+        "@hwy",
+    ],
 )
 
 filegroup(
     name = "prism-all",
     srcs = [
+        ":prism-config",
         ":prism-dynamic",
         ":prism-dynamic-dbg",
         ":prism-static",

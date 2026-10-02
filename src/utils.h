@@ -9,6 +9,19 @@
 
 #include "debug.h"
 
+// Asserts that a variable has no dynamic initializer. On an extern
+// thread_local, it also lets the compiler access the variable directly instead
+// of through its TLS wrapper function.
+#if defined(__cpp_constinit)
+#define PRISM_CONSTINIT constinit
+#elif defined(__clang__)
+#define PRISM_CONSTINIT __attribute__((require_constant_initialization))
+#elif defined(__GNUC__)
+#define PRISM_CONSTINIT __constinit
+#else
+#define PRISM_CONSTINIT
+#endif
+
 #if defined(__x86_64__)
 using Float128 = __float128;
 #else
@@ -219,26 +232,37 @@ constexpr int32_t PRISM_RN = 1; // Round-to-Nearest (untied, ties away from zero
 // Without this, a setter is a silent no-op for any thread that has already
 // executed instrumented arithmetic: the thread copied the default on first use
 // and never looks at it again, while the getter keeps reporting the new value.
-inline std::atomic<int32_t> default_virtual_precision_f32{
-    utils::IEEE754<float>::precision};
-inline std::atomic<int32_t> default_virtual_precision_f64{
-    utils::IEEE754<double>::precision};
-inline std::atomic<int32_t> default_rounding_mode{PRISM_SR};
+//
+// All of this state is defined once, in libprism-config (prism_config.cpp),
+// and only declared here. libprism-static and libprism-dynamic both depend on
+// that library, so they share one configuration however they are loaded. Were
+// the variables defined in this header, each library would carry its own copy,
+// and a setter reached through one library would not configure kernels in the
+// other whenever the two do not share a symbol scope, e.g. when an instrumented
+// library is opened with dlopen(RTLD_LOCAL).
+extern std::atomic<int32_t> default_virtual_precision_f32;
+extern std::atomic<int32_t> default_virtual_precision_f64;
+extern std::atomic<int32_t> default_rounding_mode;
 
 // Bumped by every process-wide setter. Release/acquire pairing with the
 // defaults above: a thread that sees a new epoch also sees the values that
-// were published before it.
-inline std::atomic<uint32_t> config_epoch{0};
+// were published before it. It starts at 1 so that it never matches
+// kEpochNeverObserved.
+extern std::atomic<uint32_t> config_epoch;
 
-// Per-thread configuration. The initializers cover threads created before the
-// first setter runs; every later change arrives through the epoch.
-inline thread_local int32_t virtual_precision_f32 =
-    default_virtual_precision_f32.load(std::memory_order_relaxed);
-inline thread_local int32_t virtual_precision_f64 =
-    default_virtual_precision_f64.load(std::memory_order_relaxed);
-inline thread_local int32_t rounding_mode =
-    default_rounding_mode.load(std::memory_order_relaxed);
-inline thread_local uint32_t observed_epoch = 0;
+// Initial observed_epoch of every thread. It differs from config_epoch, so the
+// first refresh_thread_config() of a thread loads the defaults.
+constexpr uint32_t kEpochNeverObserved = 0;
+
+// Per-thread configuration. The variables are constant-initialized, and every
+// read goes through refresh_thread_config() first, so a new thread adopts the
+// defaults on first use. Constant initialization matters because the variables
+// live in another library: a dynamically initialized thread_local would cost a
+// call to its TLS wrapper on every access.
+extern PRISM_CONSTINIT thread_local int32_t virtual_precision_f32;
+extern PRISM_CONSTINIT thread_local int32_t virtual_precision_f64;
+extern PRISM_CONSTINIT thread_local int32_t rounding_mode;
+extern PRISM_CONSTINIT thread_local uint32_t observed_epoch;
 
 // Adopts the process-wide configuration if it changed since this thread last
 // looked. All three settings refresh together, so a kernel cannot mix a

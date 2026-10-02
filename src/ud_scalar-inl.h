@@ -4,6 +4,7 @@
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
+#include <cmath>
 #include <unistd.h>
 
 #if defined(PRISM_UD_SCALAR_INL_H_) == defined(HWY_TARGET_TOGGLE)

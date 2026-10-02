@@ -39,6 +39,7 @@ SRCS_ARRAY = [
 ]
 
 DEPS = [
+    "@//src:prism-config",
     "@hwy",
     "@hwy//:hwy_test_util",
     "@googletest//:gtest",
