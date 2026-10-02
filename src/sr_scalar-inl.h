@@ -73,7 +73,7 @@ auto isnumber(const T a, const T b,
 //
 // Proof of exact sign evaluation for D = (rho - pi) + tau available at:
 //
-//       https://github.com/user-attachments/files/29456845/vpsr.pdf
+//       https://arxiv.org/abs/2610.01889 (Theorem 1)
 //
 // ------------------------------------------------------------------------
 template <typename T>

@@ -503,7 +503,7 @@ HWY_INLINE auto truncate_mantissa(const D d, const V val,
 //
 // Proof of exact sign evaluation for D = (rho - pi) + tau available at:
 //
-//       https://github.com/user-attachments/files/29456845/vpsr.pdf
+//       https://arxiv.org/abs/2610.01889 (Theorem 1)
 //
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
 HWY_FLATTEN auto round(const D d, const V sigma, const V tau,
