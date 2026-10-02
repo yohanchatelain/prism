@@ -23,6 +23,7 @@ HWY_EXPORT(mulf32);
 HWY_EXPORT(divf32);
 HWY_EXPORT(sqrtf32);
 HWY_EXPORT(fmaf32);
+HWY_EXPORT(round_dwf32);
 
 HWY_EXPORT(addf64);
 HWY_EXPORT(subf64);
@@ -30,6 +31,7 @@ HWY_EXPORT(mulf64);
 HWY_EXPORT(divf64);
 HWY_EXPORT(sqrtf64);
 HWY_EXPORT(fmaf64);
+HWY_EXPORT(round_dwf64);
 }
 
 /* static dispatch */
@@ -39,6 +41,7 @@ float mulf32(float a, float b) { return HWY_STATIC_DISPATCH(mulf32)(a, b); }
 float divf32(float a, float b) { return HWY_STATIC_DISPATCH(divf32)(a, b); }
 float sqrtf32(float a) { return HWY_STATIC_DISPATCH(sqrtf32)(a); }
 float fmaf32(float a, float b, float c) { return HWY_STATIC_DISPATCH(fmaf32)(a, b, c); }
+float round_dwf32(float x, float e) { return HWY_STATIC_DISPATCH(round_dwf32)(x, e); }
 
 double addf64(double a, double b) { return HWY_STATIC_DISPATCH(addf64)(a, b); }
 double subf64(double a, double b) { return HWY_STATIC_DISPATCH(subf64)(a, b); }
@@ -46,6 +49,7 @@ double mulf64(double a, double b) { return HWY_STATIC_DISPATCH(mulf64)(a, b); }
 double divf64(double a, double b) { return HWY_STATIC_DISPATCH(divf64)(a, b); }
 double sqrtf64(double a) { return HWY_STATIC_DISPATCH(sqrtf64)(a); }
 double fmaf64(double a, double b, double c) { return HWY_STATIC_DISPATCH(fmaf64)(a, b, c); }
+double round_dwf64(double x, double e) { return HWY_STATIC_DISPATCH(round_dwf64)(x, e); }
 
 
 } // namespace prism::sr::scalar::static_dispatch

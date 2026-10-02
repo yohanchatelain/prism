@@ -14,6 +14,7 @@ auto mulf32(float a, float b) -> float;
 auto divf32(float a, float b) -> float;
 auto sqrtf32(float a) -> float;
 auto fmaf32(float a, float b, float c) -> float;
+auto round_dwf32(float x, float e) -> float;
 
 auto addf64(double a, double b) -> double;
 auto subf64(double a, double b) -> double;
@@ -21,6 +22,7 @@ auto mulf64(double a, double b) -> double;
 auto divf64(double a, double b) -> double;
 auto sqrtf64(double a) -> double;
 auto fmaf64(double a, double b, double c) -> double;
+auto round_dwf64(double x, double e) -> double;
 
 } // namespace dynamic_dispatch
 
@@ -33,6 +35,7 @@ auto mulf32(float a, float b) -> float;
 auto divf32(float a, float b) -> float;
 auto sqrtf32(float a) -> float;
 auto fmaf32(float a, float b, float c) -> float;
+auto round_dwf32(float x, float e) -> float;
 
 auto addf64(double a, double b) -> double;
 auto subf64(double a, double b) -> double;
@@ -40,6 +43,7 @@ auto mulf64(double a, double b) -> double;
 auto divf64(double a, double b) -> double;
 auto sqrtf64(double a) -> double;
 auto fmaf64(double a, double b, double c) -> double;
+auto round_dwf64(double x, double e) -> double;
 
 } // namespace static_dispatch
 

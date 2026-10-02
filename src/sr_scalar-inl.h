@@ -258,6 +258,22 @@ template <typename T> inline auto fma(const T a, const T b, const T c) -> T {
   return res;
 }
 
+// Rounds the double-word number (x, e): the unevaluated sum x + e with
+// x = RN(x + e), i.e. |e| <= ulp(x)/2. Such pairs come from error-free
+// transformations (TwoSum, TwoProd) or from splitting a higher-precision z as
+// x = RN(z), e = RN(z - x). They satisfy round()'s precondition as is.
+template <typename T> inline auto round_dw(const T x, const T e) -> T {
+  const auto config = prism::sr::get_config_snapshot<T>();
+  if (not std::isfinite(x) or not std::isfinite(e)) {
+    return x + e;
+  }
+  debug_start();
+  const T res = round(x, e, config);
+  debug_print("sr_round_dw(%+.13a, %+.13a) = %+.13a\n", x, e, res);
+  debug_end();
+  return res;
+}
+
 /* binary32 */
 inline auto addf32(float a, float b) -> float { return add(a, b); }
 inline auto subf32(float a, float b) -> float { return sub(a, b); }
@@ -265,6 +281,7 @@ inline auto mulf32(float a, float b) -> float { return mul(a, b); }
 inline auto divf32(float a, float b) -> float { return div(a, b); }
 inline auto sqrtf32(float a) -> float { return sqrt(a); }
 inline auto fmaf32(float a, float b, float c) -> float { return fma(a, b, c); }
+inline auto round_dwf32(float x, float e) -> float { return round_dw(x, e); }
 
 /* binary64 */
 inline auto addf64(double a, double b) -> double { return add(a, b); }
@@ -275,6 +292,7 @@ inline auto sqrtf64(double a) -> double { return sqrt(a); }
 inline auto fmaf64(double a, double b, double c) -> double {
   return fma(a, b, c);
 }
+inline auto round_dwf64(double x, double e) -> double { return round_dw(x, e); }
 
 } // namespace prism::sr::scalar::HWY_NAMESPACE
 

@@ -52,6 +52,15 @@ int32_t interflop_prism_get_rounding_mode(void);
 /* Per-thread override, in effect until the next process-wide set. */
 void interflop_prism_set_thread_rounding_mode(int32_t mode);
 
+/* Round the double-word number (x, e), i.e. the unevaluated sum x + e with
+ * x = RN(x + e) (|e| <= ulp(x)/2), as produced by error-free transformations
+ * or by splitting a higher-precision z as x = RN(z), e = RN(z - x). Rounds with
+ * the calling thread's rounding mode, virtual precision and random state:
+ * stochastic rounding in SR mode, round-to-nearest in RN mode. The result is
+ * undefined if the pair is not normalized. */
+float interflop_prism_round_dw_binary32(float x, float e);
+double interflop_prism_round_dw_binary64(double x, double e);
+
 /* =========================================================================
  * Array Interface (Contiguous memory buffers)
  * ========================================================================= */
