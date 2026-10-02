@@ -75,3 +75,10 @@ bazel test tests:all
 ## Current status
 
 The library has only been tested on X86-64 architectures for the moment.
+
+## Publications
+
+If you use PRISM, please cite the relevant papers (see also [`CITATION.cff`](CITATION.cff)):
+
+- I. González-Pepe, H. Akhaddar, T. Glatard, Y. Chatelain. *Fuzzy PyTorch: Rapid Numerical Variability Evaluation for Deep Learning Models*. Transactions on Machine Learning Research, 2026. [arXiv:2605.25991](https://arxiv.org/abs/2605.25991)
+- Y. Chatelain, P. de Oliveira Castro. *Stochastic Rounding in Low-Precision Transformer Inference: A Variable-Precision Emulation Study of a Small GPT-2*. 2026. [arXiv:2610.01889](https://arxiv.org/abs/2610.01889)

@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-message: "If you use PRISM, please cite the associated paper."
+message: "If you use PRISM, please cite the associated papers."
 title: "Probabilistic Rounding with Instruction Set Management"
 type: software
 authors:
@@ -26,3 +26,15 @@ preferred-citation:
   doi: "10.48550/arXiv.2605.25991"
   url: "https://arxiv.org/abs/2605.25991"
   notes: "arXiv:2605.25991"
+references:
+  - type: article
+    title: "Stochastic Rounding in Low-Precision Transformer Inference: A Variable-Precision Emulation Study of a Small GPT-2"
+    authors:
+      - family-names: "Chatelain"
+        given-names: "Yohan"
+      - family-names: "de Oliveira Castro"
+        given-names: "Pablo"
+    year: 2026
+    doi: "10.48550/arXiv.2610.01889"
+    url: "https://arxiv.org/abs/2610.01889"
+    notes: "arXiv:2610.01889"
