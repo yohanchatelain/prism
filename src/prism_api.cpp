@@ -11,6 +11,7 @@
  ****************************************************************************/
 
 #include "prism_api.h"
+#include "sr_scalar.h"
 #include "sr_vector.h"
 #include "ud_vector.h"
 #include "utils.h"
@@ -66,6 +67,14 @@ int32_t interflop_prism_get_rounding_mode(void) {
 
 void interflop_prism_set_thread_rounding_mode(int32_t mode) {
   prism::sr::set_rounding_mode(mode);
+}
+
+float interflop_prism_round_dw_binary32(float x, float e) {
+  return prism::sr::scalar::PRISM_DISPATCH::round_dwf32(x, e);
+}
+
+double interflop_prism_round_dw_binary64(double x, double e) {
+  return prism::sr::scalar::PRISM_DISPATCH::round_dwf64(x, e);
 }
 
 /* =========================================================================

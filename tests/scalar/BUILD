@@ -33,6 +33,17 @@ cc_test_gen_scalar(
     mode = "dynamic",
 )
 
+cc_test_gen_scalar(
+    name = "test_round_dw",
+    mode = "dynamic",
+)
+
+cc_test_gen_scalar(
+    name = "test_round_dw_static",
+    src = [":test_round_dw.cpp"],
+    mode = "static",
+)
+
 # Accuracy tests
 
 # Stochastic Rounding rounding mode
@@ -143,6 +154,8 @@ test_suite(
         ":test_twosum",
         ":test_rn_mode",
         ":test_config_epoch",
+        ":test_round_dw",
+        ":test_round_dw_static",
         ":ud-accuracy",
     ],
 )

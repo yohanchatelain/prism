@@ -23,6 +23,7 @@ HWY_EXPORT(mulf32);
 HWY_EXPORT(divf32);
 HWY_EXPORT(sqrtf32);
 HWY_EXPORT(fmaf32);
+HWY_EXPORT(round_dwf32);
 
 HWY_EXPORT(addf64);
 HWY_EXPORT(subf64);
@@ -30,6 +31,7 @@ HWY_EXPORT(mulf64);
 HWY_EXPORT(divf64);
 HWY_EXPORT(sqrtf64);
 HWY_EXPORT(fmaf64);
+HWY_EXPORT(round_dwf64);
 } // namespace
 
 /* dynamic dispatch */
@@ -49,6 +51,9 @@ auto sqrtf32(float a) -> float { return HWY_DYNAMIC_DISPATCH(sqrtf32)(a); }
 auto fmaf32(float a, float b, float c) -> float {
   return HWY_DYNAMIC_DISPATCH(fmaf32)(a, b, c);
 }
+auto round_dwf32(float x, float e) -> float {
+  return HWY_DYNAMIC_DISPATCH(round_dwf32)(x, e);
+}
 
 auto addf64(double a, double b) -> double {
   return HWY_DYNAMIC_DISPATCH(addf64)(a, b);
@@ -65,6 +70,9 @@ auto divf64(double a, double b) -> double {
 auto sqrtf64(double a) -> double { return HWY_DYNAMIC_DISPATCH(sqrtf64)(a); }
 auto fmaf64(double a, double b, double c) -> double {
   return HWY_DYNAMIC_DISPATCH(fmaf64)(a, b, c);
+}
+auto round_dwf64(double x, double e) -> double {
+  return HWY_DYNAMIC_DISPATCH(round_dwf64)(x, e);
 }
 
 } // namespace prism::sr::scalar::dynamic_dispatch
