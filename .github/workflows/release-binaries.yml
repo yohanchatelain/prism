@@ -77,7 +77,10 @@ jobs:
           cp -a "$stage_root/usr/include" "$package_root/include"
           cp -a "$stage_root/usr/lib" "$package_root/lib"
 
+          # A static link needs libprism-config.a next to libprism-*.a: it
+          # holds the state the kernels share.
           static_libraries=(
+            bazel-bin/src/libprism-config.a
             bazel-bin/src/libprism-dynamic.a
             bazel-bin/src/libprism-dynamic-dbg.a
             bazel-bin/src/libprism-static.a
@@ -87,10 +90,6 @@ jobs:
           for library in "${static_libraries[@]}"; do
             test -f "$library"
             install -m 0644 "$library" "$package_root/lib"
-          done
-
-          for library in "$package_root"/lib/libprism-*.so; do
-            patchelf --add-needed libhwy.so "$library"
           done
 
           documentation_root="$package_root/share/doc/prism"
@@ -107,14 +106,18 @@ jobs:
 
           test -f "$package_root/lib/libprism-dynamic.so"
           test -f "$package_root/lib/libprism-static.so"
+          test -f "$package_root/lib/libprism-config.so"
           test -f "$package_root/include/prism_api.h"
           test -f "$package_root/include/prism-dynamic.ll"
           test -f "$package_root/include/prism-static.ll"
           test -f "$documentation_root/BUILD-INFO.txt"
 
+          # Each library must load on its own, finding its dependencies
+          # through its $ORIGIN runpath (verificarlo/prism#23, #24).
           for library in "$package_root"/lib/libprism-*.so; do
-            LD_LIBRARY_PATH="$package_root/lib" \
-              python3 -c 'import ctypes, sys; ctypes.CDLL(sys.argv[1])' "$library"
+            python3 -c 'import ctypes, sys; ctypes.CDLL(sys.argv[1])' "$library"
+            readelf -d "$library" | grep -q 'NEEDED.*libhwy.so' \
+              || [ "$(basename "$library")" = libprism-config.so ]
           done
 
           mkdir -p dist

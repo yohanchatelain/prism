@@ -1,47 +1,7 @@
 #ifndef __PRISM_XOSHIRO_H__
 #define __PRISM_XOSHIRO_H__
 
-#include <atomic>
-#include <random>
-
-inline auto get_thread_id() -> uint64_t {
-  static std::atomic<uint64_t> thread_counter{0};
-  thread_local uint64_t tid =
-      thread_counter.fetch_add(1, std::memory_order_relaxed);
-  return tid;
-}
-
-// inline with external linkage: static locals are shared across all TUs.
-inline auto seed_state(bool set = false, uint64_t new_seed = 0) -> uint64_t {
-  static bool initialized = false;
-  static uint64_t seed = 0;
-  if (set) {
-    seed = new_seed;
-    initialized = true;
-  } else if (not initialized) {
-    const char *seed_str = getenv("PRISM_SEED");
-    if (seed_str != nullptr) {
-      char *endptr = nullptr;
-      seed = strtoll(seed_str, &endptr, 10);
-      if (*endptr != '\0') {
-        seed = 0;
-      }
-    } else {
-      std::random_device rd;
-      seed = rd();
-    }
-    initialized = true;
-  }
-  return seed;
-}
-
-__attribute__((unused)) inline auto get_user_seed() -> uint64_t {
-  return seed_state();
-}
-
-__attribute__((unused)) inline auto set_user_seed(uint64_t seed) -> void {
-  seed_state(true, seed);
-}
+#include "src/seed.h"
 
 #endif // __PRISM_XOSHIRO_H__
 

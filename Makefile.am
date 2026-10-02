@@ -6,8 +6,11 @@ all: highway prism
 highway:
 	$(BAZEL) build @hwy
 
+# The installed shared libraries come from //lib, which links each one against
+# the libraries it needs (libprism-config.so, libhwy.so). The .so files Bazel
+# builds in bazel-bin/src record no such dependencies.
 prism:
-	$(BAZEL) build src:prism-all
+	$(BAZEL) build src:prism-all lib:shared-libraries
 
 bazel-bin/prism-dynamic.ll:
 	$(BAZEL) build :prism_ir
@@ -27,20 +30,22 @@ include_HEADERS= \
 	src/prism.h
 
 EXTRA_DIST = \
-	bazel-bin/external/+_repo_rules+hwy/libhwy.so \
-	bazel-bin/src/libprism-dynamic.so \
-	bazel-bin/src/libprism-static.so \
-	bazel-bin/src/libprism-dynamic-dbg.so \
-	bazel-bin/src/libprism-static-dbg.so
+	bazel-bin/lib/libhwy.so \
+	bazel-bin/lib/libprism-config.so \
+	bazel-bin/lib/libprism-dynamic.so \
+	bazel-bin/lib/libprism-static.so \
+	bazel-bin/lib/libprism-dynamic-dbg.so \
+	bazel-bin/lib/libprism-static-dbg.so
 
 install-exec-hook:
 	@echo "Installing prism library"
 	$(MKDIR_P) $(DESTDIR)$(libdir)
-	install -m 0755 bazel-bin/external/+_repo_rules+hwy/libhwy.so $(DESTDIR)$(libdir)
-	install -m 0755 bazel-bin/src/libprism-dynamic-dbg.so $(DESTDIR)$(libdir)
-	install -m 0755 bazel-bin/src/libprism-dynamic.so $(DESTDIR)$(libdir)
-	install -m 0755 bazel-bin/src/libprism-static-dbg.so $(DESTDIR)$(libdir)
-	install -m 0755 bazel-bin/src/libprism-static.so $(DESTDIR)$(libdir)
+	install -m 0755 bazel-bin/lib/libhwy.so $(DESTDIR)$(libdir)
+	install -m 0755 bazel-bin/lib/libprism-config.so $(DESTDIR)$(libdir)
+	install -m 0755 bazel-bin/lib/libprism-dynamic-dbg.so $(DESTDIR)$(libdir)
+	install -m 0755 bazel-bin/lib/libprism-dynamic.so $(DESTDIR)$(libdir)
+	install -m 0755 bazel-bin/lib/libprism-static-dbg.so $(DESTDIR)$(libdir)
+	install -m 0755 bazel-bin/lib/libprism-static.so $(DESTDIR)$(libdir)
 
 clean:
 	$(BAZEL) clean
