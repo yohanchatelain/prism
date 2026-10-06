@@ -1,0 +1,103 @@
+name: arm
+
+# Experimental Arm (aarch64) support. NEON is the default on aarch64; SVE is
+# opt-in (--enable-experimental-sve) and its jobs may fail without failing the
+# workflow. GitHub's arm64 runners have 128-bit SVE vectors, so wider vectors
+# are covered by running the tests under QEMU.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["*"]
+
+env:
+  # Highway generates SVE code only with clang >= 22.
+  SVE_LLVM: 22
+
+jobs:
+  neon:
+    name: neon (llvm ${{ matrix.llvm }})
+    runs-on: ubuntu-24.04-arm
+    strategy:
+      fail-fast: false
+      matrix:
+        llvm: [18, 20]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        uses: ./.github/actions/arm-setup
+        with:
+          llvm: ${{ matrix.llvm }}
+      - name: Configure
+        run: |
+          ./autogen.sh
+          LLVM_PATH=/usr/lib/llvm-${{ matrix.llvm }} ./configure || { cat config.log; exit 1; }
+      - name: Report targets
+        run: make target-info
+      - name: Run tests
+        run: bazel test --test_output=errors tests:all
+
+  sve:
+    name: sve (llvm 22, experimental)
+    runs-on: ubuntu-24.04-arm
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        uses: ./.github/actions/arm-setup
+        with:
+          llvm: ${{ env.SVE_LLVM }}
+      - name: Configure
+        run: |
+          ./autogen.sh
+          LLVM_PATH=/usr/lib/llvm-$SVE_LLVM ./configure \
+            --enable-experimental-sve --with-arch=armv9-a+sve2 \
+            || { cat config.log; exit 1; }
+      - name: Report targets
+        run: make target-info
+      - name: Run tests
+        # More Highway targets (SVE, SVE2, SVE2_128, SVE_256) make the
+        # accuracy tests slower than on x86.
+        run: bazel test --test_output=errors --test_timeout=60,900,1800,3600 tests:all
+
+  sve-qemu:
+    name: sve ${{ matrix.vector_bits }}-bit (qemu, experimental)
+    runs-on: ubuntu-24.04-arm
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        vector_bits: [256, 512]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        uses: ./.github/actions/arm-setup
+        with:
+          llvm: ${{ env.SVE_LLVM }}
+          qemu: true
+      - name: Configure
+        run: |
+          ./autogen.sh
+          LLVM_PATH=/usr/lib/llvm-$SVE_LLVM ./configure \
+            --enable-experimental-sve --with-arch=armv9-a+sve2 \
+            || { cat config.log; exit 1; }
+      - name: Report targets
+        run: |
+          bazel build src:prism-target-info
+          qemu-aarch64-static -cpu max,sve-default-vector-length=$(( ${{ matrix.vector_bits }} / 8 )) \
+            bazel-bin/src/prism-target-info
+      - name: Run tests under QEMU
+        # The statistical accuracy tests are too slow to emulate.
+        run: |
+          bazel test --test_output=errors --test_timeout=600,1800,3600,3600 \
+            "--run_under=qemu-aarch64-static -cpu max,sve-default-vector-length=$(( ${{ matrix.vector_bits }} / 8 ))" \
+            //tests/array:all \
+            //tests/vector:test_dekkerprod //tests/vector:test_fma \
+            //tests/vector:test_get_exponent //tests/vector:test_get_pow2 \
+            //tests/vector:test_rn_mode //tests/vector:test_split \
+            //tests/vector:test_splitbit //tests/vector:test_twosum \
+            //tests/vector:seed-api //tests/vector:thread \
+            //tests/vector:thread-static //tests/vector:xoshiro \
+            //tests/vector:xoshiro-api
