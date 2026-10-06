@@ -1,4 +1,5 @@
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
 load("//:constants.bzl", "COPTS", "DEBUG_COPTS", "DYNAMIC_COPTS", "RANDOM_FULLBITS_COPTS", "RANDOM_PARTIALBITS_COPTS", "STATIC_COPTS")
 
 exports_files([
@@ -79,6 +80,7 @@ filegroup(
         exclude = [
             "*static*",
             "prism_config.cpp",
+            "target_info*",
         ],
     ),
     visibility = ["//visibility:public"],
@@ -96,6 +98,7 @@ filegroup(
         exclude = [
             "*dynamic*",
             "prism_config.cpp",
+            "target_info*",
         ],
     ),
     visibility = ["//visibility:public"],
@@ -268,5 +271,34 @@ filegroup(
         ":prism-dynamic-dbg",
         ":prism-static",
         ":prism-static-dbg",
+    ],
+)
+
+# Reports the Highway targets of the static and dynamic libraries
+# (`make target-info`): useful where -march=native may not mean what it says.
+
+cc_library(
+    name = "target-info-static",
+    srcs = ["target_info_static.cpp"],
+    hdrs = ["target_info.h"],
+    copts = COPTS + STATIC_COPTS,
+    deps = ["@hwy"],
+)
+
+cc_library(
+    name = "target-info-dynamic",
+    srcs = ["target_info_dynamic.cpp"],
+    hdrs = ["target_info.h"],
+    copts = COPTS + DYNAMIC_COPTS,
+    deps = ["@hwy"],
+)
+
+cc_binary(
+    name = "prism-target-info",
+    srcs = ["target_info_main.cpp"],
+    copts = COPTS,
+    deps = [
+        ":target-info-dynamic",
+        ":target-info-static",
     ],
 )

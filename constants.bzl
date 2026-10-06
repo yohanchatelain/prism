@@ -1,7 +1,7 @@
 """
 """
 
-load("//:config.bzl", "MARCH_FLAG")
+load("//:config.bzl", "EXPERIMENTAL_SVE", "MARCH_FLAG")
 
 # Compiler options
 
@@ -15,13 +15,20 @@ RANDOM_PARTIALBITS_COPTS = [
     "-UPRISM_RANDOM_FULLBITS",
 ]
 
+# Arm SVE targets are experimental and opt-in (./configure
+# --enable-experimental-sve). When disabled, aarch64 builds use NEON only. This
+# is a no-op on other architectures.
+TARGET_COPTS = [] if EXPERIMENTAL_SVE else [
+    "-DHWY_DISABLED_TARGETS=HWY_ALL_SVE",
+]
+
 COPTS = [
     "-std=c++17",
     "-Wfatal-errors",
     "-O2",
     "-Wall",
     "-Wno-psabi",
-] + RANDOM_PARTIALBITS_COPTS
+] + RANDOM_PARTIALBITS_COPTS + TARGET_COPTS
 
 NATIVE_COPTS = [
     MARCH_FLAG,

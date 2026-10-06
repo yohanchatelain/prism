@@ -33,11 +33,13 @@ AC_PROG_LN_S
 AC_PROG_MAKE_SET
 
 dnl Bridge LLVM_PATH → with_llvm so AX_LLVM finds llvm-config from the same
-dnl installation used for CC/CXX above. Only applied when --with-llvm is absent.
-if test "x$with_llvm" = "xyes" && test -n "$LLVM_PATH"; then
+dnl installation used for CC/CXX above. Only applied when --with-llvm is absent
+dnl (AC_ARG_WITH in AX_LLVM treats a preset with_llvm as given).
+if test -z "${with_llvm+set}" && test -n "$LLVM_PATH"; then
   with_llvm="$LLVM_PATH"
 fi
-AX_LLVM([4.0],[20.1.8],[all])
+dnl LLVM 21+ is only exercised by the aarch64 SVE CI job so far.
+AX_LLVM([4.0],[23.99.99],[all])
 
 AC_SUBST(LLVM_CPPFLAGS, $LLVM_CPPFLAGS)
 AC_SUBST(LLVM_LDFLAGS, $LLVM_LDFLAGS)
@@ -120,6 +122,70 @@ else
 fi
 AC_DEFINE_UNQUOTED([MARCH_FLAG], ["$MARCH_FLAG"], [Target architecture flag])
 AC_SUBST([MARCH_FLAG])
+
+dnl Experimental Arm support: NEON by default, SVE on request.
+AC_ARG_ENABLE(
+  [experimental-sve],
+  [AS_HELP_STRING([--enable-experimental-sve], [also build Arm SVE targets (experimental; default: NEON only)])],
+  [],
+  [enable_experimental_sve=no]
+)
+AS_CASE(
+  ["$enable_experimental_sve"],
+  [yes], [PRISM_EXPERIMENTAL_SVE=True],
+  [no], [PRISM_EXPERIMENTAL_SVE=False],
+  [AC_MSG_ERROR([--enable-experimental-sve takes no value])]
+)
+AC_SUBST([PRISM_EXPERIMENTAL_SVE])
+
+AC_MSG_CHECKING([whether the target is aarch64])
+AS_CASE(
+  [`$CLANG -dumpmachine 2>/dev/null`],
+  [aarch64*|arm64*], [prism_aarch64=yes],
+  [prism_aarch64=no]
+)
+AC_MSG_RESULT([$prism_aarch64])
+
+if test "x$prism_aarch64" = "xyes"; then
+  AC_MSG_WARN([Arm (aarch64) support is experimental])
+
+  dnl -march=native silently falls back to a generic armv8 CPU when clang does
+  dnl not know the host CPU, which leaves the static library at baseline NEON.
+  dnl Compare predefined macros: target-cpu alone is not enough, since some
+  dnl clang versions report "generic" but still enable the detected features.
+  if test "x$PRISM_ARCH" = "xnative"; then
+    prism_native_macros=`$CLANG -march=native -dM -E -x c /dev/null 2>/dev/null | sort`
+    prism_armv8_macros=`$CLANG -march=armv8-a -dM -E -x c /dev/null 2>/dev/null | sort`
+    if test "x$prism_native_macros" = "x$prism_armv8_macros"; then
+      AC_MSG_WARN([$CLANG does not recognize this CPU: -march=native targets a generic armv8 CPU. Pass --with-arch (e.g. armv8.2-a+fp16+dotprod, armv9-a+sve2) to target its features.])
+    fi
+  fi
+
+  AC_MSG_CHECKING([whether $MARCH_FLAG enables SVE])
+  if $CLANG $MARCH_FLAG -dM -E -x c /dev/null 2>/dev/null |
+       grep -q '__ARM_FEATURE_SVE '; then
+    prism_march_sve=yes
+  else
+    prism_march_sve=no
+  fi
+  AC_MSG_RESULT([$prism_march_sve])
+  if test "x$prism_march_sve" = "xyes" && test "x$enable_experimental_sve" != "xyes"; then
+    AC_MSG_WARN([$MARCH_FLAG enables SVE, but SVE targets are disabled: the static library uses NEON. Use --enable-experimental-sve to build SVE targets.])
+  fi
+
+  dnl Highway only generates SVE code with clang >= 21 (SVE2_128) or >= 22
+  dnl (SVE, SVE2, SVE_256); see HWY_BROKEN_SVE* in hwy/detect_targets.h.
+  if test "x$enable_experimental_sve" = "xyes"; then
+    prism_clang_major=`$CLANG -dumpversion 2>/dev/null | cut -d. -f1`
+    if test -n "$prism_clang_major" && test "$prism_clang_major" -lt 21; then
+      AC_MSG_WARN([clang $prism_clang_major is too old for Highway SVE targets (clang >= 22 required, >= 21 for SVE2_128): no SVE code will be generated])
+    elif test -n "$prism_clang_major" && test "$prism_clang_major" -lt 22; then
+      AC_MSG_WARN([clang $prism_clang_major only supports the SVE2_128 Highway target (clang >= 22 for SVE, SVE2 and SVE_256)])
+    fi
+  fi
+elif test "x$enable_experimental_sve" = "xyes"; then
+  AC_MSG_WARN([--enable-experimental-sve has no effect on non-aarch64 targets])
+fi
 
 # Generate config files
 AC_CONFIG_FILES([Makefile])
