@@ -26,6 +26,10 @@ namespace prism::tests::helper::generic::HWY_NAMESPACE {
 
 namespace hn = hwy::HWY_NAMESPACE;
 
+// Test drivers pass scalar inputs to `check` as a std::tuple<T...>; each check
+// broadcasts them with hn::Set. Vectors are not put in tuples because sizeless
+// vector types (SVE, RVV) cannot be class members.
+
 template <typename TestFunc, class D, class V = hn::VFromD<D>,
           typename T = hn::TFromD<D>>
 void TestExactAdd(TestFunc &&check, const D d, const ConfigTest &config) {
@@ -34,9 +38,9 @@ void TestExactAdd(TestFunc &&check, const D d, const ConfigTest &config) {
   constexpr auto repetitions = 5;
 
   for (auto i = 0; i <= repetitions; i++) {
-    auto va = hn::Set(d, 1.25);
-    auto vb = hn::Set(d, std::ldexp(1.0, -(mantissa + i)));
-    check(d, config, std::forward_as_tuple(va, vb));
+    const auto a = static_cast<T>(1.25);
+    const auto b = static_cast<T>(std::ldexp(1.0, -(mantissa + i)));
+    check(d, config, std::make_tuple(a, b));
   }
 }
 
@@ -48,25 +52,19 @@ void TestSimpleCase(TestFunc &&check, D d, ConfigTest config = {}) {
 
   if constexpr (arity == 1) {
     for (auto a : simple_case) {
-      auto va = hn::Set(d, a);
-      check(d, config, std::forward_as_tuple(va));
+      check(d, config, std::make_tuple(a));
     }
   } else if constexpr (arity == 2) {
     for (auto a : simple_case) {
       for (auto b : simple_case) {
-        auto va = hn::Set(d, a);
-        auto vb = hn::Set(d, b);
-        check(d, config, std::forward_as_tuple(va, vb));
+        check(d, config, std::make_tuple(a, b));
       }
     }
   } else if constexpr (arity == 3) {
     for (auto a : simple_case) {
       for (auto b : simple_case) {
         for (auto c : simple_case) {
-          auto va = hn::Set(d, a);
-          auto vb = hn::Set(d, b);
-          auto vc = hn::Set(d, c);
-          check(d, config, std::forward_as_tuple(va, vb, vc));
+          check(d, config, std::make_tuple(a, b, c));
         }
       }
     }
@@ -85,9 +83,8 @@ void TestRandom(TestFunc &&check, D d, const ConfigTest &config,
     RNG rng1(range_1st.start, range_1st.end);
     for (int i = 0; i < repetitions; i++) {
       T a = rng1();
-      auto va = hn::Set(d, a);
-      check(d, config, std::forward_as_tuple(va));
-      check(d, config, std::forward_as_tuple(hn::Neg(va)));
+      check(d, config, std::make_tuple(a));
+      check(d, config, std::make_tuple(-a));
     }
   } else if constexpr (arity == 2) {
     auto [range_1st, range_2nd] = ranges;
@@ -96,10 +93,8 @@ void TestRandom(TestFunc &&check, D d, const ConfigTest &config,
     for (int i = 0; i < repetitions; i++) {
       T a = rng1();
       T b = rng2();
-      auto va = hn::Set(d, a);
-      auto vb = hn::Set(d, b);
-      check(d, config, std::forward_as_tuple(va, vb));
-      check(d, config, std::forward_as_tuple(va, hn::Neg(vb)));
+      check(d, config, std::make_tuple(a, b));
+      check(d, config, std::make_tuple(a, -b));
     }
   } else if constexpr (arity == 3) {
     auto [range_1st, range_2nd, range_3rd] = ranges;
@@ -110,12 +105,9 @@ void TestRandom(TestFunc &&check, D d, const ConfigTest &config,
       T a = rng1();
       T b = rng2();
       T c = rng3();
-      auto va = hn::Set(d, a);
-      auto vb = hn::Set(d, b);
-      auto vc = hn::Set(d, c);
-      check(d, config, std::forward_as_tuple(va, vb, vc));
-      check(d, config, std::forward_as_tuple(va, hn::Neg(vb), vc));
-      check(d, config, std::forward_as_tuple(va, vb, hn::Neg(vc)));
+      check(d, config, std::make_tuple(a, b, c));
+      check(d, config, std::make_tuple(a, -b, c));
+      check(d, config, std::make_tuple(a, b, -c));
     }
   }
 }
@@ -186,14 +178,12 @@ void TestSubnormal(TestFunc &&check, D d, ConfigTest config = {}) {
 
   if constexpr (arity == 1) {
     for (auto a : subnormals) {
-      check(d, config, std::forward_as_tuple(hn::Set(d, a)));
+      check(d, config, std::make_tuple(a));
     }
   } else if constexpr (arity == 2) {
     for (size_t i = 0; i < n; ++i) {
       for (size_t j = i; j < n; ++j) {
-        check(d, config,
-              std::forward_as_tuple(hn::Set(d, subnormals[i]),
-                                    hn::Set(d, subnormals[j])));
+        check(d, config, std::make_tuple(subnormals[i], subnormals[j]));
       }
     }
   } else if constexpr (arity == 3) {
@@ -201,9 +191,7 @@ void TestSubnormal(TestFunc &&check, D d, ConfigTest config = {}) {
       for (size_t j = i; j < n; ++j) {
         for (size_t k = j; k < n; ++k) {
           check(d, config,
-                std::forward_as_tuple(hn::Set(d, subnormals[i]),
-                                      hn::Set(d, subnormals[j]),
-                                      hn::Set(d, subnormals[k])));
+                std::make_tuple(subnormals[i], subnormals[j], subnormals[k]));
         }
       }
     }
@@ -243,7 +231,7 @@ template <class M, class Op, class D, class V = hn::VFromD<D>,
           typename T = hn::TFromD<D>>
 void TestExactAdd(D d, const ConfigTest &config) {
 
-  using args_t = typename TupleN<Op::arity, V>::type;
+  using args_t = typename TupleN<Op::arity, T>::type;
   generic::TestExactAdd(
       helper::CheckDistributionResultsWrapper<args_t, M, Op, D>, d, config);
 }
@@ -251,7 +239,7 @@ void TestExactAdd(D d, const ConfigTest &config) {
 template <class M, class Op, class D, class V = hn::VFromD<D>,
           typename T = hn::TFromD<D>>
 void TestSimpleCase(D d, const ConfigTest &config) {
-  using args_t = typename TupleN<Op::arity, V>::type;
+  using args_t = typename TupleN<Op::arity, T>::type;
   generic::TestSimpleCase<Op::arity>(
       helper::CheckDistributionResultsWrapper<args_t, M, Op, D>, d, config);
 }
@@ -263,7 +251,7 @@ void TestRandom01(D d, const ConfigTest &config) {
   std::array<Range, Op::arity> ranges;
   ranges.fill(range);
 
-  using args_t = typename TupleN<Op::arity, V>::type;
+  using args_t = typename TupleN<Op::arity, T>::type;
   generic::TestRandom<Op::arity>(
       helper::CheckDistributionResultsWrapper<args_t, M, Op, D>, d, config,
       ranges);
@@ -284,7 +272,7 @@ void TestRandomNoOverlap(D d, const ConfigTest &config) {
   const auto ranges_tpl =
       take_n_first<Op::arity>(range_1st, range_2nd, range_3rd);
   const std::array<Range, Op::arity> ranges = tuple_to_array(ranges_tpl);
-  using args_t = typename TupleN<Op::arity, V>::type;
+  using args_t = typename TupleN<Op::arity, T>::type;
   generic::TestRandom<Op::arity>(
       helper::CheckDistributionResultsWrapper<args_t, M, Op, D>, d, config,
       ranges);
@@ -304,7 +292,7 @@ void TestRandomLastBitOverlap(D d, const ConfigTest &config) {
   const auto ranges_tpl =
       take_n_first<Op::arity>(range_1st, range_2nd, range_3rd);
   const std::array<Range, Op::arity> ranges = tuple_to_array(ranges_tpl);
-  using args_t = typename TupleN<Op::arity, V>::type;
+  using args_t = typename TupleN<Op::arity, T>::type;
   generic::TestRandom<Op::arity>(
       helper::CheckDistributionResultsWrapper<args_t, M, Op, D>, d, config,
       ranges);
@@ -324,7 +312,7 @@ void TestRandomMidOverlap(D d, const ConfigTest &config) {
   const auto ranges_tpl =
       take_n_first<Op::arity>(range_1st, range_2nd, range_3rd);
   const std::array<Range, Op::arity> ranges = tuple_to_array(ranges_tpl);
-  using args_t = typename TupleN<Op::arity, V>::type;
+  using args_t = typename TupleN<Op::arity, T>::type;
   generic::TestRandom<Op::arity>(
       helper::CheckDistributionResultsWrapper<args_t, M, Op, D>, d, config,
       ranges);
@@ -333,7 +321,7 @@ void TestRandomMidOverlap(D d, const ConfigTest &config) {
 template <class M, class Op, class D, class V = hn::VFromD<D>,
           typename T = hn::TFromD<D>>
 void TestSubnormal(D d, const ConfigTest &config) {
-  using args_t = typename TupleN<Op::arity, V>::type;
+  using args_t = typename TupleN<Op::arity, T>::type;
   generic::TestSubnormal<Op::arity>(
       helper::CheckDistributionResultsWrapper<args_t, M, Op, D>, d, config);
 }

@@ -59,13 +59,13 @@ namespace sr = prism::sr::vector::PRISM_DISPATCH::HWY_NAMESPACE;
 
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
 void test_equality(D d, const helper::ConfigTest & /*unused*/,
-                   std::tuple<V> &&arg) {
+                   std::tuple<T> &&arg) {
 
   using DI = hn::RebindToSigned<D>;
   const DI di{};
 
-  const auto [va] = arg;
-  const auto a = helper_simd::extract_unique_lane(d, va);
+  const auto [a] = arg;
+  const auto va = hn::Set(d, a);
   const auto reference = reference::get_exponent(a);
   const auto target = sr::get_exponent(d, va);
   const auto target_scalar = helper_simd::extract_unique_lane(di, target);
