@@ -551,8 +551,14 @@ HWY_FLATTEN auto round(const D d, const V sigma, const V tau,
 
   const auto pred_trunc = get_predecessor_abs(d, trunc);
 
-  // Cache exponent calculations to avoid redundant computation
   using VI = hn::VFromD<DI>;
+#if HWY_HAVE_SCALABLE || HWY_TARGET_IS_SVE
+  // Sizeless vector types (SVE, including the fixed-width SVE2_128/SVE_256
+  // targets, and RVV) cannot have thread-local storage: no exponent cache.
+  const VI trunc_exp = get_exponent(d, trunc);
+  const VI pred_trunc_exp = get_exponent(d, pred_trunc);
+#else
+  // Cache exponent calculations to avoid redundant computation
   thread_local static V last_trunc = hn::Zero(d);
   thread_local static VI last_trunc_exp = hn::Zero(di);
   thread_local static V last_pred_trunc = hn::Zero(d);
@@ -577,6 +583,7 @@ HWY_FLATTEN auto round(const D d, const V sigma, const V tau,
     last_pred_trunc = pred_trunc;
     last_pred_trunc_exp = pred_trunc_exp;
   }
+#endif
   const auto eta = hn::IfThenElse(sign_diff_int, pred_trunc_exp, trunc_exp);
   dbg::debug_vec(di, "[sr_round] η", eta, false);
 
