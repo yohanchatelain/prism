@@ -37,12 +37,12 @@ namespace {
 namespace sr = prism::sr::vector::PRISM_DISPATCH::HWY_NAMESPACE;
 
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
-void is_close(D d, const helper::ConfigTest & /*unused*/, std::tuple<V> &&arg) {
+void is_close(D d, const helper::ConfigTest & /*unused*/, std::tuple<T> &&arg) {
 
   using H = typename helper::IEEE754<T>::H;
 
-  const auto [va] = arg;
-  const auto a = helper_simd::extract_unique_lane(d, va);
+  const auto [a] = arg;
+  const auto va = hn::Set(d, a);
   auto vx_hi = hn::Undefined(d);
   auto vx_lo = hn::Undefined(d);
 

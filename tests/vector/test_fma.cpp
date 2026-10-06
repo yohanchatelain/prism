@@ -127,11 +127,8 @@ void is_close(D d, T a, T b, T c) {
 
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>>
 void do_test(D d, const helper::ConfigTest & /*unused*/,
-             std::tuple<V, V, V> &&args) {
-  const auto [va, vb, vc] = args;
-  const auto a = helper_simd::extract_unique_lane(d, va);
-  const auto b = helper_simd::extract_unique_lane(d, vb);
-  const auto c = helper_simd::extract_unique_lane(d, vc);
+             std::tuple<T, T, T> &&args) {
+  const auto [a, b, c] = args;
   is_close(d, a, b, c);
 }
 
