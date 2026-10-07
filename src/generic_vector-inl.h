@@ -446,18 +446,19 @@ HWY_FLATTEN void _fmaxN(const T *HWY_RESTRICT a, const T *HWY_RESTRICT b,
     _##op##xN<type, size>(a, b, c, r);                                         \
   }
 
+// Every width is defined on every target: _<op>xN loops when N exceeds the
+// target's lanes, and HWY_EXPORT requires the function in all compiled
+// targets, whatever the width of the static target.
+
 /* 32-bits */
-#if HWY_MAX_BYTES >= 4
 define_fp_xN_bin_op(float, f32, 1, add);
 define_fp_xN_bin_op(float, f32, 1, sub);
 define_fp_xN_bin_op(float, f32, 1, mul);
 define_fp_xN_bin_op(float, f32, 1, div);
 define_fp_xN_unary_op(float, f32, 1, sqrt);
 define_fp_xN_ter_op(float, f32, 1, fma);
-#endif
 
 /* 64-bits */
-#if HWY_MAX_BYTES >= 8
 define_fp_xN_bin_op(double, f64, 1, add);
 define_fp_xN_bin_op(double, f64, 1, sub);
 define_fp_xN_bin_op(double, f64, 1, mul);
@@ -471,10 +472,8 @@ define_fp_xN_bin_op(float, f32, 2, mul);
 define_fp_xN_bin_op(float, f32, 2, div);
 define_fp_xN_unary_op(float, f32, 2, sqrt);
 define_fp_xN_ter_op(float, f32, 2, fma);
-#endif
 
 /* 128-bits */
-#if HWY_MAX_BYTES >= 16
 define_fp_xN_bin_op(double, f64, 2, add);
 define_fp_xN_bin_op(double, f64, 2, sub);
 define_fp_xN_bin_op(double, f64, 2, mul);
@@ -488,10 +487,8 @@ define_fp_xN_bin_op(float, f32, 4, mul);
 define_fp_xN_bin_op(float, f32, 4, div);
 define_fp_xN_unary_op(float, f32, 4, sqrt);
 define_fp_xN_ter_op(float, f32, 4, fma);
-#endif
 
 /* 256-bits */
-#if HWY_MAX_BYTES >= 32
 define_fp_xN_bin_op(double, f64, 4, add);
 define_fp_xN_bin_op(double, f64, 4, sub);
 define_fp_xN_bin_op(double, f64, 4, mul);
@@ -505,10 +502,8 @@ define_fp_xN_bin_op(float, f32, 8, mul);
 define_fp_xN_bin_op(float, f32, 8, div);
 define_fp_xN_unary_op(float, f32, 8, sqrt);
 define_fp_xN_ter_op(float, f32, 8, fma);
-#endif
 
 /* 512-bits */
-#if HWY_MAX_BYTES >= 64
 define_fp_xN_bin_op(double, f64, 8, add);
 define_fp_xN_bin_op(double, f64, 8, sub);
 define_fp_xN_bin_op(double, f64, 8, mul);
@@ -522,7 +517,6 @@ define_fp_xN_bin_op(float, f32, 16, mul);
 define_fp_xN_bin_op(float, f32, 16, div);
 define_fp_xN_unary_op(float, f32, 16, sqrt);
 define_fp_xN_ter_op(float, f32, 16, fma);
-#endif
 
 } // namespace fixed::HWY_NAMESPACE
 
@@ -854,17 +848,14 @@ namespace fixed {
 namespace {
 
 /* 32-bits */
-#if HWY_MAX_BYTES >= 4
 HWY_EXPORT(_addx1_f32);
 HWY_EXPORT(_subx1_f32);
 HWY_EXPORT(_mulx1_f32);
 HWY_EXPORT(_divx1_f32);
 HWY_EXPORT(_sqrtx1_f32);
 HWY_EXPORT(_fmax1_f32);
-#endif
 
 /* 64-bits */
-#if HWY_MAX_BYTES >= 8
 HWY_EXPORT(_addx1_f64);
 HWY_EXPORT(_subx1_f64);
 HWY_EXPORT(_mulx1_f64);
@@ -878,10 +869,8 @@ HWY_EXPORT(_mulx2_f32);
 HWY_EXPORT(_divx2_f32);
 HWY_EXPORT(_sqrtx2_f32);
 HWY_EXPORT(_fmax2_f32);
-#endif
 
 /* 128-bits */
-#if (HWY_MAX_BYTES >= 16) && (HWY_TARGET != HWY_SCALAR)
 HWY_EXPORT(_addx2_f64);
 HWY_EXPORT(_subx2_f64);
 HWY_EXPORT(_mulx2_f64);
@@ -895,10 +884,8 @@ HWY_EXPORT(_mulx4_f32);
 HWY_EXPORT(_divx4_f32);
 HWY_EXPORT(_sqrtx4_f32);
 HWY_EXPORT(_fmax4_f32);
-#endif
 
 /* 256-bits */
-#if (HWY_MAX_BYTES >= 32) && (HWY_TARGET != HWY_SCALAR)
 HWY_EXPORT(_addx4_f64);
 HWY_EXPORT(_subx4_f64);
 HWY_EXPORT(_mulx4_f64);
@@ -912,10 +899,8 @@ HWY_EXPORT(_mulx8_f32);
 HWY_EXPORT(_divx8_f32);
 HWY_EXPORT(_sqrtx8_f32);
 HWY_EXPORT(_fmax8_f32);
-#endif
 
 /* 512-bits */
-#if (HWY_MAX_BYTES >= 64) && (HWY_TARGET != HWY_SCALAR)
 HWY_EXPORT(_addx8_f64);
 HWY_EXPORT(_subx8_f64);
 HWY_EXPORT(_mulx8_f64);
@@ -929,17 +914,6 @@ HWY_EXPORT(_mulx16_f32);
 HWY_EXPORT(_divx16_f32);
 HWY_EXPORT(_sqrtx16_f32);
 HWY_EXPORT(_fmax16_f32);
-#endif
-
-/* 1024-bits */
-#if (HWY_MAX_BYTES >= 128) && (HWY_TARGET != HWY_SCALAR)
-HWY_EXPORT(_addx16_f64);
-HWY_EXPORT(_subx16_f64);
-HWY_EXPORT(_mulx16_f64);
-HWY_EXPORT(_divx16_f64);
-HWY_EXPORT(_sqrtx16_f64);
-HWY_EXPORT(_fmax16_f64);
-#endif
 
 } // namespace
 
@@ -1117,27 +1091,6 @@ define_static_unary_op(f32, sqrt, 16);
 define_static_ternary_op(f32, fma, 16);
 
 #endif // 512-bits
-
-/* 1024-bits */
-#if HWY_MAX_BYTES >= 128
-
-/* binary64 */
-
-define_static_binary_op(f64, add, 16);
-define_static_binary_op(f64, sub, 16);
-define_static_binary_op(f64, mul, 16);
-define_static_binary_op(f64, div, 16);
-define_static_unary_op(f64, sqrt, 16);
-define_static_ternary_op(f64, fma, 16);
-
-define_static_binary_op(f32, add, 32);
-define_static_binary_op(f32, sub, 32);
-define_static_binary_op(f32, mul, 32);
-define_static_binary_op(f32, div, 32);
-define_static_unary_op(f32, sqrt, 32);
-define_static_ternary_op(f32, fma, 32);
-
-#endif // 1024-bits
 
 } // namespace fixed
 

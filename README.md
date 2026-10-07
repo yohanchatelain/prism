@@ -74,7 +74,13 @@ bazel test tests:all
 
 ## Current status
 
-The library has only been tested on X86-64 architectures for the moment.
+The library is tested on x86-64. Arm (aarch64) support is **experimental**:
+
+- NEON targets are built by default.
+- SVE targets are opt-in with `./configure --enable-experimental-sve` and need clang >= 22 (Highway generates no SVE code with older clang; clang 21 only supports `SVE2_128`).
+- `-march=native` falls back to a generic armv8 CPU when clang does not know the host CPU; pass `--with-arch` (e.g. `armv9-a+sve2`) in that case.
+
+`make target-info` prints the Highway targets the static and dynamic libraries were built for.
 
 ## Publications
 

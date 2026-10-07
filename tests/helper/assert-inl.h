@@ -133,14 +133,16 @@ void assert_is_proba(const DistanceError<H> &result, Counter<T> &counter) {
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>,
           typename... Args>
 void assert_equal_inputs(D d, Args... args) {
+  static_assert((std::is_same_v<V, Args> && ...),
+                "All arguments must be highwy vectors");
   int i = 1;
-  for (const auto &a : {args...}) {
-    static_assert(std::is_same_v<const V &, decltype(a)>,
-                  "All arguments must be highwy vectors");
+  // Returns true to stop checking. A fold is used instead of iterating over
+  // {args...}: sizeless vector types (SVE, RVV) cannot be array elements.
+  const auto check = [&](const V &a) -> bool {
     const auto a_min = reduce_min(d, a);
     const auto a_max = reduce_max(d, a);
     if (isnan(a_min) and isnan(a_max)) {
-      return;
+      return true;
     }
     if (a_min != a_max) {
       std::cerr << "Vector does not have equal inputs!\n"
@@ -149,8 +151,10 @@ void assert_equal_inputs(D d, Args... args) {
                 << "max(a): " << hexfloat(a_max) << std::endl;
       hwy_assert_fail();
     }
-  }
-  i++;
+    i++;
+    return false;
+  };
+  (check(args) || ...);
 }
 
 template <typename T, typename H = typename prism::utils::IEEE754<T>::H>
@@ -495,10 +499,11 @@ template <typename Args, class M, class Op, class D, class V = hn::VFromD<D>,
           typename T = hn::TFromD<D>>
 void CheckDistributionResultsWrapper(D d, const ConfigTest &config,
                                      Args &&args) {
+  // args holds scalars; broadcast them here (see generic test drivers).
   std::apply(
-      [&](auto &&...unpacked_args) {
-        CheckDistributionResults<M, Op>(
-            d, config, std::forward<decltype(unpacked_args)>(unpacked_args)...);
+      [&](auto... scalar_args) {
+        CheckDistributionResults<M, Op>(d, config,
+                                        hn::Set(d, scalar_args)...);
       },
       std::forward<Args>(args));
 }

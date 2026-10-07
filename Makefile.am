@@ -1,7 +1,7 @@
 # Include macros from the m4 directory
 ACLOCAL_AMFLAGS = -I m4
 
-all: highway prism
+all: highway prism target-info
 	
 highway:
 	$(BAZEL) build @hwy
@@ -11,6 +11,12 @@ highway:
 # builds in bazel-bin/src record no such dependencies.
 prism:
 	$(BAZEL) build src:prism-all lib:shared-libraries
+
+# Print the Highway targets PRISM was built for.
+target-info:
+	@$(BAZEL) run --ui_event_filters=-info --noshow_progress src:prism-target-info
+
+.PHONY: highway prism target-info
 
 bazel-bin/prism-dynamic.ll:
 	$(BAZEL) build :prism_ir

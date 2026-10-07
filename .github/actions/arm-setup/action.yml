@@ -1,0 +1,42 @@
+name: arm-setup
+description: Install the PRISM build dependencies on an Ubuntu arm64 runner.
+
+inputs:
+  llvm:
+    description: LLVM major version, installed from apt.llvm.org.
+    required: true
+  qemu:
+    description: Also install qemu-user-static.
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Install build tools
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y autoconf automake libtool parallel wget
+    - name: Install LLVM ${{ inputs.llvm }}
+      shell: bash
+      # Prefer Ubuntu's packages: mixing them with apt.llvm.org's for the same
+      # version breaks (e.g. the runner's libllvm18 vs apt.llvm.org's
+      # llvm-18-dev). Versions Ubuntu does not ship come from apt.llvm.org.
+      run: |
+        v=${{ inputs.llvm }}
+        if ! sudo apt-get install -y clang-$v llvm-$v llvm-$v-dev; then
+          wget -qO /tmp/llvm.sh https://apt.llvm.org/llvm.sh
+          sudo bash /tmp/llvm.sh $v
+          sudo apt-get install -y llvm-$v-dev
+        fi
+        /usr/lib/llvm-$v/bin/clang --version
+    - name: Install Bazelisk
+      shell: bash
+      run: |
+        sudo curl -fsSL -o /usr/local/bin/bazel \
+          https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-arm64
+        sudo chmod +x /usr/local/bin/bazel
+    - name: Install QEMU
+      if: inputs.qemu == 'true'
+      shell: bash
+      run: sudo apt-get install -y qemu-user-static

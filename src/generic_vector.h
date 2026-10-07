@@ -153,14 +153,4 @@ auto sqrtf32x16(f32x16_v a) -> f32x16_v;
 auto fmaf32x16(f32x16_v a, f32x16_v b, f32x16_v c) -> f32x16_v;
 #endif
 
-/* 1024-bits */
-#if HWY_MAX_BYTES >= 128
-auto addf64x16(f64x16_v a, f64x16_v b) -> f64x16_v;
-auto subf64x16(f64x16_v a, f64x16_v b) -> f64x16_v;
-auto mulf64x16(f64x16_v a, f64x16_v b) -> f64x16_v;
-auto divf64x16(f64x16_v a, f64x16_v b) -> f64x16_v;
-auto sqrtf64x16(f64x16_v a) -> f64x16_v;
-auto fmaf64x16(f64x16_v a, f64x16_v b, f64x16_v c) -> f64x16_v;
-#endif
-
 } // namespace fixed

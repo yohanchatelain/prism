@@ -49,11 +49,11 @@ namespace sr = prism::sr::vector::PRISM_DISPATCH::HWY_NAMESPACE;
 template <class D, class V = hn::VFromD<D>, typename T = hn::TFromD<D>,
           typename H = typename helper::IEEE754<T>::H>
 void is_close(D d, const helper::ConfigTest & /*unused*/,
-              std::tuple<V, V> &&args) {
+              std::tuple<T, T> &&args) {
 
-  const auto [va, vb] = args;
-  const auto a = helper_simd::extract_unique_lane(d, va);
-  const auto b = helper_simd::extract_unique_lane(d, vb);
+  const auto [a, b] = args;
+  const auto va = hn::Set(d, a);
+  const auto vb = hn::Set(d, b);
 
   H ref = reference::twosum(a, b);
   T ref_cast = static_cast<T>(ref);
